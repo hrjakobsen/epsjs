@@ -121,6 +121,17 @@ export class PostScriptInterpreter {
     interpreter.run()
   }
 
+  private pushLiteral(value: any, type: ObjectType) {
+    this.operandStack.push({
+      type,
+      value,
+      attributes: {
+        access: Access.Unlimited,
+        executability: Executability.Literal,
+      },
+    })
+  }
+
   private pushLiteralNumber(
     num: number,
     type: ObjectType.Integer | ObjectType.Real = ObjectType.Integer
@@ -266,15 +277,165 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ANY_TYPE, ANY_TYPE)
-  private eq({ value: v1 }: PostScriptObject, { value: v2 }: PostScriptObject) {
-    this.operandStack.push({
-      type: ObjectType.Boolean,
-      value: v1 === v2,
-      attributes: {
-        access: Access.Unlimited,
-        executability: Executability.Literal,
-      },
-    })
+  private eq(
+    { value: v1, type: t1 }: PostScriptObject,
+    { value: v2, type: t2 }: PostScriptObject
+  ) {
+    this.pushLiteral(
+      compareTypeCompatible(t1, t2) && v1 === v2,
+      ObjectType.Boolean
+    )
+  }
+
+  @builtin()
+  @operands(ANY_TYPE, ANY_TYPE)
+  private ne(
+    { value: v1, type: t1 }: PostScriptObject,
+    { value: v2, type: t2 }: PostScriptObject
+  ) {
+    this.pushLiteral(
+      compareTypeCompatible(t1, t2) && v1 !== v2,
+      ObjectType.Boolean
+    )
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Integer | ObjectType.Real | ObjectType.String,
+    ObjectType.Integer | ObjectType.Real | ObjectType.String
+  )
+  private ge(
+    { value: v1, type: t1 }: PostScriptObject,
+    { value: v2, type: t2 }: PostScriptObject
+  ) {
+    this.pushLiteral(
+      compareTypeCompatible(t1, t2) && v1 >= v2,
+      ObjectType.Boolean
+    )
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Integer | ObjectType.Real | ObjectType.String,
+    ObjectType.Integer | ObjectType.Real | ObjectType.String
+  )
+  private gt(
+    { value: v1, type: t1 }: PostScriptObject,
+    { value: v2, type: t2 }: PostScriptObject
+  ) {
+    this.pushLiteral(
+      compareTypeCompatible(t1, t2) && v1 > v2,
+      ObjectType.Boolean
+    )
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Integer | ObjectType.Real | ObjectType.String,
+    ObjectType.Integer | ObjectType.Real | ObjectType.String
+  )
+  private le(
+    { value: v1, type: t1 }: PostScriptObject,
+    { value: v2, type: t2 }: PostScriptObject
+  ) {
+    this.pushLiteral(
+      compareTypeCompatible(t1, t2) && v1 <= v2,
+      ObjectType.Boolean
+    )
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Integer | ObjectType.Real | ObjectType.String,
+    ObjectType.Integer | ObjectType.Real | ObjectType.String
+  )
+  private lt(
+    { value: v1, type: t1 }: PostScriptObject,
+    { value: v2, type: t2 }: PostScriptObject
+  ) {
+    this.pushLiteral(
+      compareTypeCompatible(t1, t2) && v1 < v2,
+      ObjectType.Boolean
+    )
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Integer | ObjectType.Boolean,
+    ObjectType.Integer | ObjectType.Boolean
+  )
+  private and(
+    { value: v1, type: t1 }: PostScriptObject,
+    { value: v2, type: t2 }: PostScriptObject
+  ) {
+    if (t1 !== t2) {
+      throw new Error('and requires same type of params')
+    }
+    if (t1 === ObjectType.Boolean) {
+      this.pushLiteral(v1 && v2, ObjectType.Boolean)
+    } else {
+      this.pushLiteral(v1 & v2, ObjectType.Boolean)
+    }
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Integer | ObjectType.Boolean,
+    ObjectType.Integer | ObjectType.Boolean
+  )
+  private or(
+    { value: v1, type: t1 }: PostScriptObject,
+    { value: v2, type: t2 }: PostScriptObject
+  ) {
+    if (t1 !== t2) {
+      throw new Error('or requires same type of params')
+    }
+    if (t1 === ObjectType.Boolean) {
+      this.pushLiteral(v1 || v2, ObjectType.Boolean)
+    } else {
+      this.pushLiteral(v1 | v2, ObjectType.Boolean)
+    }
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Integer | ObjectType.Boolean,
+    ObjectType.Integer | ObjectType.Boolean
+  )
+  private xor(
+    { value: v1, type: t1 }: PostScriptObject,
+    { value: v2, type: t2 }: PostScriptObject
+  ) {
+    if (t1 !== t2) {
+      throw new Error('xor requires same type of params')
+    }
+    if (t1 === ObjectType.Boolean) {
+      this.pushLiteral(v1 || (v2 && (!v1 || !v2)), ObjectType.Boolean)
+    } else {
+      this.pushLiteral(v1 ^ v2, ObjectType.Boolean)
+    }
+  }
+
+  @builtin()
+  @operands(ObjectType.Integer, ObjectType.Integer)
+  private bitshift(
+    { value }: PostScriptObject,
+    { value: shift }: PostScriptObject
+  ) {
+    this.pushLiteral(
+      shift ? value << shift : value >> shift,
+      ObjectType.Integer
+    )
+  }
+
+  @builtin()
+  @operands(ObjectType.Integer | ObjectType.Boolean)
+  private not({ value: v1, type: t1 }: PostScriptObject) {
+    if (t1 === ObjectType.Boolean) {
+      this.pushLiteral(!v1, ObjectType.Boolean)
+    } else {
+      this.pushLiteral(~v1, ObjectType.Boolean)
+    }
   }
 
   @builtin('true')
@@ -630,4 +791,11 @@ export class PostScriptInterpreter {
   private pstack() {
     console.log(this.operandStack)
   }
+}
+
+function compareTypeCompatible(type1: ObjectType, type2: ObjectType): boolean {
+  if (type1 & (ObjectType.Integer | ObjectType.Real)) {
+    return Boolean(type2 & (ObjectType.Integer | ObjectType.Real))
+  }
+  return type1 == type2
 }
