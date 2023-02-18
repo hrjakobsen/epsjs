@@ -104,9 +104,6 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
       this.dataStream.advance()
     }
     const name = this.dataStream.collectWhile(isRegularCharacter)
-    if (!name.length) {
-      throw new Error('Lexer error: no alphanumeric characters after /')
-    }
 
     return {
       kind: literal

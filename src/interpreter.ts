@@ -13,7 +13,7 @@ import {
 import { degreeToRadians, radiansToDegrees } from './utils.js'
 
 const ANY_TYPE = -1
-
+const MAX_STEPS = 100_000
 export class PostScriptInterpreter {
   private constructor(
     private scanner: PostScriptScanner,
@@ -30,6 +30,9 @@ export class PostScriptInterpreter {
   private graphicsStack: GraphicsState[] = [
     new GraphicsState(this.ctx.canvas.height),
   ]
+
+  private stopped = false
+  private stepsLeft = MAX_STEPS
 
   private get graphicsState() {
     if (!this.graphicsStack) {
@@ -49,20 +52,26 @@ export class PostScriptInterpreter {
   }
 
   private done() {
-    return this.executionStack.length === 0 && this.scanner.next === undefined
+    if (this.stepsLeft-- < 0) {
+      throw new Error('Too many steps executed')
+    }
+
+    return (
+      this.stopped ||
+      (this.executionStack.length === 0 && this.scanner.next === undefined)
+    )
   }
 
   private fetchAndExecute() {
-    let forceArrayToOperandStack = false
     if (!this.executionStack.length) {
-      forceArrayToOperandStack = true
       this.executionStack.push(this.scanner.next!)
       this.scanner.advance()
     }
     const item = this.next!
     if (
       item.attributes.executability === Executability.Literal ||
-      (item.type === ObjectType.Array && forceArrayToOperandStack)
+      (item.type === ObjectType.Array &&
+        item.attributes.executability === Executability.Executable)
     ) {
       this.operandStack.push(item)
       return
@@ -154,7 +163,7 @@ export class PostScriptInterpreter {
   @builtin()
   @operands(ANY_TYPE, ANY_TYPE)
   private exch(first: PostScriptObject, second: PostScriptObject) {
-    this.operandStack.push(first, second)
+    this.operandStack.push(second, first)
   }
 
   @builtin()
@@ -246,12 +255,50 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Name, ObjectType.Array)
-  private def(
-    { value: name }: PostScriptObject,
-    { value: procedure }: PostScriptObject
-  ) {
+  private def(name: PostScriptObject, procedure: PostScriptObject) {
     const dictionary = this.dictionaryStack[this.dictionaryStack.length - 1]!
     dictionary.set(name, procedure)
+  }
+
+  // ---------------------------------------------------------------------------
+  //               Relational, Boolean, and Bitwise Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  @operands(ANY_TYPE, ANY_TYPE)
+  private eq({ value: v1 }: PostScriptObject, { value: v2 }: PostScriptObject) {
+    this.operandStack.push({
+      type: ObjectType.Boolean,
+      value: v1 === v2,
+      attributes: {
+        access: Access.Unlimited,
+        executability: Executability.Literal,
+      },
+    })
+  }
+
+  @builtin('true')
+  private _true() {
+    this.operandStack.push({
+      type: ObjectType.Boolean,
+      value: true,
+      attributes: {
+        access: Access.Unlimited,
+        executability: Executability.Literal,
+      },
+    })
+  }
+
+  @builtin('false')
+  private _false() {
+    this.operandStack.push({
+      type: ObjectType.Boolean,
+      value: false,
+      attributes: {
+        access: Access.Unlimited,
+        executability: Executability.Literal,
+      },
+    })
   }
 
   // ---------------------------------------------------------------------------
@@ -517,6 +564,46 @@ export class PostScriptInterpreter {
   @builtin()
   private stroke() {
     this.ctx.stroke()
+  }
+
+  // ---------------------------------------------------------------------------
+  //                           Control Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin('if')
+  @operands(ObjectType.Boolean, ObjectType.Array)
+  private _if({ value: bool }: PostScriptObject, procedure: PostScriptObject) {
+    if (procedure.attributes.executability === Executability.Literal) {
+      throw new Error('Second argument to if is not a procedure')
+    }
+    if (bool) {
+      this.executionStack.push(...[...procedure.value].reverse())
+    }
+  }
+
+  @builtin()
+  @operands(ObjectType.Boolean, ObjectType.Array, ObjectType.Array)
+  private ifelse(
+    { value: bool }: PostScriptObject,
+    procedureTrue: PostScriptObject,
+    procedureFalse: PostScriptObject
+  ) {
+    if (
+      procedureTrue.attributes.executability === Executability.Literal ||
+      procedureFalse.attributes.executability === Executability.Literal
+    ) {
+      throw new Error('Second argument to if is not a procedure')
+    }
+    if (bool) {
+      this.executionStack.push(...[...procedureTrue.value].reverse())
+    } else {
+      this.executionStack.push(...[...procedureFalse.value].reverse())
+    }
+  }
+
+  @builtin()
+  private quit(_obj: PostScriptObject) {
+    this.stopped = true
   }
 
   // ---------------------------------------------------------------------------

@@ -69,7 +69,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
         throw new Error('Not implemented')
       case TokenType.Comment:
         // Skip the comment token
-        this.advance()
+        this._lexer.advance()
         return this.generateToken()
       case TokenType.String:
         return this.scanString()
