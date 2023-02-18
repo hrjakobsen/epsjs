@@ -1,0 +1,32 @@
+/linebetween {
+  newpath
+  moveto
+  lineto
+  stroke
+} def
+
+/hline {
+  0 exch dup 300 exch 
+  linebetween
+} def
+
+/vline {
+  dup 0 exch 300 
+  linebetween
+} def
+
+/drawLine {
+    dup 0 eq {
+      pop
+    } {
+    dup
+    20 mul
+    dup %sdafa
+    hline
+    vline
+    1 sub
+    drawLine
+  } ifelse
+} def
+
+20 drawLine
