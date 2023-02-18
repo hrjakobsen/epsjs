@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head> </head>
+  <style>
+    canvas {
+      border: 1px solid red;
+    }
+  </style>
+  <body>
+    <textarea id="text" style="height: 300px">
+newpath 
+100 100 moveto 
+200 200 lineto
+stroke</textarea
+    >
+    <canvas id="canvas" height="300" width="300"></canvas>
+    <div id="error"></div>
+    <script type="module">
+      import { PostScriptInterpreter } from './src/index.js'
+      const context = document.getElementById('canvas').getContext('2d')
+
+      const textbox = document.getElementById('text')
+
+      function render() {
+        try {
+          document.getElementById('error').innerText = ''
+          PostScriptInterpreter.evaluateString(textbox.value, context)
+        } catch (e) {
+          document.getElementById('error').innerText = e.message +'\n' + e.stack
+        }
+      }
+
+      textbox.addEventListener('input', render)
+      render()
+    </script>
+  </body>
+</html>
