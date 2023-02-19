@@ -1,10 +1,10 @@
 import { PostScriptInterpreter } from '../interpreter.js'
 import { Access, Executability, ObjectType } from '../scanner.js'
-import { Dictionary } from './Dictionary.js'
+import { PostScriptDictionary } from './dictionary.js'
 
-export class SystemDictionary extends Dictionary {
+export class SystemDictionary extends PostScriptDictionary {
   constructor() {
-    super(true)
+    super(true, PostScriptInterpreter.BUILT_INS.size)
     for (const builtin of PostScriptInterpreter.BUILT_INS.keys()) {
       this.addBuiltinOperator(builtin)
     }

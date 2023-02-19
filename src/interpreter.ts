@@ -1,6 +1,6 @@
 import { builtin, operands } from './decorators.js'
-import { Dictionary } from './dictionary/Dictionary.js'
-import { SystemDictionary } from './dictionary/SystemDictonary.js'
+import { PostScriptDictionary } from './dictionary/dictionary.js'
+import { SystemDictionary } from './dictionary/system-dictionary.js'
 import { GraphicsState, Path, SegmentType } from './graphics-state.js'
 import { CharStream, PostScriptLexer } from './lexer.js'
 import {
@@ -10,10 +10,15 @@ import {
   PostScriptObject,
   PostScriptScanner,
 } from './scanner.js'
-import { degreeToRadians, radiansToDegrees } from './utils.js'
+import {
+  compareTypeCompatible,
+  degreeToRadians,
+  radiansToDegrees,
+} from './utils.js'
 
-const ANY_TYPE = -1
 const MAX_STEPS = 100_000
+const MAX_DICT_CAPACITY = 1024
+
 export class PostScriptInterpreter {
   private constructor(
     private scanner: PostScriptScanner,
@@ -21,9 +26,9 @@ export class PostScriptInterpreter {
   ) {
     this.ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
   }
-  private dictionaryStack: Dictionary[] = [
+  private dictionaryStack: PostScriptDictionary[] = [
     new SystemDictionary(),
-    new Dictionary(false),
+    new PostScriptDictionary(false, 1024),
   ]
   public operandStack: PostScriptObject[] = []
   private executionStack: PostScriptObject[] = []
@@ -39,6 +44,13 @@ export class PostScriptInterpreter {
       throw new Error('Missing GraphicState')
     }
     return this.graphicsStack[this.graphicsStack.length - 1]!
+  }
+
+  private get dictionary() {
+    if (!this.dictionaryStack.length) {
+      throw new Error('Empty dictionary stack')
+    }
+    return this.dictionaryStack[this.dictionaryStack.length - 1]!
   }
 
   private run() {
@@ -198,19 +210,19 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
 
   @builtin()
-  @operands(ANY_TYPE)
+  @operands(ObjectType.Any)
   private pop(_obj: PostScriptObject) {
     // arg has already been popped
   }
 
   @builtin()
-  @operands(ANY_TYPE, ANY_TYPE)
+  @operands(ObjectType.Any, ObjectType.Any)
   private exch(first: PostScriptObject, second: PostScriptObject) {
     this.operandStack.push(second, first)
   }
 
   @builtin()
-  @operands(ANY_TYPE)
+  @operands(ObjectType.Any)
   private dup(obj: PostScriptObject) {
     this.operandStack.push(obj, obj)
   }
@@ -300,18 +312,139 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
 
   @builtin()
-  @operands(ObjectType.Name, ObjectType.Array)
-  private def(name: PostScriptObject, procedure: PostScriptObject) {
-    const dictionary = this.dictionaryStack[this.dictionaryStack.length - 1]!
-    dictionary.set(name, procedure)
+  @operands(ObjectType.Integer)
+  private dict({ value: capacity }: PostScriptObject) {
+    if (capacity > MAX_DICT_CAPACITY) {
+      throw new Error(
+        `${capacity} is higher than the max capacity of ${MAX_DICT_CAPACITY}`
+      )
+    }
+    const dictionary = new PostScriptDictionary(false, capacity)
+    this.pushLiteral(dictionary, ObjectType.Dictionary)
   }
+
+  @builtin('<<')
+  private startDict() {
+    this.pushLiteral(undefined, ObjectType.Mark)
+  }
+
+  @builtin('>>')
+  private endDict() {
+    const mark = this.findIndexOfMark()
+    if (mark === undefined) {
+      throw new Error('>>: Missing mark on stack')
+    }
+    const elements = this.operandStack.splice(mark + 1)
+    if (elements.length % 2 !== 0) {
+      throw new Error('Dictionary entries must be key-value pairs')
+    }
+    const dictionary = new PostScriptDictionary(false, elements.length / 2)
+    for (let i = 0; i < elements.length; i += 2) {
+      dictionary.set(elements[i]!, elements[i + 1]!)
+    }
+    this.pushLiteral(dictionary, ObjectType.Dictionary)
+  }
+
+  @builtin()
+  @operands(ObjectType.Dictionary)
+  private begin({ value: dictionary }: PostScriptObject) {
+    this.dictionaryStack.push(dictionary)
+  }
+
+  @builtin()
+  private end() {
+    if (this.dictionaryStack.length === 0) {
+      throw new Error('end: Popping empty dictionary stack')
+    }
+    this.dictionaryStack.pop()
+  }
+
+  @builtin()
+  @operands(ObjectType.Any, ObjectType.Any)
+  private def(name: PostScriptObject, procedure: PostScriptObject) {
+    this.dictionary.set(name, procedure)
+  }
+
+  @builtin()
+  @operands(ObjectType.Any)
+  private load(name: PostScriptObject) {
+    const element = this.dictionary.get(name)
+    if (element === undefined) {
+      throw new Error('Unknown get in dictionary load')
+    }
+    this.operandStack.push(element)
+  }
+
+  @builtin()
+  @operands(ObjectType.Any, ObjectType.Any)
+  private store(key: PostScriptObject, value: PostScriptObject) {
+    this.dictionary.set(key, value)
+  }
+
+  @builtin('put')
+  @operands(ObjectType.Dictionary, ObjectType.Any, ObjectType.Any)
+  private putDict(
+    { value: dictionary }: PostScriptObject,
+    key: PostScriptObject,
+    value: PostScriptObject
+  ) {
+    ;(dictionary as PostScriptDictionary).set(key, value)
+  }
+
+  @builtin()
+  @operands(ObjectType.Dictionary, ObjectType.Any)
+  private undef(
+    { value: dictionary }: PostScriptObject,
+    key: PostScriptObject
+  ) {
+    ;(dictionary as PostScriptDictionary).remove(key)
+  }
+
+  @builtin()
+  @operands(ObjectType.Dictionary, ObjectType.Any)
+  private known(
+    { value: dictionary }: PostScriptObject,
+    key: PostScriptObject
+  ) {
+    this.pushLiteral(
+      (dictionary as PostScriptDictionary).has(key),
+      ObjectType.Boolean
+    )
+  }
+
+  @builtin()
+  @operands(ObjectType.Any)
+  private where(key: PostScriptObject) {
+    for (let i = this.dictionaryStack.length - 1; i >= 0; --i) {
+      const currentDictionary = this.dictionaryStack[i]!
+      if (currentDictionary.has(key)) {
+        // TODO: Should we have a single object for a dictionary, in case
+        // someone dups and changes access?
+        this.pushLiteral(currentDictionary, ObjectType.Dictionary)
+        return
+      }
+    }
+    this.pushLiteral(false, ObjectType.Boolean)
+  }
+
+  @builtin()
+  private currentDict() {
+    this.pushLiteral(this.currentDict, ObjectType.Dictionary)
+  }
+
+  @builtin()
+  private countDictStack() {
+    this.pushLiteral(this.dictionaryStack.length, ObjectType.Integer)
+  }
+
+  // TODO: cleardictstack, dictstack, forall, default dictionaries
 
   // ---------------------------------------------------------------------------
   //               Relational, Boolean, and Bitwise Operators
   // ---------------------------------------------------------------------------
 
   @builtin()
-  @operands(ANY_TYPE, ANY_TYPE)
+  @operands(ObjectType.Any, ObjectType.Any)
   private eq(
     { value: v1, type: t1 }: PostScriptObject,
     { value: v2, type: t2 }: PostScriptObject
@@ -323,7 +456,7 @@ export class PostScriptInterpreter {
   }
 
   @builtin()
-  @operands(ANY_TYPE, ANY_TYPE)
+  @operands(ObjectType.Any, ObjectType.Any)
   private ne(
     { value: v1, type: t1 }: PostScriptObject,
     { value: v2, type: t2 }: PostScriptObject
@@ -761,9 +894,9 @@ export class PostScriptInterpreter {
     this.operandStack.push(elements[index])
   }
 
-  @builtin()
-  @operands(ObjectType.Array, ObjectType.Integer, ANY_TYPE)
-  private put(
+  @builtin('put')
+  @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Any)
+  private putArray(
     { value: elements }: PostScriptObject,
     { value: index }: PostScriptObject,
     item: PostScriptObject
@@ -952,13 +1085,13 @@ export class PostScriptInterpreter {
   //                           File Operators
   // ---------------------------------------------------------------------------
   @builtin('=')
-  @operands(ANY_TYPE)
+  @operands(ObjectType.Any)
   private debugPrint({ value }: PostScriptObject) {
     console.log(value)
   }
 
   @builtin('==')
-  @operands(ANY_TYPE)
+  @operands(ObjectType.Any)
   private debugPrintObject(obj: PostScriptObject) {
     console.log(obj)
   }
@@ -972,11 +1105,4 @@ export class PostScriptInterpreter {
   private pstack() {
     console.log(this.operandStack)
   }
-}
-
-function compareTypeCompatible(type1: ObjectType, type2: ObjectType): boolean {
-  if (type1 & (ObjectType.Integer | ObjectType.Real)) {
-    return Boolean(type2 & (ObjectType.Integer | ObjectType.Real))
-  }
-  return type1 == type2
 }

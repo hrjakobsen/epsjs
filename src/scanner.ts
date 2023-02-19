@@ -7,6 +7,7 @@ import {
 import { BufferedStreamer } from './stream.js'
 
 export enum ObjectType {
+  Any = -1, // NOTE: Internal
   Boolean = 1,
   FontID = 2,
   Integer = 4,
