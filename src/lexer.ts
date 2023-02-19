@@ -226,7 +226,7 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
     if (!isAngleBracketClose(this.dataStream.next)) {
       throw new Error('Expected >')
     }
-    this.advance(1)
+    this.dataStream.advance(1)
     return {
       kind: TokenType.DictionaryClose,
       content: '>>',

@@ -21,6 +21,10 @@ export class PostScriptDictionary {
     return this.map.has(this.toKey(key))
   }
 
+  public entries() {
+    return this.map.entries()
+  }
+
   public get(key: PostScriptObject) {
     return this.map.get(this.toKey(key))
   }

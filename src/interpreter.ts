@@ -13,6 +13,7 @@ import {
 import {
   compareTypeCompatible,
   degreeToRadians,
+  prettyPrint,
   radiansToDegrees,
 } from './utils.js'
 
@@ -379,6 +380,15 @@ export class PostScriptInterpreter {
   @operands(ObjectType.Any, ObjectType.Any)
   private store(key: PostScriptObject, value: PostScriptObject) {
     this.dictionary.set(key, value)
+  }
+
+  @builtin('get')
+  @operands(ObjectType.Dictionary, ObjectType.Any)
+  private getDict(
+    { value: dictionary }: PostScriptObject,
+    key: PostScriptObject
+  ) {
+    this.operandStack.push((dictionary as PostScriptDictionary).get(key)!)
   }
 
   @builtin('put')
@@ -880,9 +890,9 @@ export class PostScriptInterpreter {
     return elements.length
   }
 
-  @builtin()
+  @builtin('get')
   @operands(ObjectType.Array, ObjectType.Integer)
-  private get(
+  private getArray(
     { value: elements }: PostScriptObject,
     { value: index }: PostScriptObject
   ) {
@@ -1086,8 +1096,8 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
   @builtin('=')
   @operands(ObjectType.Any)
-  private debugPrint({ value }: PostScriptObject) {
-    console.log(value)
+  private debugPrint(obj: PostScriptObject) {
+    console.log(prettyPrint(obj))
   }
 
   @builtin('==')
@@ -1098,7 +1108,7 @@ export class PostScriptInterpreter {
 
   @builtin('stack')
   private stack() {
-    console.log(this.operandStack.map((x) => x.value))
+    console.log(this.operandStack.map(prettyPrint))
   }
 
   @builtin('pstack')
