@@ -1,7 +1,12 @@
 import { builtin, operands } from './decorators.js'
 import { PostScriptDictionary } from './dictionary/dictionary.js'
 import { SystemDictionary } from './dictionary/system-dictionary.js'
-import { GraphicsState, Path, SegmentType } from './graphics-state.js'
+import {
+  Direction,
+  GraphicsState,
+  Path,
+  SegmentType,
+} from './graphics-state.js'
 import { CharStream, PostScriptLexer } from './lexer.js'
 import {
   Access,
@@ -1169,6 +1174,13 @@ export class PostScriptInterpreter {
   }
 
   @builtin()
+  private currentPoint() {
+    const currentPoint = this.graphicsState.path.currentPoint
+    this.pushLiteral(currentPoint.x, ObjectType.Real)
+    this.pushLiteral(currentPoint.y, ObjectType.Real)
+  }
+
+  @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
     ObjectType.Real | ObjectType.Integer
@@ -1178,6 +1190,25 @@ export class PostScriptInterpreter {
       x: x.value,
       y: y.value,
     })
+    this.graphicsState.path.currentPoint = nextCoordinate
+    this.ctx.moveTo(nextCoordinate.x, nextCoordinate.y)
+  }
+
+  @builtin('rmoveto')
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer
+  )
+  private relativeMoveTo(x: PostScriptObject, y: PostScriptObject) {
+    const currentPoint = this.graphicsState.path.currentPoint
+    const offsetCoordinate = this.graphicsState.toDeviceCoordinate({
+      x: x.value,
+      y: y.value,
+    })
+    const nextCoordinate = {
+      x: currentPoint.x + offsetCoordinate.x,
+      y: currentPoint.y + offsetCoordinate.y,
+    }
     this.graphicsState.path.currentPoint = nextCoordinate
     this.ctx.moveTo(nextCoordinate.x, nextCoordinate.y)
   }
@@ -1199,13 +1230,228 @@ export class PostScriptInterpreter {
     this.ctx.lineTo(nextCoordinate.x, nextCoordinate.y)
   }
 
+  @builtin()
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer
+  )
+  private relativeLineTo(x: PostScriptObject, y: PostScriptObject) {
+    const currentPoint = this.graphicsState.path.currentPoint
+    const offsetCoordinate = this.graphicsState.toDeviceCoordinate({
+      x: x.value,
+      y: y.value,
+    })
+    const nextCoordinate = {
+      x: currentPoint.x + offsetCoordinate.x,
+      y: currentPoint.y + offsetCoordinate.y,
+    }
+    this.graphicsState.path.addSegment({
+      type: SegmentType.Straight,
+      coordinates: [this.graphicsState.path.currentPoint, nextCoordinate],
+    })
+    this.ctx.lineTo(nextCoordinate.x, nextCoordinate.y)
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer
+  )
+  private arc(
+    { value: x }: PostScriptObject,
+    { value: y }: PostScriptObject,
+    { value: radius }: PostScriptObject,
+    { value: angle1 }: PostScriptObject,
+    { value: angle2 }: PostScriptObject
+  ) {
+    if (angle1 < 0 || angle1 > 360 || angle2 < 0 || angle2 > 360) {
+      throw new Error(`Invalid angles ${angle1} or ${angle2}`)
+    }
+    const coord = this.graphicsState.toDeviceCoordinate({ x, y })
+    this.graphicsState.path.addSegment({
+      type: SegmentType.Arc,
+      coordinates: [coord],
+      angles: [angle1, angle2],
+      radius,
+      direction: Direction.CounterClockwise,
+    })
+    this.ctx.arc(
+      coord.x,
+      coord.y,
+      radius,
+      degreeToRadians(angle1),
+      degreeToRadians(angle2),
+      true
+    )
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer
+  )
+  private arcn(
+    { value: x }: PostScriptObject,
+    { value: y }: PostScriptObject,
+    { value: radius }: PostScriptObject,
+    { value: angle1 }: PostScriptObject,
+    { value: angle2 }: PostScriptObject
+  ) {
+    if (angle1 < 0 || angle1 > 360 || angle2 < 0 || angle2 > 360) {
+      throw new Error(`Invalid angles ${angle1} or ${angle2}`)
+    }
+    const coord = this.graphicsState.toDeviceCoordinate({ x, y })
+    this.graphicsState.path.addSegment({
+      type: SegmentType.Arc,
+      coordinates: [coord],
+      angles: [angle1, angle2],
+      radius,
+      direction: Direction.Clockwise,
+    })
+    this.ctx.arc(
+      coord.x,
+      coord.y,
+      radius,
+      degreeToRadians(angle1),
+      degreeToRadians(angle2),
+      false
+    )
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer
+  )
+  private arct(
+    { value: x1 }: PostScriptObject,
+    { value: y1 }: PostScriptObject,
+    { value: x2 }: PostScriptObject,
+    { value: y2 }: PostScriptObject,
+    { value: radius }: PostScriptObject
+  ) {
+    const coordinates = [
+      this.graphicsState.toDeviceCoordinate({ x: x1, y: y1 }),
+      this.graphicsState.toDeviceCoordinate({ x: x2, y: y2 }),
+    ]
+    this.graphicsState.path.addSegment({
+      type: SegmentType.Arc,
+      coordinates,
+      radius,
+    })
+    // TODO: ctx arct?
+  }
+
+  // TODO: arcto
+
+  @builtin()
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer
+  )
+  private curveto(
+    { value: x1 }: PostScriptObject,
+    { value: y1 }: PostScriptObject,
+    { value: x2 }: PostScriptObject,
+    { value: y2 }: PostScriptObject,
+    { value: x3 }: PostScriptObject,
+    { value: y3 }: PostScriptObject
+  ) {
+    const cp1 = this.graphicsState.toDeviceCoordinate({ x: x1, y: y1 })
+    const cp2 = this.graphicsState.toDeviceCoordinate({ x: x2, y: y2 })
+    const endPoint = this.graphicsState.toDeviceCoordinate({ x: x3, y: y3 })
+    const coordinates = [cp1, cp2, endPoint]
+    this.graphicsState.path.addSegment({
+      type: SegmentType.Bezier,
+      coordinates,
+    })
+    this.ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, endPoint.x, endPoint.y)
+  }
+
   // ---------------------------------------------------------------------------
   //                         Painting Operators
   // ---------------------------------------------------------------------------
-
   @builtin()
   private stroke() {
     this.ctx.stroke()
+  }
+
+  @builtin()
+  private fill() {
+    this.ctx.fill()
+  }
+
+  @builtin('eofill')
+  private evenOddFill() {
+    // TODO: Implement actual operator
+    this.ctx.fill()
+  }
+
+  @builtin('rectstroke')
+  @operands(
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real
+  )
+  private rectangleStrokePlain(
+    { value: x }: PostScriptObject,
+    { value: y }: PostScriptObject,
+    { value: width }: PostScriptObject,
+    { value: height }: PostScriptObject
+  ) {
+    const bottomLeft = this.graphicsState.toDeviceCoordinate({ x, y })
+    // To get device width/height
+    const topRight = this.graphicsState.toDeviceCoordinate({
+      x: x + width,
+      y: y + height,
+    })
+    this.ctx.strokeRect(
+      bottomLeft.x,
+      bottomLeft.y,
+      Math.abs(topRight.x - bottomLeft.x),
+      Math.abs(topRight.y - bottomLeft.y) * -1 // multiply by -1 because canvas y axis is flipped
+    )
+  }
+
+  @builtin('rectfill')
+  @operands(
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real
+  )
+  private rectangleFillPlain(
+    { value: x }: PostScriptObject,
+    { value: y }: PostScriptObject,
+    { value: width }: PostScriptObject,
+    { value: height }: PostScriptObject
+  ) {
+    const bottomLeft = this.graphicsState.toDeviceCoordinate({ x, y })
+    // To get device width/height
+    const topRight = this.graphicsState.toDeviceCoordinate({
+      x: x + width,
+      y: y + height,
+    })
+    this.ctx.fillRect(
+      bottomLeft.x,
+      bottomLeft.y,
+      Math.abs(topRight.x - bottomLeft.x),
+      Math.abs(topRight.y - bottomLeft.y) * -1 // multiply by -1 because canvas y axis is flipped
+    )
   }
 
   // ---------------------------------------------------------------------------

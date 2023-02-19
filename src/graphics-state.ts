@@ -13,12 +13,22 @@ type Coordinate = {
 
 export enum SegmentType {
   Straight,
-  Curve,
+  Arc,
+  Bezier,
+  TangentArc,
+}
+
+export enum Direction {
+  Clockwise,
+  CounterClockwise,
 }
 
 export type Segment = {
   type: SegmentType
-  coordinates: Coordinate[]
+  coordinates?: Coordinate[]
+  radius?: number
+  angles?: number[]
+  direction?: Direction
 }
 
 type SubPath = Segment[]
