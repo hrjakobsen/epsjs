@@ -1,9 +1,21 @@
 export enum LineCap {
-  SquareButtEnd,
+  Butt = 0,
+  Round = 1,
+  Square = 2,
 }
 
 export enum LineJoin {
-  Mitered,
+  Miter,
+  Round,
+  Bevel,
+}
+
+// FIXME: Only RGB is implemented
+export enum ColorSpace {
+  DeviceRGB,
+  DeviceCMYK,
+  DeviceGray,
+  Pattern,
 }
 
 type Coordinate = {
@@ -118,13 +130,13 @@ export class GraphicsState {
   ])
   public clippingPathStack: PathData[] = []
   // TODO implement
-  public colorSpace: undefined = undefined
+  public colorSpace: ColorSpace = ColorSpace.DeviceRGB
   public color: number = 0x000
   // TODO: implement
   public font: undefined = undefined
   public lineWidth: number = 1.0
-  public lineCap: LineCap = LineCap.SquareButtEnd
-  public lineJoin: LineJoin = LineJoin.Mitered
+  public lineCap: LineCap = LineCap.Butt
+  public lineJoin: LineJoin = LineJoin.Miter
   public miterLimit = 10.0
   public dashPattern: number[] = []
   public strokeAdjustment = false

@@ -2,8 +2,11 @@ import { builtin, operands } from './decorators.js'
 import { PostScriptDictionary } from './dictionary/dictionary.js'
 import { SystemDictionary } from './dictionary/system-dictionary.js'
 import {
+  ColorSpace,
   Direction,
   GraphicsState,
+  LineCap,
+  LineJoin,
   Path,
   SegmentType,
 } from './graphics-state.js'
@@ -1165,8 +1168,125 @@ export class PostScriptInterpreter {
   }
 
   // ---------------------------------------------------------------------------
+  //                      Graphics State Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  @operands(ObjectType.Integer | ObjectType.Real)
+  private setLineWidth({ value: lineWidth }: PostScriptObject) {
+    this.graphicsState.lineWidth = lineWidth
+    this.ctx.lineWidth = lineWidth
+  }
+
+  @builtin()
+  @operands()
+  private currentLineWidth() {
+    this.pushLiteral(this.graphicsState.lineWidth, ObjectType.Real)
+  }
+
+  @builtin()
+  @operands(ObjectType.Integer)
+  private setLineCap({ value: lineCap }: PostScriptObject) {
+    switch (lineCap) {
+      case LineCap.Butt:
+        this.ctx.lineCap = 'butt'
+        this.graphicsState.lineCap = LineCap.Butt
+        return
+      case LineCap.Round:
+        this.ctx.lineCap = 'round'
+        this.graphicsState.lineCap = LineCap.Round
+        return
+      case LineCap.Square:
+        this.ctx.lineCap = 'square'
+        this.graphicsState.lineCap = LineCap.Square
+        return
+      default:
+        throw new Error(`Invalid line cap type ${lineCap}`)
+    }
+  }
+
+  @builtin()
+  private currentLineCap() {
+    this.pushLiteral(this.graphicsState.lineCap, ObjectType.Integer)
+  }
+
+  @builtin()
+  @operands(ObjectType.Integer)
+  private setLineJoin({ value: lineJoin }: PostScriptObject) {
+    switch (lineJoin) {
+      case LineJoin.Miter:
+        this.ctx.lineJoin = 'miter'
+        this.graphicsState.lineJoin = LineJoin.Miter
+        return
+      case LineJoin.Round:
+        this.ctx.lineJoin = 'round'
+        this.graphicsState.lineJoin = LineJoin.Round
+        return
+      case LineJoin.Bevel:
+        this.ctx.lineJoin = 'bevel'
+        this.graphicsState.lineJoin = LineJoin.Bevel
+        return
+      default:
+        throw new Error(`Invalid line join type ${lineJoin}`)
+    }
+  }
+
+  @builtin()
+  private currentLineJoin() {
+    this.pushLiteral(this.graphicsState.lineJoin, ObjectType.Integer)
+  }
+
+  @builtin()
+  @operands(ObjectType.Integer)
+  private setMiterLimit({ value: miterLimit }: PostScriptObject) {
+    this.graphicsState.miterLimit = miterLimit
+    this.ctx.miterLimit = miterLimit
+  }
+
+  @builtin()
+  private currentMiterLimit() {
+    this.pushLiteral(this.graphicsState.miterLimit, ObjectType.Integer)
+  }
+
+  // TODO: strokeadjust
+
+  @builtin()
+  @operands(ObjectType.Array, ObjectType.Name)
+  private setColorSpace() {
+    // FIXME: Support more than rgb
+    this.graphicsState.colorSpace = ColorSpace.DeviceRGB
+  }
+
+  @builtin()
+  @builtin('setrgbcolor')
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer
+  )
+  private setColor(
+    { value: rInput }: PostScriptObject,
+    { value: gInput }: PostScriptObject,
+    { value: bInput }: PostScriptObject
+  ) {
+    //FIXME: Support other colour definitions
+    const fitToRgbRange = (number: number) =>
+      Math.round(Math.min(Math.max(0, number), 1) * 255)
+
+    const r = fitToRgbRange(rInput)
+    const g = fitToRgbRange(gInput)
+    const b = fitToRgbRange(bInput)
+    const newColor: number = (r << 16) + (g << 8) + b
+    console.log(newColor.toString(16))
+    this.graphicsState.color = newColor
+    this.ctx.strokeStyle = `#${newColor.toString(16).padStart(6, '0')}`
+    this.ctx.fillStyle = `#${newColor.toString(16).padStart(6, '0')}`
+  }
+
+  // ---------------------------------------------------------------------------
   //                       Path Construction Operators
   // ---------------------------------------------------------------------------
+
   @builtin()
   private newPath() {
     this.graphicsState.path = new Path([])
