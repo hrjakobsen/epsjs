@@ -1277,7 +1277,6 @@ export class PostScriptInterpreter {
     const g = fitToRgbRange(gInput)
     const b = fitToRgbRange(bInput)
     const newColor: number = (r << 16) + (g << 8) + b
-    console.log(newColor.toString(16))
     this.graphicsState.color = newColor
     this.ctx.strokeStyle = `#${newColor.toString(16).padStart(6, '0')}`
     this.ctx.fillStyle = `#${newColor.toString(16).padStart(6, '0')}`
