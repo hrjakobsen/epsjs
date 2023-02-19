@@ -155,15 +155,19 @@ export class PostScriptInterpreter {
     interpreter.run()
   }
 
-  private pushLiteral(value: any, type: ObjectType) {
-    this.operandStack.push({
+  private createLiteral(value: any, type: ObjectType) {
+    return {
       type,
       value,
       attributes: {
         access: Access.Unlimited,
         executability: Executability.Literal,
       },
-    })
+    }
+  }
+
+  private pushLiteral(value: any, type: ObjectType) {
+    this.operandStack.push(this.createLiteral(value, type))
   }
 
   private pushLiteralNumber(
@@ -173,21 +177,14 @@ export class PostScriptInterpreter {
     if (type === ObjectType.Integer) {
       num = Math.floor(num)
     }
-    this.operandStack.push({
-      type,
-      value: num,
-      attributes: {
-        access: Access.Unlimited,
-        executability: Executability.Literal,
-      },
-    })
+    this.pushLiteral(num, type)
   }
 
   public static BUILT_INS = new Map<string, string[]>()
   public static OVERLOADS = new Map<string, (ObjectType | -1)[]>()
 
   private findIndexOfMark() {
-    for (let index = this.operandStack.length - 1; index > 0; --index) {
+    for (let index = this.operandStack.length - 1; index >= 0; --index) {
       const element = this.operandStack[index]
       if (element!.type === ObjectType.Mark) {
         return index
@@ -218,9 +215,12 @@ export class PostScriptInterpreter {
     this.operandStack.push(obj, obj)
   }
 
-  @builtin()
+  @builtin('copy')
   @operands(ObjectType.Integer)
-  private copy({ value: numberOfElements }: PostScriptObject) {
+  private copyStack({ value: numberOfElements }: PostScriptObject) {
+    if (this.operandStack.length < numberOfElements) {
+      throw new Error('Not enough elements on stack to copy')
+    }
     const slice = this.operandStack.slice(
       this.operandStack.length - numberOfElements
     )
@@ -713,9 +713,155 @@ export class PostScriptInterpreter {
   }
 
   // ---------------------------------------------------------------------------
-  //                       Path Construction Operators
+  //                             Array Operators
   // ---------------------------------------------------------------------------
 
+  @builtin()
+  @operands(ObjectType.Integer)
+  private array({ value: length }: PostScriptObject) {
+    this.pushLiteral(
+      Array(length).fill(this.createLiteral(null, ObjectType.Null)),
+      ObjectType.Array
+    )
+  }
+
+  @builtin('[')
+  private arrayStart() {
+    this.pushLiteral(undefined, ObjectType.Mark)
+  }
+
+  @builtin(']')
+  private arrayEnd() {
+    const markIndex = this.findIndexOfMark()
+    if (markIndex === undefined) {
+      throw new Error("]: Can't find mark")
+    }
+    const list = this.operandStack.splice(markIndex + 1)
+    this.operandStack.pop() // Remove mark
+    this.pushLiteral(list, ObjectType.Array)
+  }
+
+  @builtin()
+  @operands(ObjectType.Array)
+  private length({ value: elements }: PostScriptObject) {
+    return elements.length
+  }
+
+  @builtin()
+  @operands(ObjectType.Array, ObjectType.Integer)
+  private get(
+    { value: elements }: PostScriptObject,
+    { value: index }: PostScriptObject
+  ) {
+    if (elements.length <= index) {
+      throw new Error(
+        `Index ${index} out of range of array with length ${elements.length}`
+      )
+    }
+    this.operandStack.push(elements[index])
+  }
+
+  @builtin()
+  @operands(ObjectType.Array, ObjectType.Integer, ANY_TYPE)
+  private put(
+    { value: elements }: PostScriptObject,
+    { value: index }: PostScriptObject,
+    item: PostScriptObject
+  ) {
+    if (elements.length <= index) {
+      throw new Error(
+        `Index ${index} out of range of array with length ${elements.length}`
+      )
+    }
+    elements[index] = item
+  }
+
+  @builtin()
+  @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Integer)
+  private getInterval(
+    { value: elements }: PostScriptObject,
+    { value: index }: PostScriptObject,
+    { value: count }: PostScriptObject
+  ) {
+    if (elements.length <= index) {
+      throw new Error(
+        `getinterval: index ${index} out of range of array with length ${elements.length}`
+      )
+    }
+    if (elements.length <= index + count) {
+      throw new Error(
+        `getinterval: index ${index} with count ${count} is out of range of array with length ${elements.length}`
+      )
+    }
+    this.pushLiteral(
+      (elements as PostScriptObject[]).slice(index, index + count),
+      ObjectType.Array
+    )
+  }
+
+  @builtin()
+  @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Array)
+  private putInterval(
+    { value: target }: PostScriptObject,
+    { value: index }: PostScriptObject,
+    { value: source }: PostScriptObject
+  ) {
+    if (target.length < index + source.length) {
+      throw new Error(
+        `putinterval: inserting source array with length ${source.length} in array with length ${target.length} starting at index ${index} is out of range`
+      )
+    }
+    ;(target as PostScriptObject[]).splice(index, source.length, ...source)
+  }
+
+  @builtin()
+  @operands(ObjectType.Array)
+  private astore(array: PostScriptObject) {
+    const { value: elements } = <{ value: PostScriptObject[] }>array
+    if (this.operandStack.length < elements.length) {
+      throw new Error(
+        `astore: Not enough elements on stack. Required ${elements.length} found ${this.operandStack.length}`
+      )
+    }
+    // Move items from stack into array
+    elements.splice(
+      0,
+      elements.length,
+      ...this.operandStack.splice(this.operandStack.length - elements.length)
+    )
+    this.operandStack.push(array)
+  }
+
+  @builtin()
+  @operands(ObjectType.Array)
+  private aload(array: PostScriptObject) {
+    const { value: elements } = <{ value: PostScriptObject[] }>array
+    this.operandStack.push(...elements, array)
+  }
+
+  @builtin('copy')
+  @operands(ObjectType.Array, ObjectType.Array)
+  private copyArray(
+    { value: source }: PostScriptObject,
+    { value: target }: PostScriptObject
+  ) {
+    // Returns the removed elements of target
+    if (target.length < source.length) {
+      throw new Error(
+        `copy: Cannot copy array of length ${source.length} into array of length ${target.length}`
+      )
+    }
+    const returnedElements = (target as PostScriptObject[]).splice(
+      0,
+      source.length,
+      ...source
+    )
+    this.pushLiteral(returnedElements, ObjectType.Array)
+  }
+
+  // ---------------------------------------------------------------------------
+  //                       Path Construction Operators
+  // ---------------------------------------------------------------------------
   @builtin()
   private newPath() {
     this.graphicsState.path = new Path([])
