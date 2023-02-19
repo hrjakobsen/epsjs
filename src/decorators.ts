@@ -10,7 +10,10 @@ export function builtin(name?: string) {
     if (!name) {
       name = methodName.toLowerCase()
     }
-    PostScriptInterpreter.BUILT_INS.set(name, methodName)
+    if (!PostScriptInterpreter.BUILT_INS.has(name)) {
+      PostScriptInterpreter.BUILT_INS.set(name, [])
+    }
+    PostScriptInterpreter.BUILT_INS.get(name)!.push(methodName)
   }
 }
 
@@ -20,13 +23,18 @@ export function operands(...types: (ObjectType | -1)[]) {
     methodName: string,
     descriptor: PropertyDescriptor
   ) {
+    PostScriptInterpreter.OVERLOADS.set(methodName, types)
     const currentFunction: Function = descriptor.value
     descriptor.value = function (this: PostScriptInterpreter) {
       const args = []
       for (let i = types.length - 1; i >= 0; --i) {
         const type = types[i]!
         if (!this.operandStack.length) {
-          throw new Error('Unexpected end of operand stack')
+          throw new Error(
+            `Not enough operands for ${methodName}. It requires ${
+              types.length
+            } but only ${types.length - 1 - i} was available`
+          )
         }
         const arg = this.operandStack.pop()!
         if (!(arg.type & type)) {

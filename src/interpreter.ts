@@ -62,6 +62,40 @@ export class PostScriptInterpreter {
     )
   }
 
+  private resolveBuiltin(operatorName: string): string {
+    const overloads = PostScriptInterpreter.BUILT_INS.get(operatorName)
+    if (overloads === undefined) {
+      throw new Error(`Unknown builtin ${operatorName}`)
+    }
+    if (overloads.length === 1) {
+      return overloads[0]!
+    }
+
+    outer: for (const overloadName of overloads) {
+      const overloadTypes = PostScriptInterpreter.OVERLOADS.get(overloadName)
+      if (overloadTypes === undefined) {
+        throw new Error(
+          `${overloadName} has no declared operands, even though it is an overload`
+        )
+      }
+      if (overloadTypes.length > this.operandStack.length) {
+        continue
+      }
+      for (let i = 0; i < overloadTypes.length; ++i) {
+        if (
+          !(
+            this.operandStack[this.operandStack.length - 1 - i]!.type &
+            overloadTypes[overloadTypes.length - 1 - i]!
+          )
+        ) {
+          continue outer
+        }
+      }
+      return overloadName
+    }
+    throw new Error(`No matching overload found for ${operatorName}`)
+  }
+
   private fetchAndExecute() {
     if (!this.executionStack.length) {
       this.executionStack.push(this.scanner.next!)
@@ -84,8 +118,8 @@ export class PostScriptInterpreter {
       const operator = this.symbolLookup(item)!
       if (operator.type === ObjectType.Operator) {
         // TODO: Find a better way to express this
-        const methodName = PostScriptInterpreter.BUILT_INS.get(operator.value)!
-        ;(this as any)[methodName]()
+        const methodName = this.resolveBuiltin(operator.value)
+        ;(this as any)[methodName]!()
         return
       }
       if (
@@ -149,7 +183,8 @@ export class PostScriptInterpreter {
     })
   }
 
-  public static BUILT_INS = new Map<string, string>()
+  public static BUILT_INS = new Map<string, string[]>()
+  public static OVERLOADS = new Map<string, (ObjectType | -1)[]>()
 
   private findIndexOfMark() {
     for (let index = this.operandStack.length - 1; index > 0; --index) {
