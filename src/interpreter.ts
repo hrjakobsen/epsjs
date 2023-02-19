@@ -10,6 +10,7 @@ import {
   PostScriptObject,
   PostScriptScanner,
 } from './scanner.js'
+import { PostScriptString } from './string.js'
 import {
   compareTypeCompatible,
   degreeToRadians,
@@ -450,6 +451,162 @@ export class PostScriptInterpreter {
   // TODO: cleardictstack, dictstack, forall, default dictionaries
 
   // ---------------------------------------------------------------------------
+  //                          String Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  @operands(ObjectType.Integer)
+  private string({ value: length }: PostScriptObject) {
+    // TODO: Enforce max string length
+    this.pushLiteral(new PostScriptString(length), ObjectType.String)
+  }
+
+  @builtin('length')
+  @operands(ObjectType.String)
+  private stringLength({ value: string }: PostScriptObject) {
+    this.pushLiteral(string.length, ObjectType.Integer)
+  }
+
+  @builtin('get')
+  @operands(ObjectType.String, ObjectType.Integer)
+  private stringGet(
+    { value: string }: PostScriptObject,
+    { value: index }: PostScriptObject
+  ) {
+    this.pushLiteral(
+      (string as PostScriptString).get(index),
+      ObjectType.Integer
+    )
+  }
+
+  @builtin('put')
+  @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
+  private stringPut(
+    { value: string }: PostScriptObject,
+    { value: index }: PostScriptObject,
+    { value: newValue }: PostScriptObject
+  ) {
+    ;(string as PostScriptString).set(index, newValue)
+  }
+
+  @builtin('getinterval')
+  @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
+  private stringGetInterval(
+    { value: string }: PostScriptObject,
+    { value: index }: PostScriptObject,
+    { value: count }: PostScriptObject
+  ) {
+    const stringObj = string as PostScriptString
+    if (index < 0 || count < 0 || index + count > stringObj.length) {
+      throw new Error(
+        `Invalid substring with index ${index} and count ${count}`
+      )
+    }
+    this.pushLiteral(
+      PostScriptString.fromCharCode(
+        ...stringObj.data.slice(index, index + count)
+      ),
+      ObjectType.String
+    )
+  }
+
+  @builtin('putinterval')
+  @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
+  private stringPutInterval(
+    { value: target }: PostScriptObject,
+    { value: index }: PostScriptObject,
+    { value: source }: PostScriptObject
+  ) {
+    const stringSource = source as PostScriptString
+    const stringTarget = target as PostScriptString
+    if (index < 0) {
+      throw new Error('putinterval: index cannot be negative')
+    }
+
+    if (!(stringTarget.length < stringSource.length + index)) {
+      throw new Error(
+        `putinterval: Cannot fit string of length ${stringSource.length} into string of length ${stringTarget.length} starting at index ${index}`
+      )
+    }
+
+    stringTarget.data.splice(index, stringSource.length, ...stringSource.data)
+  }
+
+  @builtin('copy')
+  @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
+  private copyString(
+    { value: source }: PostScriptObject,
+    { value: target }: PostScriptObject
+  ) {
+    const stringSource = source as PostScriptString
+    const stringTarget = target as PostScriptString
+
+    if (!(stringTarget.length < stringSource.length)) {
+      throw new Error(
+        `putinterval: Cannot fit string of length ${stringSource.length} into string of length ${stringTarget.length}`
+      )
+    }
+
+    const removed = stringTarget.data.splice(
+      0,
+      stringSource.length,
+      ...stringSource.data
+    )
+    this.pushLiteral(
+      PostScriptString.fromCharCode(...removed),
+      ObjectType.String
+    )
+  }
+
+  // TODO: forall
+
+  @builtin()
+  @operands(ObjectType.String, ObjectType.String)
+  private anchorSearch(
+    haystackObj: PostScriptObject,
+    { value: needleArg }: PostScriptObject
+  ) {
+    const haystack = haystackObj.value as PostScriptString
+    const needle = needleArg as PostScriptString
+
+    const matches = haystack.anchorSearch(needle)
+    if (!matches) {
+      this.operandStack.push(haystackObj)
+      this.pushLiteral(false, ObjectType.Boolean)
+      return
+    }
+    const match = haystack.subString(0, needle.length)
+    const post = haystack.subString(needle.length)
+    this.pushLiteral(post, ObjectType.String)
+    this.pushLiteral(match, ObjectType.String)
+    this.pushLiteral(true, ObjectType.Boolean)
+  }
+
+  @builtin()
+  @operands(ObjectType.String, ObjectType.String)
+  private seek(
+    haystackObj: PostScriptObject,
+    { value: needleArg }: PostScriptObject
+  ) {
+    const haystack = haystackObj.value as PostScriptString
+    const needle = needleArg as PostScriptString
+
+    const matchIndex = haystack.search(needle)
+    if (matchIndex === false) {
+      this.operandStack.push(haystackObj)
+      this.pushLiteral(false, ObjectType.Boolean)
+      return
+    }
+    const pre = haystack.subString(0, matchIndex)
+    const match = haystack.subString(matchIndex, needle.length)
+    const post = haystack.subString(matchIndex + needle.length)
+    this.pushLiteral(post, ObjectType.String)
+    this.pushLiteral(match, ObjectType.String)
+    this.pushLiteral(pre, ObjectType.String)
+    this.pushLiteral(true, ObjectType.Boolean)
+  }
+
+  // ---------------------------------------------------------------------------
   //               Relational, Boolean, and Bitwise Operators
   // ---------------------------------------------------------------------------
 
@@ -884,9 +1041,9 @@ export class PostScriptInterpreter {
     this.pushLiteral(list, ObjectType.Array)
   }
 
-  @builtin()
+  @builtin('length')
   @operands(ObjectType.Array)
-  private length({ value: elements }: PostScriptObject) {
+  private arrayLength({ value: elements }: PostScriptObject) {
     return elements.length
   }
 
@@ -919,9 +1076,9 @@ export class PostScriptInterpreter {
     elements[index] = item
   }
 
-  @builtin()
+  @builtin('getinterval')
   @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Integer)
-  private getInterval(
+  private arrayGetInterval(
     { value: elements }: PostScriptObject,
     { value: index }: PostScriptObject,
     { value: count }: PostScriptObject
@@ -942,9 +1099,9 @@ export class PostScriptInterpreter {
     )
   }
 
-  @builtin()
+  @builtin('putinterval')
   @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Array)
-  private putInterval(
+  private arrayPutInterval(
     { value: target }: PostScriptObject,
     { value: index }: PostScriptObject,
     { value: source }: PostScriptObject

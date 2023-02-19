@@ -43,12 +43,13 @@ export function prettyPrint(obj: PostScriptObject): string {
       return '<packed array>'
     case ObjectType.Save:
       return '<save>'
+    case ObjectType.String:
+      return obj.value.asString()
     case ObjectType.Null:
     case ObjectType.Real:
     case ObjectType.Name:
     case ObjectType.Integer:
     case ObjectType.Boolean:
-    case ObjectType.String:
       return obj.value
   }
   return ''

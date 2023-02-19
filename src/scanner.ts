@@ -5,6 +5,7 @@ import {
   TokenType,
 } from './lexer.js'
 import { BufferedStreamer } from './stream.js'
+import { PostScriptString } from './string.js'
 
 export enum ObjectType {
   Any = -1, // NOTE: Internal
@@ -136,7 +137,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
         access: Access.Unlimited,
         executability: Executability.Literal,
       },
-      value: content,
+      value: PostScriptString.fromString(content),
     }
   }
 
