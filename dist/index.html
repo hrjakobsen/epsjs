@@ -7,13 +7,10 @@
     }
   </style>
   <body>
-    <textarea id="text" style="height: 300px">
-newpath 
-100 100 moveto 
-200 200 lineto
-stroke</textarea
-    >
     <canvas id="canvas" height="300" width="300"></canvas>
+    <textarea id="text" style="height: 300px; width: 600px">
+150 280 moveto
+(Write PostScript over there ->) show</textarea>
     <div id="error"></div>
     <script type="module">
       import { PostScriptInterpreter } from './src/index.js'
@@ -24,7 +21,9 @@ stroke</textarea
       function render() {
         try {
           document.getElementById('error').innerText = ''
+          context.save()
           PostScriptInterpreter.evaluateString(textbox.value, context)
+          context.restore()
         } catch (e) {
           document.getElementById('error').innerText = e.message +'\n' + e.stack
         }

@@ -1617,6 +1617,7 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
   //                           File Operators
   // ---------------------------------------------------------------------------
+
   @builtin('=')
   @operands(ObjectType.Any)
   private debugPrint(obj: PostScriptObject) {
@@ -1637,5 +1638,19 @@ export class PostScriptInterpreter {
   @builtin('pstack')
   private pstack() {
     console.log(this.operandStack)
+  }
+
+  // ---------------------------------------------------------------------------
+  //                           File Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  @operands(ObjectType.String)
+  private show({ value: string }: PostScriptObject) {
+    this.ctx.fillText(
+      string.asString(),
+      this.graphicsState.path.currentPoint.x,
+      this.graphicsState.path.currentPoint.y
+    )
   }
 }
