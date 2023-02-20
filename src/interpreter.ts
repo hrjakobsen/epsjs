@@ -7,8 +7,10 @@ import {
   GraphicsState,
   LineCap,
   LineJoin,
+  offsetCoordinate,
   Path,
   SegmentType,
+  toRelativeOffset,
 } from './graphics-state.js'
 import { CharStream, PostScriptLexer } from './lexer.js'
 import {
@@ -1346,6 +1348,7 @@ export class PostScriptInterpreter {
       type: SegmentType.Straight,
       coordinates: [this.graphicsState.path.currentPoint, nextCoordinate],
     })
+    this.graphicsState.path.currentPoint = nextCoordinate
     this.ctx.lineTo(nextCoordinate.x, nextCoordinate.y)
   }
 
@@ -1368,6 +1371,7 @@ export class PostScriptInterpreter {
       type: SegmentType.Straight,
       coordinates: [this.graphicsState.path.currentPoint, nextCoordinate],
     })
+    this.graphicsState.path.currentPoint = nextCoordinate
     this.ctx.lineTo(nextCoordinate.x, nextCoordinate.y)
   }
 
@@ -1389,6 +1393,7 @@ export class PostScriptInterpreter {
     if (angle1 < 0 || angle1 > 360 || angle2 < 0 || angle2 > 360) {
       throw new Error(`Invalid angles ${angle1} or ${angle2}`)
     }
+    // FIXME: calculate currentPoint
     const coord = this.graphicsState.toDeviceCoordinate({ x, y })
     this.graphicsState.path.addSegment({
       type: SegmentType.Arc,
@@ -1433,6 +1438,7 @@ export class PostScriptInterpreter {
       radius,
       direction: Direction.Clockwise,
     })
+    // FIXME: calculate currentPoint
     this.ctx.arc(
       coord.x,
       coord.y,
@@ -1462,6 +1468,7 @@ export class PostScriptInterpreter {
       this.graphicsState.toDeviceCoordinate({ x: x1, y: y1 }),
       this.graphicsState.toDeviceCoordinate({ x: x2, y: y2 }),
     ]
+    this.graphicsState.path.currentPoint = coordinates[1]!
     this.graphicsState.path.addSegment({
       type: SegmentType.Arc,
       coordinates,
@@ -1493,11 +1500,65 @@ export class PostScriptInterpreter {
     const cp2 = this.graphicsState.toDeviceCoordinate({ x: x2, y: y2 })
     const endPoint = this.graphicsState.toDeviceCoordinate({ x: x3, y: y3 })
     const coordinates = [cp1, cp2, endPoint]
+    this.graphicsState.path.currentPoint = endPoint
     this.graphicsState.path.addSegment({
       type: SegmentType.Bezier,
       coordinates,
     })
     this.ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, endPoint.x, endPoint.y)
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer
+  )
+  private rcurveto(
+    { value: x1 }: PostScriptObject,
+    { value: y1 }: PostScriptObject,
+    { value: x2 }: PostScriptObject,
+    { value: y2 }: PostScriptObject,
+    { value: x3 }: PostScriptObject,
+    { value: y3 }: PostScriptObject
+  ) {
+    const cp1 = offsetCoordinate(
+      toRelativeOffset({ x: x1, y: y1 }, this.graphicsState),
+      this.graphicsState.path.currentPoint
+    )
+    const cp2 = offsetCoordinate(
+      toRelativeOffset({ x: x2, y: y2 }, this.graphicsState),
+      this.graphicsState.path.currentPoint
+    )
+    const endPoint = offsetCoordinate(
+      toRelativeOffset({ x: x3, y: y3 }, this.graphicsState),
+      this.graphicsState.path.currentPoint
+    )
+    this.graphicsState.path.currentPoint = endPoint
+    const coordinates = [cp1, cp2, endPoint]
+    this.graphicsState.path.addSegment({
+      type: SegmentType.Bezier,
+      coordinates,
+    })
+    this.ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, endPoint.x, endPoint.y)
+  }
+
+  @builtin()
+  private closePath() {
+    if (!this.graphicsState.path.subpaths.length) {
+      // do nothing
+      return
+    }
+    this.graphicsState.path.addSegment({
+      type: SegmentType.Straight,
+      coordinates: [
+        this.graphicsState.path.currentPoint,
+        this.graphicsState.path.subpaths[0]![0]!.coordinates![0]!,
+      ],
+    })
   }
 
   // ---------------------------------------------------------------------------

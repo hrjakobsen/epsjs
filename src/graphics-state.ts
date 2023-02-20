@@ -48,7 +48,7 @@ type SubPath = Segment[]
 type PathData = SubPath[]
 
 export class Path {
-  private subpaths: SubPath[]
+  public subpaths: SubPath[]
   constructor(subpaths?: SubPath[]) {
     if (!subpaths?.length) {
       this.subpaths = [[]]
@@ -165,4 +165,21 @@ function transformCoordinate(
     x: a * coord.x + c * coord.y + tx,
     y: b * coord.x + d * coord.y + ty,
   }
+}
+
+export function offsetCoordinate(c1: Coordinate, c2: Coordinate): Coordinate {
+  return {
+    x: c1.x + c2.x,
+    y: c1.y + c2.y,
+  }
+}
+
+export function toRelativeOffset(c: Coordinate, state: GraphicsState) {
+  const origin = state.toDeviceCoordinate({ x: 0, y: 0 })
+  const offsetWithTranslation = state.toDeviceCoordinate(c)
+  const offsetWithOutTranslation = offsetCoordinate(offsetWithTranslation, {
+    x: -origin.x,
+    y: -origin.y,
+  })
+  return offsetWithOutTranslation
 }
