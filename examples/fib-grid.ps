@@ -1,0 +1,32 @@
+/linebetween {
+  newpath
+  moveto
+  lineto
+  stroke
+} def
+
+/vline {
+  dup 0 exch 300 
+  linebetween
+} def
+
+/hline {
+  0 exch dup 300 exch 
+  linebetween
+} def
+
+/fib {
+  dup 0 eq {
+    pop pop pop
+  } {
+    /rem exch def
+    /b exch def
+    /a exch def
+    /next a b add def
+    a vline
+    a hline
+    b next rem 1 sub fib
+  } ifelse
+} def
+
+0 1 15 fib
