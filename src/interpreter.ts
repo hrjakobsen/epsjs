@@ -139,21 +139,23 @@ export class PostScriptInterpreter {
       item.attributes.executability === Executability.Executable
     ) {
       // Look up name and invoke procedure
-      const operator = this.symbolLookup(item)!
-      if (operator.type === ObjectType.Operator) {
+      const value = this.symbolLookup(item)!
+      if (value.type === ObjectType.Operator) {
         // TODO: Find a better way to express this
-        const methodName = this.resolveBuiltin(operator.value)
+        const methodName = this.resolveBuiltin(value.value)
         ;(this as any)[methodName]!()
         return
-      }
-      if (
-        operator.type === ObjectType.Array &&
-        operator.attributes.executability === Executability.Executable
+      } else if (
+        value.type === ObjectType.Array &&
+        value.attributes.executability === Executability.Executable
       ) {
         // Push procedure to executionStack
-        const procedureBody = [...operator.value]
+        const procedureBody = [...value.value]
         procedureBody.reverse()
         this.executionStack.push(...procedureBody)
+        return
+      } else if (value.attributes.executability === Executability.Literal) {
+        this.operandStack.push(value)
         return
       }
     }
