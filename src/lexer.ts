@@ -1,4 +1,4 @@
-import { BufferedStreamer, InputStream } from './stream.js'
+import { BufferedStreamer, InputStream } from './stream'
 
 export enum TokenType {
   Number,

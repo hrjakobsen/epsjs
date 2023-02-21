@@ -1,4 +1,4 @@
-import { PostScriptObject } from '../scanner.js'
+import { PostScriptObject } from '../scanner'
 
 export class PostScriptDictionary {
   protected readonly map = new Map<any, PostScriptObject>()

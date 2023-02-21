@@ -1,6 +1,6 @@
-import { builtin, operands } from './decorators.js'
-import { PostScriptDictionary } from './dictionary/dictionary.js'
-import { SystemDictionary } from './dictionary/system-dictionary.js'
+import { builtin, operands } from './decorators'
+import { PostScriptDictionary } from './dictionary/dictionary'
+import { SystemDictionary } from './dictionary/system-dictionary'
 import {
   ColorSpace,
   Direction,
@@ -11,22 +11,22 @@ import {
   Path,
   SegmentType,
   toRelativeOffset,
-} from './graphics-state.js'
-import { CharStream, PostScriptLexer } from './lexer.js'
+} from './graphics-state'
+import { CharStream, PostScriptLexer } from './lexer'
 import {
   Access,
   Executability,
   ObjectType,
   PostScriptObject,
   PostScriptScanner,
-} from './scanner.js'
-import { PostScriptString } from './string.js'
+} from './scanner'
+import { PostScriptString } from './string'
 import {
   compareTypeCompatible,
   degreeToRadians,
   prettyPrint,
   radiansToDegrees,
-} from './utils.js'
+} from './utils'
 
 const MAX_STEPS = 100_000
 const MAX_DICT_CAPACITY = 1024

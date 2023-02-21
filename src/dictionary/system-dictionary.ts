@@ -1,6 +1,6 @@
-import { PostScriptInterpreter } from '../interpreter.js'
-import { Access, Executability, ObjectType } from '../scanner.js'
-import { PostScriptDictionary } from './dictionary.js'
+import { PostScriptInterpreter } from '../interpreter'
+import { Access, Executability, ObjectType } from '../scanner'
+import { PostScriptDictionary } from './dictionary'
 
 export class SystemDictionary extends PostScriptDictionary {
   constructor() {

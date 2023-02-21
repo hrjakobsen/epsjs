@@ -1,11 +1,6 @@
-import {
-  BASE_10_INT,
-  PostScriptLexer,
-  RADIX_NUMBER,
-  TokenType,
-} from './lexer.js'
-import { BufferedStreamer } from './stream.js'
-import { PostScriptString } from './string.js'
+import { BASE_10_INT, PostScriptLexer, RADIX_NUMBER, TokenType } from './lexer'
+import { BufferedStreamer } from './stream'
+import { PostScriptString } from './string'
 
 export enum ObjectType {
   Any = -1, // NOTE: Internal

@@ -1,5 +1,5 @@
-import { PostScriptInterpreter } from './interpreter.js'
-import { ObjectType } from './scanner.js'
+import { PostScriptInterpreter } from './interpreter'
+import { ObjectType } from './scanner'
 
 export function builtin(name?: string) {
   return function (

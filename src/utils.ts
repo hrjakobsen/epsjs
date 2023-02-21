@@ -1,4 +1,4 @@
-import { ObjectType, PostScriptObject } from './scanner.js'
+import { ObjectType, PostScriptObject } from './scanner'
 
 export function radiansToDegrees(rad: number) {
   return (rad * 180) / Math.PI
