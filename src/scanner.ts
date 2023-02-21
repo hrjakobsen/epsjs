@@ -44,9 +44,42 @@ export type PostScriptObject = {
   value: any
 }
 
+export type EPSMetaData = {
+  boundingBox?: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+}
+
 export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
   constructor(private _lexer: PostScriptLexer) {
     super()
+  }
+
+  public getMetaData(): EPSMetaData {
+    const metaData: EPSMetaData = {}
+    for (let i = 0; this._lexer.peek(i); ++i) {
+      const token = this._lexer.peek(i)!
+      if (token.kind === TokenType.Comment) {
+        const boundingBox = token.content.match(
+          /^%BoundingBox: (\d+) (\d+) (\d+) (\d+)$/
+        )
+        if (boundingBox) {
+          metaData.boundingBox = {
+            x: parseInt(boundingBox[1]!),
+            y: parseInt(boundingBox[2]!),
+            width: parseInt(boundingBox[3]!),
+            height: parseInt(boundingBox[4]!),
+          }
+        }
+        if (token.content.match(/^%EndComments$/)) {
+          break
+        }
+      }
+    }
+    return metaData
   }
 
   protected override generateToken(): PostScriptObject | undefined {

@@ -39,7 +39,17 @@ function render() {
     const canvas = document.getElementById('canvas') as HTMLCanvasElement
     canvas.width = canvas.width
     const context = canvas.getContext('2d')!
-    PostScriptInterpreter.evaluateString(view.state.doc.sliceString(0), context)
+    const interpreter = PostScriptInterpreter.load(
+      view.state.doc.sliceString(0)
+    )
+    if (interpreter.metaData.boundingBox) {
+      canvas.width = interpreter.metaData.boundingBox.width
+      canvas.height = interpreter.metaData.boundingBox.height
+    } else {
+      canvas.width = 300
+      canvas.height = 300
+    }
+    interpreter.run(context)
   } catch (e: any) {
     document.getElementById('error')!.innerText = e.message + '\n' + e.stack
   }

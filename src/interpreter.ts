@@ -15,6 +15,7 @@ import {
 import { CharStream, PostScriptLexer } from './lexer'
 import {
   Access,
+  EPSMetaData,
   Executability,
   ObjectType,
   PostScriptObject,
@@ -32,11 +33,10 @@ const MAX_STEPS = 100_000
 const MAX_DICT_CAPACITY = 1024
 
 export class PostScriptInterpreter {
-  private constructor(
-    private scanner: PostScriptScanner,
-    private ctx: CanvasRenderingContext2D
-  ) {
-    this.ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+  public readonly metaData: EPSMetaData = {}
+  private _ctx?: CanvasRenderingContext2D
+  private constructor(private scanner: PostScriptScanner) {
+    this.metaData = this.scanner.getMetaData()
   }
   private dictionaryStack: PostScriptDictionary[] = [
     new SystemDictionary(),
@@ -44,9 +44,14 @@ export class PostScriptInterpreter {
   ]
   public operandStack: PostScriptObject[] = []
   private executionStack: PostScriptObject[] = []
-  private graphicsStack: GraphicsState[] = [
-    new GraphicsState(this.ctx.canvas.height),
-  ]
+  private graphicsStack: GraphicsState[] = []
+
+  private get ctx() {
+    if (!this._ctx) {
+      throw new Error('No canvas rendering ctx')
+    }
+    return this._ctx
+  }
 
   private stopped = false
   private stepsLeft = MAX_STEPS
@@ -65,7 +70,9 @@ export class PostScriptInterpreter {
     return this.dictionaryStack[this.dictionaryStack.length - 1]!
   }
 
-  private run() {
+  public run(ctx: CanvasRenderingContext2D) {
+    this._ctx = ctx
+    this.graphicsStack.push(new GraphicsState(this.ctx.canvas.height))
     while (!this.done()) {
       this.fetchAndExecute()
     }
@@ -173,12 +180,11 @@ export class PostScriptInterpreter {
     throw new Error('Undefined symbol: ' + key.value)
   }
 
-  public static evaluateString(program: string, ctx: CanvasRenderingContext2D) {
+  public static load(program: string) {
     const interpreter = new PostScriptInterpreter(
-      new PostScriptScanner(new PostScriptLexer(new CharStream(program))),
-      ctx
+      new PostScriptScanner(new PostScriptLexer(new CharStream(program)))
     )
-    interpreter.run()
+    return interpreter
   }
 
   private createLiteral(value: any, type: ObjectType) {
