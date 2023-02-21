@@ -16,7 +16,7 @@
     "pdf"
   ],
   "author": "Mathias Jakobsen",
-  "license": "Unlicensed",
+  "license": "MIT",
   "devDependencies": {
     "codemirror": "^6.0.1",
     "@types/chai": "^4.3.4",
