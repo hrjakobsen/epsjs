@@ -1,5 +1,5 @@
 import { isWhitespace } from './lexer'
-import { ObjectType, PostScriptObject } from './scanner'
+import { Access, Executability, ObjectType, PostScriptObject } from './scanner'
 
 export function radiansToDegrees(rad: number) {
   return (rad * 180) / Math.PI
@@ -133,4 +133,15 @@ export function base85Decode(input: string) {
   }
   convertGroup()
   return decodedData
+}
+
+export function createLiteral(value: any, type: ObjectType) {
+  return {
+    type,
+    value,
+    attributes: {
+      access: Access.Unlimited,
+      executability: Executability.Literal,
+    },
+  }
 }

@@ -13,6 +13,7 @@ import {
   toRelativeOffset,
 } from './graphics-state'
 import { CharStream, PostScriptLexer } from './lexer'
+import { ForLoopContext, LoopContext } from './loop-context'
 import {
   Access,
   EPSMetaData,
@@ -24,6 +25,7 @@ import {
 import { PostScriptString } from './string'
 import {
   compareTypeCompatible,
+  createLiteral,
   degreeToRadians,
   prettyPrint,
   radiansToDegrees,
@@ -31,6 +33,7 @@ import {
 
 const MAX_STEPS = 100_000
 const MAX_DICT_CAPACITY = 1024
+const MAX_LOOP_STACK_SIZE = 1024
 
 export class PostScriptInterpreter {
   public readonly metaData: EPSMetaData = {}
@@ -45,6 +48,14 @@ export class PostScriptInterpreter {
   public operandStack: PostScriptObject[] = []
   private executionStack: PostScriptObject[] = []
   private graphicsStack: GraphicsState[] = []
+  private loopStack: LoopContext[] = []
+
+  private beginLoop(loop: LoopContext) {
+    if (this.loopStack.length >= MAX_LOOP_STACK_SIZE) {
+      throw new Error('Too many nested loops')
+    }
+    this.loopStack.push(loop)
+  }
 
   private get ctx() {
     if (!this._ctx) {
@@ -82,6 +93,10 @@ export class PostScriptInterpreter {
     return this.executionStack.pop()
   }
 
+  private get activeLoop() {
+    return this.loopStack[this.loopStack.length - 1]
+  }
+
   private done() {
     if (this.stepsLeft-- < 0) {
       throw new Error('Too many steps executed')
@@ -89,7 +104,9 @@ export class PostScriptInterpreter {
 
     return (
       this.stopped ||
-      (this.executionStack.length === 0 && this.scanner.next === undefined)
+      (this.loopStack.length === 0 &&
+        this.executionStack.length === 0 &&
+        this.scanner.next === undefined)
     )
   }
 
@@ -127,7 +144,18 @@ export class PostScriptInterpreter {
     throw new Error(`No matching overload found for ${operatorName}`)
   }
 
-  private fetchAndExecute() {
+  private fetchAndExecute(): void {
+    if (this.activeLoop) {
+      if (this.activeLoop.finished()) {
+        this.activeLoop.exit()
+        this.loopStack.pop()
+        return
+      }
+      if (this.activeLoop.shouldExecute()) {
+        this.activeLoop.execute()
+        return
+      }
+    }
     if (!this.executionStack.length) {
       this.executionStack.push(this.scanner.next!)
       this.scanner.advance()
@@ -187,19 +215,8 @@ export class PostScriptInterpreter {
     return interpreter
   }
 
-  private createLiteral(value: any, type: ObjectType) {
-    return {
-      type,
-      value,
-      attributes: {
-        access: Access.Unlimited,
-        executability: Executability.Literal,
-      },
-    }
-  }
-
   private pushLiteral(value: any, type: ObjectType) {
-    this.operandStack.push(this.createLiteral(value, type))
+    this.operandStack.push(createLiteral(value, type))
   }
 
   private pushLiteralNumber(
@@ -1038,7 +1055,7 @@ export class PostScriptInterpreter {
   @operands(ObjectType.Integer)
   private array({ value: length }: PostScriptObject) {
     this.pushLiteral(
-      Array(length).fill(this.createLiteral(null, ObjectType.Null)),
+      Array(length).fill(createLiteral(null, ObjectType.Null)),
       ObjectType.Array
     )
   }
@@ -1675,6 +1692,31 @@ export class PostScriptInterpreter {
     } else {
       this.executionStack.push(...[...procedureFalse.value].reverse())
     }
+  }
+
+  @builtin('for')
+  @operands(
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Array
+  )
+  private _for(
+    initial: PostScriptObject,
+    increment: PostScriptObject,
+    limit: PostScriptObject,
+    proc: PostScriptObject
+  ) {
+    this.beginLoop(
+      new ForLoopContext(
+        this.executionStack,
+        proc,
+        this.operandStack,
+        initial,
+        increment,
+        limit
+      )
+    )
   }
 
   @builtin()
