@@ -38,10 +38,10 @@ type Attributes = {
   access: Access
 }
 
-export type PostScriptObject = {
+export type PostScriptObject<T = any> = {
   type: ObjectType
   attributes: Attributes
-  value: any
+  value: T
 }
 
 export type EPSMetaData = {
