@@ -31,9 +31,7 @@ export default {
     path: resolve(rootDir, 'dist'),
   },
   devServer: {
-    static: {
-      directory: join(rootDir, 'dev'),
-    },
+    static: [join(rootDir, 'dev'), join(rootDir, 'examples')],
     compress: true,
     port: 9000,
   },
