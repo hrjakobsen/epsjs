@@ -19,7 +19,7 @@ export function compareTypeCompatible(
   return type1 == type2
 }
 
-export function prettyPrint(obj: PostScriptObject): string {
+export function prettyPrint(obj: PostScriptObject<unknown>): string {
   switch (obj.type) {
     case ObjectType.FontID:
     case ObjectType.Mark:
@@ -27,14 +27,17 @@ export function prettyPrint(obj: PostScriptObject): string {
     case ObjectType.Operator:
       return `<operator ${obj.value}>`
     case ObjectType.Array:
-      return `[ ${obj.value.map(prettyPrint).join(', ')} ]`
+      return `[ ${(obj as PostScriptObject<ObjectType.Array>).value
+        .map(prettyPrint)
+        .join(', ')} ]`
     case ObjectType.Dictionary:
-      return `{ ${obj.value
-        .entries()
-        .map(
-          (name: string, value: PostScriptObject) =>
-            `${name}: ${prettyPrint(value)}`
-        )
+      return `{ ${[
+        ...(obj as PostScriptObject<ObjectType.Dictionary>).value.entries(),
+      ]
+        .map((entry) => {
+          const [name, value] = entry
+          return `${name}: ${prettyPrint(value)}`
+        })
         .join('\n')} }`
     case ObjectType.File:
       return '<file>'
@@ -45,13 +48,15 @@ export function prettyPrint(obj: PostScriptObject): string {
     case ObjectType.Save:
       return '<save>'
     case ObjectType.String:
-      return obj.value.asString()
+      return (obj as PostScriptObject<ObjectType.String>).value.asString()
     case ObjectType.Null:
     case ObjectType.Real:
     case ObjectType.Name:
     case ObjectType.Integer:
     case ObjectType.Boolean:
-      return obj.value
+      return (obj as PostScriptObject<ObjectType.Boolean>).value
+        ? 'true'
+        : 'false'
   }
   return ''
 }

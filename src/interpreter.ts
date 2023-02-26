@@ -183,7 +183,9 @@ export class PostScriptInterpreter {
       const value = this.symbolLookup(item)!
       if (value.type === ObjectType.Operator) {
         // TODO: Find a better way to express this
-        const methodName = this.resolveBuiltin(value.value)
+        const methodName = this.resolveBuiltin(
+          (value as PostScriptObject<ObjectType.Operator>).value
+        )
         ;(this as any)[methodName]!()
         return
       } else if (
@@ -191,7 +193,9 @@ export class PostScriptInterpreter {
         value.attributes.executability === Executability.Executable
       ) {
         // Push procedure to executionStack
-        const procedureBody = [...value.value]
+        const procedureBody = [
+          ...(value as PostScriptObject<ObjectType.Array>).value,
+        ]
         procedureBody.reverse()
         this.executionStack.push(...procedureBody)
         return
@@ -272,7 +276,9 @@ export class PostScriptInterpreter {
 
   @builtin('copy')
   @operands(ObjectType.Integer)
-  private copyStack({ value: numberOfElements }: PostScriptObject) {
+  private copyStack({
+    value: numberOfElements,
+  }: PostScriptObject<ObjectType.Integer>) {
     if (this.operandStack.length < numberOfElements) {
       throw new Error('Not enough elements on stack to copy')
     }
@@ -284,7 +290,7 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer)
-  private index({ value: offset }: PostScriptObject) {
+  private index({ value: offset }: PostScriptObject<ObjectType.Integer>) {
     if (this.operandStack.length <= offset) {
       throw new Error('Index too high')
     }
@@ -296,8 +302,8 @@ export class PostScriptInterpreter {
   @builtin()
   @operands(ObjectType.Integer, ObjectType.Integer)
   private roll(
-    { value: numElements }: PostScriptObject,
-    { value: numRolls }: PostScriptObject
+    { value: numElements }: PostScriptObject<ObjectType.Integer>,
+    { value: numRolls }: PostScriptObject<ObjectType.Integer>
   ) {
     if (this.operandStack.length < numElements) {
       throw new Error('roll: Not enough elements')
@@ -356,7 +362,7 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer)
-  private dict({ value: capacity }: PostScriptObject) {
+  private dict({ value: capacity }: PostScriptObject<ObjectType.Integer>) {
     if (capacity > MAX_DICT_CAPACITY) {
       throw new Error(
         `${capacity} is higher than the max capacity of ${MAX_DICT_CAPACITY}`
@@ -390,7 +396,9 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Dictionary)
-  private begin({ value: dictionary }: PostScriptObject) {
+  private begin({
+    value: dictionary,
+  }: PostScriptObject<ObjectType.Dictionary>) {
     this.dictionaryStack.push(dictionary)
   }
 
@@ -427,41 +435,38 @@ export class PostScriptInterpreter {
   @builtin('get')
   @operands(ObjectType.Dictionary, ObjectType.Any)
   private getDict(
-    { value: dictionary }: PostScriptObject,
+    { value: dictionary }: PostScriptObject<ObjectType.Dictionary>,
     key: PostScriptObject
   ) {
-    this.operandStack.push((dictionary as PostScriptDictionary).get(key)!)
+    this.operandStack.push(dictionary.get(key)!)
   }
 
   @builtin('put')
   @operands(ObjectType.Dictionary, ObjectType.Any, ObjectType.Any)
   private putDict(
-    { value: dictionary }: PostScriptObject,
+    { value: dictionary }: PostScriptObject<ObjectType.Dictionary>,
     key: PostScriptObject,
     value: PostScriptObject
   ) {
-    ;(dictionary as PostScriptDictionary).set(key, value)
+    dictionary.set(key, value)
   }
 
   @builtin()
   @operands(ObjectType.Dictionary, ObjectType.Any)
   private undef(
-    { value: dictionary }: PostScriptObject,
+    { value: dictionary }: PostScriptObject<ObjectType.Dictionary>,
     key: PostScriptObject
   ) {
-    ;(dictionary as PostScriptDictionary).remove(key)
+    dictionary.remove(key)
   }
 
   @builtin()
   @operands(ObjectType.Dictionary, ObjectType.Any)
   private known(
-    { value: dictionary }: PostScriptObject,
+    { value: dictionary }: PostScriptObject<ObjectType.Dictionary>,
     key: PostScriptObject
   ) {
-    this.pushLiteral(
-      (dictionary as PostScriptDictionary).has(key),
-      ObjectType.Boolean
-    )
+    this.pushLiteral(dictionary.has(key), ObjectType.Boolean)
   }
 
   @builtin()
@@ -497,102 +502,87 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer)
-  private string({ value: length }: PostScriptObject) {
+  private string({ value: length }: PostScriptObject<ObjectType.Integer>) {
     // TODO: Enforce max string length
     this.pushLiteral(new PostScriptString(length), ObjectType.String)
   }
 
   @builtin('length')
   @operands(ObjectType.String)
-  private stringLength({ value: string }: PostScriptObject) {
+  private stringLength({ value: string }: PostScriptObject<ObjectType.String>) {
     this.pushLiteral(string.length, ObjectType.Integer)
   }
 
   @builtin('get')
   @operands(ObjectType.String, ObjectType.Integer)
   private stringGet(
-    { value: string }: PostScriptObject,
-    { value: index }: PostScriptObject
+    { value: string }: PostScriptObject<ObjectType.String>,
+    { value: index }: PostScriptObject<ObjectType.Integer>
   ) {
-    this.pushLiteral(
-      (string as PostScriptString).get(index),
-      ObjectType.Integer
-    )
+    this.pushLiteral(string.get(index), ObjectType.Integer)
   }
 
   @builtin('put')
   @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
   private stringPut(
-    { value: string }: PostScriptObject,
-    { value: index }: PostScriptObject,
-    { value: newValue }: PostScriptObject
+    { value: string }: PostScriptObject<ObjectType.String>,
+    { value: index }: PostScriptObject<ObjectType.Integer>,
+    { value: newValue }: PostScriptObject<ObjectType.Integer>
   ) {
-    ;(string as PostScriptString).set(index, newValue)
+    string.set(index, newValue)
   }
 
   @builtin('getinterval')
   @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
   private stringGetInterval(
-    { value: string }: PostScriptObject,
-    { value: index }: PostScriptObject,
-    { value: count }: PostScriptObject
+    { value: string }: PostScriptObject<ObjectType.String>,
+    { value: index }: PostScriptObject<ObjectType.Integer>,
+    { value: count }: PostScriptObject<ObjectType.Integer>
   ) {
-    const stringObj = string as PostScriptString
-    if (index < 0 || count < 0 || index + count > stringObj.length) {
+    if (index < 0 || count < 0 || index + count > string.length) {
       throw new Error(
         `Invalid substring with index ${index} and count ${count}`
       )
     }
     this.pushLiteral(
-      PostScriptString.fromCharCode(
-        ...stringObj.data.slice(index, index + count)
-      ),
+      PostScriptString.fromCharCode(...string.data.slice(index, index + count)),
       ObjectType.String
     )
   }
 
   @builtin('putinterval')
-  @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
+  @operands(ObjectType.String, ObjectType.Integer, ObjectType.String)
   private stringPutInterval(
-    { value: target }: PostScriptObject,
-    { value: index }: PostScriptObject,
-    { value: source }: PostScriptObject
+    { value: target }: PostScriptObject<ObjectType.String>,
+    { value: index }: PostScriptObject<ObjectType.Integer>,
+    { value: source }: PostScriptObject<ObjectType.String>
   ) {
-    const stringSource = source as PostScriptString
-    const stringTarget = target as PostScriptString
     if (index < 0) {
       throw new Error('putinterval: index cannot be negative')
     }
 
-    if (!(stringTarget.length < stringSource.length + index)) {
+    if (!(target.length < source.length + index)) {
       throw new Error(
-        `putinterval: Cannot fit string of length ${stringSource.length} into string of length ${stringTarget.length} starting at index ${index}`
+        `putinterval: Cannot fit string of length ${source.length} into string of length ${target.length} starting at index ${index}`
       )
     }
 
-    stringTarget.data.splice(index, stringSource.length, ...stringSource.data)
+    target.data.splice(index, source.length, ...source.data)
   }
 
   @builtin('copy')
-  @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
+  @operands(ObjectType.String, ObjectType.String)
   private copyString(
-    { value: source }: PostScriptObject,
-    { value: target }: PostScriptObject
+    { value: source }: PostScriptObject<ObjectType.String>,
+    { value: target }: PostScriptObject<ObjectType.String>
   ) {
-    const stringSource = source as PostScriptString
-    const stringTarget = target as PostScriptString
-
-    if (!(stringTarget.length < stringSource.length)) {
+    if (!(target.length < source.length)) {
       throw new Error(
-        `putinterval: Cannot fit string of length ${stringSource.length} into string of length ${stringTarget.length}`
+        `putinterval: Cannot fit string of length ${source.length} into string of length ${target.length}`
       )
     }
 
-    const removed = stringTarget.data.splice(
-      0,
-      stringSource.length,
-      ...stringSource.data
-    )
+    const removed = target.data.splice(0, source.length, ...source.data)
     this.pushLiteral(
       PostScriptString.fromCharCode(...removed),
       ObjectType.String
@@ -604,20 +594,17 @@ export class PostScriptInterpreter {
   @builtin()
   @operands(ObjectType.String, ObjectType.String)
   private anchorSearch(
-    haystackObj: PostScriptObject,
-    { value: needleArg }: PostScriptObject
+    haystack: PostScriptObject<ObjectType.String>,
+    { value: needle }: PostScriptObject<ObjectType.String>
   ) {
-    const haystack = haystackObj.value as PostScriptString
-    const needle = needleArg as PostScriptString
-
-    const matches = haystack.anchorSearch(needle)
+    const matches = haystack.value.anchorSearch(needle)
     if (!matches) {
-      this.operandStack.push(haystackObj)
+      this.operandStack.push(haystack)
       this.pushLiteral(false, ObjectType.Boolean)
       return
     }
-    const match = haystack.subString(0, needle.length)
-    const post = haystack.subString(needle.length)
+    const match = haystack.value.subString(0, needle.length)
+    const post = haystack.value.subString(needle.length)
     this.pushLiteral(post, ObjectType.String)
     this.pushLiteral(match, ObjectType.String)
     this.pushLiteral(true, ObjectType.Boolean)
@@ -626,21 +613,18 @@ export class PostScriptInterpreter {
   @builtin()
   @operands(ObjectType.String, ObjectType.String)
   private seek(
-    haystackObj: PostScriptObject,
-    { value: needleArg }: PostScriptObject
+    haystack: PostScriptObject<ObjectType.String>,
+    { value: needle }: PostScriptObject<ObjectType.String>
   ) {
-    const haystack = haystackObj.value as PostScriptString
-    const needle = needleArg as PostScriptString
-
-    const matchIndex = haystack.search(needle)
+    const matchIndex = haystack.value.search(needle)
     if (matchIndex === false) {
-      this.operandStack.push(haystackObj)
+      this.operandStack.push(haystack)
       this.pushLiteral(false, ObjectType.Boolean)
       return
     }
-    const pre = haystack.subString(0, matchIndex)
-    const match = haystack.subString(matchIndex, needle.length)
-    const post = haystack.subString(matchIndex + needle.length)
+    const pre = haystack.value.subString(0, matchIndex)
+    const match = haystack.value.subString(matchIndex, needle.length)
+    const post = haystack.value.subString(matchIndex + needle.length)
     this.pushLiteral(post, ObjectType.String)
     this.pushLiteral(match, ObjectType.String)
     this.pushLiteral(pre, ObjectType.String)
@@ -681,8 +665,18 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real | ObjectType.String
   )
   private ge(
-    { value: v1, type: t1 }: PostScriptObject,
-    { value: v2, type: t2 }: PostScriptObject
+    {
+      value: v1,
+      type: t1,
+    }: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    >,
+    {
+      value: v2,
+      type: t2,
+    }: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    >
   ) {
     this.pushLiteral(
       compareTypeCompatible(t1, t2) && v1 >= v2,
@@ -696,8 +690,18 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real | ObjectType.String
   )
   private gt(
-    { value: v1, type: t1 }: PostScriptObject,
-    { value: v2, type: t2 }: PostScriptObject
+    {
+      value: v1,
+      type: t1,
+    }: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    >,
+    {
+      value: v2,
+      type: t2,
+    }: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    >
   ) {
     this.pushLiteral(
       compareTypeCompatible(t1, t2) && v1 > v2,
@@ -711,8 +715,18 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real | ObjectType.String
   )
   private le(
-    { value: v1, type: t1 }: PostScriptObject,
-    { value: v2, type: t2 }: PostScriptObject
+    {
+      value: v1,
+      type: t1,
+    }: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    >,
+    {
+      value: v2,
+      type: t2,
+    }: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    >
   ) {
     this.pushLiteral(
       compareTypeCompatible(t1, t2) && v1 <= v2,
@@ -726,8 +740,18 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real | ObjectType.String
   )
   private lt(
-    { value: v1, type: t1 }: PostScriptObject,
-    { value: v2, type: t2 }: PostScriptObject
+    {
+      value: v1,
+      type: t1,
+    }: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    >,
+    {
+      value: v2,
+      type: t2,
+    }: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    >
   ) {
     this.pushLiteral(
       compareTypeCompatible(t1, t2) && v1 < v2,
@@ -741,8 +765,14 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Boolean
   )
   private and(
-    { value: v1, type: t1 }: PostScriptObject,
-    { value: v2, type: t2 }: PostScriptObject
+    {
+      value: v1,
+      type: t1,
+    }: PostScriptObject<ObjectType.Boolean | ObjectType.Integer>,
+    {
+      value: v2,
+      type: t2,
+    }: PostScriptObject<ObjectType.Boolean | ObjectType.Integer>
   ) {
     if (t1 !== t2) {
       throw new Error('and requires same type of params')
@@ -750,7 +780,7 @@ export class PostScriptInterpreter {
     if (t1 === ObjectType.Boolean) {
       this.pushLiteral(v1 && v2, ObjectType.Boolean)
     } else {
-      this.pushLiteral(v1 & v2, ObjectType.Boolean)
+      this.pushLiteral((v1 as number) & (v2 as number), ObjectType.Boolean)
     }
   }
 
@@ -760,8 +790,14 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Boolean
   )
   private or(
-    { value: v1, type: t1 }: PostScriptObject,
-    { value: v2, type: t2 }: PostScriptObject
+    {
+      value: v1,
+      type: t1,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Boolean>,
+    {
+      value: v2,
+      type: t2,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Boolean>
   ) {
     if (t1 !== t2) {
       throw new Error('or requires same type of params')
@@ -769,7 +805,7 @@ export class PostScriptInterpreter {
     if (t1 === ObjectType.Boolean) {
       this.pushLiteral(v1 || v2, ObjectType.Boolean)
     } else {
-      this.pushLiteral(v1 | v2, ObjectType.Boolean)
+      this.pushLiteral((v1 as number) | (v2 as number), ObjectType.Boolean)
     }
   }
 
@@ -779,8 +815,14 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Boolean
   )
   private xor(
-    { value: v1, type: t1 }: PostScriptObject,
-    { value: v2, type: t2 }: PostScriptObject
+    {
+      value: v1,
+      type: t1,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Boolean>,
+    {
+      value: v2,
+      type: t2,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Boolean>
   ) {
     if (t1 !== t2) {
       throw new Error('xor requires same type of params')
@@ -788,15 +830,15 @@ export class PostScriptInterpreter {
     if (t1 === ObjectType.Boolean) {
       this.pushLiteral(v1 || (v2 && (!v1 || !v2)), ObjectType.Boolean)
     } else {
-      this.pushLiteral(v1 ^ v2, ObjectType.Boolean)
+      this.pushLiteral((v1 as number) ^ (v2 as number), ObjectType.Boolean)
     }
   }
 
   @builtin()
   @operands(ObjectType.Integer, ObjectType.Integer)
   private bitshift(
-    { value }: PostScriptObject,
-    { value: shift }: PostScriptObject
+    { value }: PostScriptObject<ObjectType.Integer>,
+    { value: shift }: PostScriptObject<ObjectType.Integer>
   ) {
     this.pushLiteral(
       shift ? value << shift : value >> shift,
@@ -806,11 +848,14 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Boolean)
-  private not({ value: v1, type: t1 }: PostScriptObject) {
+  private not({
+    value: v1,
+    type: t1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Boolean>) {
     if (t1 === ObjectType.Boolean) {
       this.pushLiteral(!v1, ObjectType.Boolean)
     } else {
-      this.pushLiteral(~v1, ObjectType.Boolean)
+      this.pushLiteral(~v1, ObjectType.Integer)
     }
   }
 
@@ -848,8 +893,14 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real
   )
   private add(
-    { type: t1, value: v1 }: PostScriptObject,
-    { type: t2, value: v2 }: PostScriptObject
+    {
+      type: t1,
+      value: v1,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    {
+      type: t2,
+      value: v2,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
     const isReal = t1 === ObjectType.Real || t2 === ObjectType.Real
     this.pushLiteralNumber(
@@ -864,8 +915,8 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real
   )
   private div(
-    { value: v1 }: PostScriptObject,
-    { value: v2 }: PostScriptObject
+    { value: v1 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    { value: v2 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
     this.pushLiteralNumber(v1 / v2, ObjectType.Real)
   }
@@ -873,8 +924,8 @@ export class PostScriptInterpreter {
   @builtin()
   @operands(ObjectType.Integer, ObjectType.Integer)
   private idiv(
-    { value: v1 }: PostScriptObject,
-    { value: v2 }: PostScriptObject
+    { value: v1 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    { value: v2 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
     this.pushLiteralNumber(Math.floor(v1 / v2))
   }
@@ -882,8 +933,8 @@ export class PostScriptInterpreter {
   @builtin()
   @operands(ObjectType.Integer, ObjectType.Integer)
   private mod(
-    { value: v1 }: PostScriptObject,
-    { value: v2 }: PostScriptObject
+    { value: v1 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    { value: v2 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
     this.pushLiteralNumber(v1 % v2)
   }
@@ -894,8 +945,14 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real
   )
   private mul(
-    { type: t1, value: v1 }: PostScriptObject,
-    { type: t2, value: v2 }: PostScriptObject
+    {
+      type: t1,
+      value: v1,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    {
+      type: t2,
+      value: v2,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
     const isReal = t1 === ObjectType.Real || t2 === ObjectType.Real
     this.pushLiteralNumber(
@@ -910,8 +967,14 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real
   )
   private sub(
-    { type: t1, value: v1 }: PostScriptObject,
-    { type: t2, value: v2 }: PostScriptObject
+    {
+      type: t1,
+      value: v1,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    {
+      type: t2,
+      value: v2,
+    }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
     const isReal = t1 === ObjectType.Real || t2 === ObjectType.Real
     this.pushLiteralNumber(
@@ -922,7 +985,10 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private abs({ type: t1, value: v1 }: PostScriptObject) {
+  private abs({
+    type: t1,
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(
       Math.abs(v1),
       t1 as ObjectType.Integer | ObjectType.Real
@@ -931,13 +997,19 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private neg({ type: t1, value: v1 }: PostScriptObject) {
+  private neg({
+    type: t1,
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(-v1, t1 as ObjectType.Integer | ObjectType.Real)
   }
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private ceiling({ type: t1, value: v1 }: PostScriptObject) {
+  private ceiling({
+    type: t1,
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(
       Math.ceil(v1),
       t1 as ObjectType.Integer | ObjectType.Real
@@ -946,7 +1018,10 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private floor({ type: t1, value: v1 }: PostScriptObject) {
+  private floor({
+    type: t1,
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(
       Math.ceil(v1),
       t1 as ObjectType.Integer | ObjectType.Real
@@ -955,7 +1030,10 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private round({ type: t1, value: v1 }: PostScriptObject) {
+  private round({
+    type: t1,
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(
       Math.round(v1),
       t1 as ObjectType.Integer | ObjectType.Real
@@ -964,7 +1042,10 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private truncate({ type: t1, value: v1 }: PostScriptObject) {
+  private truncate({
+    type: t1,
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(
       Math.trunc(v1),
       t1 as ObjectType.Integer | ObjectType.Real
@@ -973,7 +1054,9 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private sqrt({ value: v1 }: PostScriptObject) {
+  private sqrt({
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(Math.sqrt(v1), ObjectType.Real)
   }
 
@@ -983,8 +1066,8 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real
   )
   private atan(
-    { value: v1 }: PostScriptObject,
-    { value: v2 }: PostScriptObject
+    { value: v1 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    { value: v2 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
     this.pushLiteralNumber(
       radiansToDegrees(Math.atan(v1 / v2)),
@@ -994,7 +1077,9 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private cos({ value: v1 }: PostScriptObject) {
+  private cos({
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(
       radiansToDegrees(Math.cos(degreeToRadians(v1))),
       ObjectType.Real
@@ -1003,7 +1088,9 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private sin({ value: v1 }: PostScriptObject) {
+  private sin({
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(
       radiansToDegrees(Math.sin(degreeToRadians(v1))),
       ObjectType.Real
@@ -1016,21 +1103,25 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real
   )
   private exp(
-    { value: v1 }: PostScriptObject,
-    { value: v2 }: PostScriptObject
+    { value: v1 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    { value: v2 }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
     this.pushLiteralNumber(Math.pow(v1, v2), ObjectType.Real)
   }
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private ln({ value: v1 }: PostScriptObject) {
+  private ln({
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(Math.log2(v1), ObjectType.Real)
   }
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private log({ value: v1 }: PostScriptObject) {
+  private log({
+    value: v1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.pushLiteralNumber(Math.log10(v1), ObjectType.Real)
   }
 
@@ -1059,7 +1150,7 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer)
-  private array({ value: length }: PostScriptObject) {
+  private array({ value: length }: PostScriptObject<ObjectType.Integer>) {
     this.pushLiteral(
       Array(length).fill(createLiteral(null, ObjectType.Null)),
       ObjectType.Array
@@ -1084,29 +1175,29 @@ export class PostScriptInterpreter {
 
   @builtin('length')
   @operands(ObjectType.Array)
-  private arrayLength({ value: elements }: PostScriptObject) {
+  private arrayLength({ value: elements }: PostScriptObject<ObjectType.Array>) {
     return elements.length
   }
 
   @builtin('get')
   @operands(ObjectType.Array, ObjectType.Integer)
   private getArray(
-    { value: elements }: PostScriptObject,
-    { value: index }: PostScriptObject
+    { value: elements }: PostScriptObject<ObjectType.Array>,
+    { value: index }: PostScriptObject<ObjectType.Integer>
   ) {
     if (elements.length <= index) {
       throw new Error(
         `Index ${index} out of range of array with length ${elements.length}`
       )
     }
-    this.operandStack.push(elements[index])
+    this.operandStack.push(elements[index]!)
   }
 
   @builtin('put')
   @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Any)
   private putArray(
-    { value: elements }: PostScriptObject,
-    { value: index }: PostScriptObject,
+    { value: elements }: PostScriptObject<ObjectType.Array>,
+    { value: index }: PostScriptObject<ObjectType.Integer>,
     item: PostScriptObject
   ) {
     if (elements.length <= index) {
@@ -1120,9 +1211,9 @@ export class PostScriptInterpreter {
   @builtin('getinterval')
   @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Integer)
   private arrayGetInterval(
-    { value: elements }: PostScriptObject,
-    { value: index }: PostScriptObject,
-    { value: count }: PostScriptObject
+    { value: elements }: PostScriptObject<ObjectType.Array>,
+    { value: index }: PostScriptObject<ObjectType.Integer>,
+    { value: count }: PostScriptObject<ObjectType.Integer>
   ) {
     if (elements.length <= index) {
       throw new Error(
@@ -1134,25 +1225,22 @@ export class PostScriptInterpreter {
         `getinterval: index ${index} with count ${count} is out of range of array with length ${elements.length}`
       )
     }
-    this.pushLiteral(
-      (elements as PostScriptObject[]).slice(index, index + count),
-      ObjectType.Array
-    )
+    this.pushLiteral(elements.slice(index, index + count), ObjectType.Array)
   }
 
   @builtin('putinterval')
   @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Array)
   private arrayPutInterval(
-    { value: target }: PostScriptObject,
-    { value: index }: PostScriptObject,
-    { value: source }: PostScriptObject
+    { value: target }: PostScriptObject<ObjectType.Array>,
+    { value: index }: PostScriptObject<ObjectType.Integer>,
+    { value: source }: PostScriptObject<ObjectType.Array>
   ) {
     if (target.length < index + source.length) {
       throw new Error(
         `putinterval: inserting source array with length ${source.length} in array with length ${target.length} starting at index ${index} is out of range`
       )
     }
-    ;(target as PostScriptObject[]).splice(index, source.length, ...source)
+    target.splice(index, source.length, ...source)
   }
 
   @builtin()
@@ -1175,16 +1263,15 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Array)
-  private aload(array: PostScriptObject) {
-    const { value: elements } = <{ value: PostScriptObject[] }>array
-    this.operandStack.push(...elements, array)
+  private aload(array: PostScriptObject<ObjectType.Array>) {
+    this.operandStack.push(...array.value, array)
   }
 
   @builtin('copy')
   @operands(ObjectType.Array, ObjectType.Array)
   private copyArray(
-    { value: source }: PostScriptObject,
-    { value: target }: PostScriptObject
+    { value: source }: PostScriptObject<ObjectType.Array>,
+    { value: target }: PostScriptObject<ObjectType.Array>
   ) {
     // Returns the removed elements of target
     if (target.length < source.length) {
@@ -1192,17 +1279,16 @@ export class PostScriptInterpreter {
         `copy: Cannot copy array of length ${source.length} into array of length ${target.length}`
       )
     }
-    const returnedElements = (target as PostScriptObject[]).splice(
-      0,
-      source.length,
-      ...source
-    )
+    const returnedElements = target.splice(0, source.length, ...source)
     this.pushLiteral(returnedElements, ObjectType.Array)
   }
 
   @builtin('forall')
   @operands(ObjectType.Array, ObjectType.Array)
-  private forallArray(array: PostScriptObject, proc: PostScriptObject) {
+  private forallArray(
+    array: PostScriptObject<ObjectType.Array>,
+    proc: PostScriptObject<ObjectType.Array>
+  ) {
     this.beginLoop(
       new ArrayForAllLoopContext(
         this.executionStack,
@@ -1219,7 +1305,9 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
-  private setLineWidth({ value: lineWidth }: PostScriptObject) {
+  private setLineWidth({
+    value: lineWidth,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.graphicsState.lineWidth = lineWidth
     this.ctx.lineWidth = lineWidth
   }
@@ -1284,7 +1372,9 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Integer)
-  private setMiterLimit({ value: miterLimit }: PostScriptObject) {
+  private setMiterLimit({
+    value: miterLimit,
+  }: PostScriptObject<ObjectType.Integer>) {
     this.graphicsState.miterLimit = miterLimit
     this.ctx.miterLimit = miterLimit
   }
@@ -1311,9 +1401,9 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer
   )
   private setColor(
-    { value: rInput }: PostScriptObject,
-    { value: gInput }: PostScriptObject,
-    { value: bInput }: PostScriptObject
+    { value: rInput }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: gInput }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: bInput }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
     //FIXME: Support other colour definitions
     const fitToRgbRange = (number: number) =>
@@ -1350,7 +1440,10 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer,
     ObjectType.Real | ObjectType.Integer
   )
-  private moveTo(x: PostScriptObject, y: PostScriptObject) {
+  private moveTo(
+    x: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    y: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+  ) {
     const nextCoordinate = this.graphicsState.toDeviceCoordinate({
       x: x.value,
       y: y.value,
@@ -1364,7 +1457,10 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer,
     ObjectType.Real | ObjectType.Integer
   )
-  private relativeMoveTo(x: PostScriptObject, y: PostScriptObject) {
+  private relativeMoveTo(
+    x: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    y: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+  ) {
     const currentPoint = this.graphicsState.path.currentPoint
     const offsetCoordinate = this.graphicsState.toDeviceCoordinate({
       x: x.value,
@@ -1383,7 +1479,10 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer,
     ObjectType.Real | ObjectType.Integer
   )
-  private lineTo(x: PostScriptObject, y: PostScriptObject) {
+  private lineTo(
+    x: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    y: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+  ) {
     const nextCoordinate = this.graphicsState.toDeviceCoordinate({
       x: x.value,
       y: y.value,
@@ -1401,7 +1500,10 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer,
     ObjectType.Real | ObjectType.Integer
   )
-  private relativeLineTo(x: PostScriptObject, y: PostScriptObject) {
+  private relativeLineTo(
+    x: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    y: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+  ) {
     const currentPoint = this.graphicsState.path.currentPoint
     const offsetCoordinate = this.graphicsState.toDeviceCoordinate({
       x: x.value,
@@ -1428,11 +1530,11 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer
   )
   private arc(
-    { value: x }: PostScriptObject,
-    { value: y }: PostScriptObject,
-    { value: radius }: PostScriptObject,
-    { value: angle1 }: PostScriptObject,
-    { value: angle2 }: PostScriptObject
+    { value: x }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: radius }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: angle1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: angle2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
     if (angle1 < 0 || angle1 > 360 || angle2 < 0 || angle2 > 360) {
       throw new Error(`Invalid angles ${angle1} or ${angle2}`)
@@ -1465,11 +1567,11 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer
   )
   private arcn(
-    { value: x }: PostScriptObject,
-    { value: y }: PostScriptObject,
-    { value: radius }: PostScriptObject,
-    { value: angle1 }: PostScriptObject,
-    { value: angle2 }: PostScriptObject
+    { value: x }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: radius }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: angle1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: angle2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
     if (angle1 < 0 || angle1 > 360 || angle2 < 0 || angle2 > 360) {
       throw new Error(`Invalid angles ${angle1} or ${angle2}`)
@@ -1502,11 +1604,11 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer
   )
   private arct(
-    { value: x1 }: PostScriptObject,
-    { value: y1 }: PostScriptObject,
-    { value: x2 }: PostScriptObject,
-    { value: y2 }: PostScriptObject,
-    { value: radius }: PostScriptObject
+    { value: x1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: x2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: radius }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
     const coordinates = [
       this.graphicsState.toDeviceCoordinate({ x: x1, y: y1 }),
@@ -1533,12 +1635,12 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer
   )
   private curveto(
-    { value: x1 }: PostScriptObject,
-    { value: y1 }: PostScriptObject,
-    { value: x2 }: PostScriptObject,
-    { value: y2 }: PostScriptObject,
-    { value: x3 }: PostScriptObject,
-    { value: y3 }: PostScriptObject
+    { value: x1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: x2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: x3 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y3 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
     const cp1 = this.graphicsState.toDeviceCoordinate({ x: x1, y: y1 })
     const cp2 = this.graphicsState.toDeviceCoordinate({ x: x2, y: y2 })
@@ -1562,12 +1664,12 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer
   )
   private rcurveto(
-    { value: x1 }: PostScriptObject,
-    { value: y1 }: PostScriptObject,
-    { value: x2 }: PostScriptObject,
-    { value: y2 }: PostScriptObject,
-    { value: x3 }: PostScriptObject,
-    { value: y3 }: PostScriptObject
+    { value: x1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: x2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: x3 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y3 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
     const cp1 = offsetCoordinate(
       toRelativeOffset({ x: x1, y: y1 }, this.graphicsState),
@@ -1632,10 +1734,10 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real
   )
   private rectangleStrokePlain(
-    { value: x }: PostScriptObject,
-    { value: y }: PostScriptObject,
-    { value: width }: PostScriptObject,
-    { value: height }: PostScriptObject
+    { value: x }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: width }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: height }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
     const bottomLeft = this.graphicsState.toDeviceCoordinate({ x, y })
     // To get device width/height
@@ -1659,10 +1761,10 @@ export class PostScriptInterpreter {
     ObjectType.Integer | ObjectType.Real
   )
   private rectangleFillPlain(
-    { value: x }: PostScriptObject,
-    { value: y }: PostScriptObject,
-    { value: width }: PostScriptObject,
-    { value: height }: PostScriptObject
+    { value: x }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: y }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: width }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: height }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
     const bottomLeft = this.graphicsState.toDeviceCoordinate({ x, y })
     // To get device width/height
@@ -1684,7 +1786,10 @@ export class PostScriptInterpreter {
 
   @builtin('if')
   @operands(ObjectType.Boolean, ObjectType.Array)
-  private _if({ value: bool }: PostScriptObject, procedure: PostScriptObject) {
+  private _if(
+    { value: bool }: PostScriptObject<ObjectType.Boolean>,
+    procedure: PostScriptObject<ObjectType.Array>
+  ) {
     if (procedure.attributes.executability === Executability.Literal) {
       throw new Error('Second argument to if is not a procedure')
     }
@@ -1696,9 +1801,9 @@ export class PostScriptInterpreter {
   @builtin()
   @operands(ObjectType.Boolean, ObjectType.Array, ObjectType.Array)
   private ifelse(
-    { value: bool }: PostScriptObject,
-    procedureTrue: PostScriptObject,
-    procedureFalse: PostScriptObject
+    { value: bool }: PostScriptObject<ObjectType.Boolean>,
+    procedureTrue: PostScriptObject<ObjectType.Array>,
+    procedureFalse: PostScriptObject<ObjectType.Array>
   ) {
     if (
       procedureTrue.attributes.executability === Executability.Literal ||
@@ -1721,10 +1826,10 @@ export class PostScriptInterpreter {
     ObjectType.Array
   )
   private _for(
-    initial: PostScriptObject,
-    increment: PostScriptObject,
-    limit: PostScriptObject,
-    proc: PostScriptObject
+    initial: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    increment: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    limit: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    proc: PostScriptObject<ObjectType.Array>
   ) {
     this.beginLoop(
       new ForLoopContext(
@@ -1796,7 +1901,7 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.String)
-  private show({ value: string }: PostScriptObject) {
+  private show({ value: string }: PostScriptObject<ObjectType.String>) {
     this.ctx.fillText(
       string.asString(),
       this.graphicsState.path.currentPoint.x,

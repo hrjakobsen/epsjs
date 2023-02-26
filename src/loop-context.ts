@@ -6,7 +6,7 @@ export abstract class LoopContext {
 
   constructor(
     protected executionStack: PostScriptObject[],
-    protected procedure: PostScriptObject
+    protected procedure: PostScriptObject<ObjectType.Array>
   ) {
     if (
       procedure.type !== ObjectType.Array ||
@@ -46,9 +46,9 @@ export class ForLoopContext extends LoopContext {
     executionStack: PostScriptObject[],
     procedure: PostScriptObject,
     private operandStack: PostScriptObject[],
-    initial: PostScriptObject,
-    increment: PostScriptObject,
-    limit: PostScriptObject
+    initial: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    increment: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    limit: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
     super(executionStack, procedure)
     if (!(initial.type & (ObjectType.Real | ObjectType.Integer))) {
@@ -109,7 +109,7 @@ export class RepeatLoopContext extends LoopContext {
   constructor(
     executionStack: PostScriptObject[],
     procedure: PostScriptObject,
-    iterations: PostScriptObject
+    iterations: PostScriptObject<ObjectType.Integer>
   ) {
     super(executionStack, procedure)
     if (iterations.type !== ObjectType.Integer) {
@@ -134,7 +134,7 @@ export class ArrayForAllLoopContext extends LoopContext {
     executionStack: PostScriptObject[],
     procedure: PostScriptObject,
     private operandStack: PostScriptObject[],
-    private array: PostScriptObject<PostScriptObject[]>
+    private array: PostScriptObject<ObjectType.Array>
   ) {
     super(executionStack, procedure)
     if (this.array.type !== ObjectType.Array) {

@@ -1,3 +1,4 @@
+import { PostScriptDictionary } from './dictionary/dictionary'
 import { BASE_10_INT, PostScriptLexer, RADIX_NUMBER, TokenType } from './lexer'
 import { BufferedStreamer } from './stream'
 import { PostScriptString } from './string'
@@ -38,10 +39,44 @@ type Attributes = {
   access: Access
 }
 
-export type PostScriptObject<T = any> = {
+// TODO: There's probably a nicer way of doing this
+type ObjectValue<T extends ObjectType | unknown = unknown> =
+  T extends ObjectType.Integer
+    ? number
+    : T extends ObjectType.Real
+    ? number
+    : T extends ObjectType.Boolean
+    ? boolean
+    : T extends ObjectType.FontID
+    ? never
+    : T extends ObjectType.Mark
+    ? undefined
+    : T extends ObjectType.Name
+    ? string
+    : T extends ObjectType.Null
+    ? null
+    : T extends ObjectType.Operator
+    ? string
+    : T extends ObjectType.Array
+    ? PostScriptObject<unknown>[]
+    : T extends ObjectType.Dictionary
+    ? PostScriptDictionary
+    : T extends ObjectType.File
+    ? never
+    : T extends ObjectType.GState
+    ? never
+    : T extends ObjectType.PackedArray
+    ? never
+    : T extends ObjectType.Save
+    ? never
+    : T extends ObjectType.String
+    ? PostScriptString
+    : unknown
+
+export type PostScriptObject<T extends ObjectType | unknown = unknown> = {
   type: ObjectType
   attributes: Attributes
-  value: T
+  value: ObjectValue<T>
 }
 
 export type EPSMetaData = {
@@ -82,7 +117,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
     return metaData
   }
 
-  protected override generateToken(): PostScriptObject | undefined {
+  protected override generateToken(): PostScriptObject<unknown> | undefined {
     if (this._lexer.next === undefined) {
       return undefined
     }
@@ -171,7 +206,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
 
   scanProcedure(): PostScriptObject {
     this._lexer.advance(1)
-    const procedure: PostScriptObject = {
+    const procedure: PostScriptObject<ObjectType.Array> = {
       type: ObjectType.Array,
       attributes: {
         access: Access.Unlimited,
@@ -183,7 +218,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
       this._lexer.next &&
       this._lexer.next?.kind !== TokenType.ProcedureClose
     ) {
-      procedure.value.push(this.generateToken())
+      procedure.value.push(this.generateToken()!)
     }
     if (this._lexer.next?.kind !== TokenType.ProcedureClose) {
       throw new Error('Missing }')
