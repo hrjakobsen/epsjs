@@ -1720,6 +1720,15 @@ export class PostScriptInterpreter {
   }
 
   @builtin()
+  private exit() {
+    if (this.activeLoop === undefined) {
+      throw new Error('exit: No current loop')
+    }
+    this.activeLoop.exit()
+    this.loopStack.pop()
+  }
+
+  @builtin()
   private quit(_obj: PostScriptObject) {
     this.stopped = true
   }
