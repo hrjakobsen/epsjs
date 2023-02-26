@@ -17,20 +17,23 @@ export abstract class LoopContext {
     this.executionStackStartIndex = executionStack.length
   }
 
-  abstract finished(): boolean
+  public abstract finished(): boolean
 
   public exit() {
     this.executionStack.splice(this.executionStackStartIndex + 1)
   }
 
-  public shouldExecute() {
-    return (
-      !this.finished() &&
-      this.executionStack.length === this.executionStackStartIndex
-    )
+  public isReadyToExecute() {
+    return this.executionStack.length === this.executionStackStartIndex
   }
 
   public abstract execute(): void
+
+  protected executeProcedure() {
+    const procedureBody = [...this.procedure.value]
+    procedureBody.reverse()
+    this.executionStack.push(...procedureBody)
+  }
 }
 
 export class ForLoopContext extends LoopContext {
@@ -73,20 +76,54 @@ export class ForLoopContext extends LoopContext {
     }
   }
 
-  finished(): boolean {
+  public override finished(): boolean {
     if (this.increment >= 0) {
       return this.controlVariable > this.limit
     }
     return this.controlVariable < this.limit
   }
 
-  public execute(): void {
-    const procedureBody = [...this.procedure.value]
-    procedureBody.reverse()
+  public override execute(): void {
     this.operandStack.push(
       createLiteral(this.controlVariable, this.controlVariableType)
     )
-    this.executionStack.push(...procedureBody)
+    this.executeProcedure()
     this.controlVariable += this.increment
+  }
+}
+
+export class InfiteLoopContext extends LoopContext {
+  public override finished(): boolean {
+    return false
+  }
+
+  public override execute(): void {
+    this.executeProcedure()
+  }
+}
+
+export class RepeatLoopContext extends LoopContext {
+  private target: number
+  private current = 0
+
+  constructor(
+    executionStack: PostScriptObject[],
+    procedure: PostScriptObject,
+    iterations: PostScriptObject
+  ) {
+    super(executionStack, procedure)
+    if (iterations.type !== ObjectType.Integer) {
+      throw new Error('Repeat invalid iterations type')
+    }
+    this.target = iterations.value
+  }
+
+  public override finished(): boolean {
+    return this.current >= this.target
+  }
+
+  public override execute(): void {
+    this.executeProcedure()
+    this.current++
   }
 }

@@ -13,7 +13,12 @@ import {
   toRelativeOffset,
 } from './graphics-state'
 import { CharStream, PostScriptLexer } from './lexer'
-import { ForLoopContext, LoopContext } from './loop-context'
+import {
+  ForLoopContext,
+  InfiteLoopContext,
+  LoopContext,
+  RepeatLoopContext,
+} from './loop-context'
 import {
   Access,
   EPSMetaData,
@@ -146,12 +151,12 @@ export class PostScriptInterpreter {
 
   private fetchAndExecute(): void {
     if (this.activeLoop) {
-      if (this.activeLoop.finished()) {
+      if (this.activeLoop.isReadyToExecute() && this.activeLoop.finished()) {
         this.activeLoop.exit()
         this.loopStack.pop()
         return
       }
-      if (this.activeLoop.shouldExecute()) {
+      if (this.activeLoop.isReadyToExecute()) {
         this.activeLoop.execute()
         return
       }
@@ -1717,6 +1722,18 @@ export class PostScriptInterpreter {
         limit
       )
     )
+  }
+
+  @builtin()
+  @operands(ObjectType.Array)
+  private loop(proc: PostScriptObject) {
+    this.beginLoop(new InfiteLoopContext(this.executionStack, proc))
+  }
+
+  @builtin()
+  @operands(ObjectType.Integer, ObjectType.Array)
+  private repeat(iterations: PostScriptObject, proc: PostScriptObject) {
+    this.beginLoop(new RepeatLoopContext(this.executionStack, proc, iterations))
   }
 
   @builtin()
