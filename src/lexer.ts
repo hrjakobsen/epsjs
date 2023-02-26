@@ -1,4 +1,5 @@
 import { BufferedStreamer, InputStream } from './stream'
+import { base85Decode } from './utils'
 
 export enum TokenType {
   Number,
@@ -193,10 +194,33 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
       }
     }
     if (isTilde(nextChar)) {
-      throw new Error('TODO: Parse base85 ASCII strings')
+      this.dataStream.advance(1)
+      return this.parseBase85String()
     }
 
     return this.parseHexString()
+  }
+
+  parseBase85String() {
+    const start = this.dataStream.pos - 2
+    const string = String.fromCharCode(...this.dataStream.collectUntil(isTilde))
+    if (!isTilde(this.dataStream.next)) {
+      throw new Error('Missing end of base85 encoded string')
+    }
+    this.dataStream.advance(1)
+    if (!isAngleBracketClose(this.dataStream.next)) {
+      throw new Error('missing > at end of base85 encoded string')
+    }
+    this.dataStream.advance(1)
+
+    return {
+      kind: TokenType.String,
+      content: String.fromCharCode(...base85Decode(string)),
+      span: {
+        from: start,
+        to: this.dataStream.pos,
+      },
+    }
   }
 
   parseHexString() {
@@ -245,6 +269,11 @@ function isOneOf(...char: string[]) {
     )
   }
 }
+function isCharCodeOf(...codepoints: number[]) {
+  return (codepoint?: number) => {
+    return codepoint !== undefined && codepoints.some((c) => c === codepoint)
+  }
+}
 
 function isPrintableAscii(codepoint: number) {
   return codepoint <= 126 && codepoint >= 33
@@ -273,7 +302,14 @@ const isSlash = isOneOf('/')
 const isTilde = isOneOf('~')
 const isAngleBracketOpen = isOneOf('<')
 const isAngleBracketClose = isOneOf('>')
-const isWhitespace = isOneOf(' ', '\t', '\r', '\n') // TODO: Support all whitespace characters from Table 3.1 in PLRM
+export const isWhitespace = isCharCodeOf(
+  0x00, // Null
+  0x09, // Tab
+  0x0a, // Line feed,
+  0x0c, // Form feed
+  0x0d, // Carriage return
+  0x20 // Space
+)
 const isPercentageSign = isOneOf('%')
 const isNewLine = isOneOf('\n')
 const isParenStart = isOneOf('(')
