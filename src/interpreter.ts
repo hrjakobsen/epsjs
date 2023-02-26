@@ -14,6 +14,7 @@ import {
 } from './graphics-state'
 import { CharStream, PostScriptLexer } from './lexer'
 import {
+  ArrayForAllLoopContext,
   ForLoopContext,
   InfiteLoopContext,
   LoopContext,
@@ -1197,6 +1198,19 @@ export class PostScriptInterpreter {
       ...source
     )
     this.pushLiteral(returnedElements, ObjectType.Array)
+  }
+
+  @builtin('forall')
+  @operands(ObjectType.Array, ObjectType.Array)
+  private forallArray(array: PostScriptObject, proc: PostScriptObject) {
+    this.beginLoop(
+      new ArrayForAllLoopContext(
+        this.executionStack,
+        proc,
+        this.operandStack,
+        array
+      )
+    )
   }
 
   // ---------------------------------------------------------------------------

@@ -127,3 +127,27 @@ export class RepeatLoopContext extends LoopContext {
     this.current++
   }
 }
+
+export class ArrayForAllLoopContext extends LoopContext {
+  private index = 0
+  constructor(
+    executionStack: PostScriptObject[],
+    procedure: PostScriptObject,
+    private operandStack: PostScriptObject[],
+    private array: PostScriptObject<PostScriptObject[]>
+  ) {
+    super(executionStack, procedure)
+    if (this.array.type !== ObjectType.Array) {
+      throw new Error('Type error in array forall')
+    }
+  }
+  public finished(): boolean {
+    return this.index >= this.array.value.length
+  }
+
+  public execute(): void {
+    this.executeProcedure()
+    this.operandStack.push(this.array.value[this.index]!)
+    ++this.index
+  }
+}
