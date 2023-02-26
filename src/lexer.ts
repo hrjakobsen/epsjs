@@ -136,14 +136,95 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
 
   parseLiteralString() {
     // Scan literal string
-    // TODO: Support balanced parentheses
     const start = this.dataStream.pos
     this.dataStream.advance(1)
-    const stringValue = this.dataStream.collectUntil(isParenEnd)
-    this.dataStream.advance(1)
+    let parenDepth = 1
+    const codepoints: number[] = []
+    let next = this.dataStream.next
+    while (next !== undefined) {
+      next = this.dataStream.next
+      this.dataStream.advance(1)
+      if (isParenStart(next)) {
+        ++parenDepth
+        codepoints.push(next!)
+        continue
+      }
+      if (isParenEnd(next)) {
+        if (parenDepth === 1) {
+          break
+        }
+        --parenDepth
+        codepoints.push(next!)
+        continue
+      }
+
+      const escapeSequence = (char: string, replacement: string | number) => {
+        if (next !== char.charCodeAt(0)) {
+          return false
+        }
+        this.dataStream.advance(1)
+        codepoints.push(
+          typeof replacement === 'string'
+            ? replacement.charCodeAt(0)
+            : replacement
+        )
+        return true
+      }
+      if (isBackSlash(next)) {
+        next = this.dataStream.next
+        if (next === undefined) {
+          throw new Error(`Invalid escape sequence: \\${next}`)
+        }
+        if (
+          escapeSequence('n', '\n') ||
+          escapeSequence('r', '\r') ||
+          escapeSequence('t', '\t') ||
+          escapeSequence('b', 0x08) || // Backspace
+          escapeSequence('f', 0x0c) || // Formfeed
+          escapeSequence('\\', '\\') ||
+          escapeSequence('(', '(') ||
+          escapeSequence(')', ')')
+        ) {
+          continue
+        }
+        if (next === '\n'.charCodeAt(0)) {
+          // Ignore the newline
+          this.dataStream.advance(1)
+          continue
+        }
+        if (next === 0x0c) {
+          // Ignore the formeed
+          this.dataStream.advance(1)
+          continue
+        }
+        if (isOctalDigit(next)) {
+          // Parse up to three digits in octal
+          const octalCodepoints = [next!]
+          this.advance(1)
+          for (let i = 0; i < 2; ++i) {
+            if (isOctalDigit(this.dataStream.next)) {
+              octalCodepoints.push(this.dataStream.next!)
+              this.dataStream.advance(1)
+            } else {
+              break
+            }
+          }
+          const characterCode = Number.parseInt(
+            String.fromCharCode(...octalCodepoints),
+            8
+          )
+          codepoints.push(characterCode)
+          continue
+        }
+        // Otherwise we just ignore the \
+      } else {
+        codepoints.push(next!)
+      }
+    }
+    const stringValue = String.fromCharCode(...codepoints)
     return {
       kind: TokenType.String,
-      content: String.fromCharCode(...stringValue),
+      content: stringValue,
       span: {
         from: start,
         to: this.dataStream.pos,
@@ -297,8 +378,9 @@ const isReservedCharacter = isOneOf(
   '/',
   '%'
 )
-
+const isOctalDigit = isOneOf('0', '1', '2', '3', '4', '5', '6', '7')
 const isSlash = isOneOf('/')
+const isBackSlash = isOneOf('\\')
 const isTilde = isOneOf('~')
 const isAngleBracketOpen = isOneOf('<')
 const isAngleBracketClose = isOneOf('>')
