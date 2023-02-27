@@ -20,6 +20,7 @@ import {
   InfiteLoopContext,
   LoopContext,
   RepeatLoopContext,
+  StringForAllLoopContext,
 } from './loop-context'
 import {
   Access,
@@ -607,7 +608,21 @@ export class PostScriptInterpreter {
     )
   }
 
-  // TODO: forall
+  @builtin('forall')
+  @operands(ObjectType.String, ObjectType.Array)
+  private forallString(
+    string: PostScriptObject<ObjectType.String>,
+    proc: PostScriptObject<ObjectType.Array>
+  ) {
+    this.beginLoop(
+      new StringForAllLoopContext(
+        this.executionStack,
+        proc,
+        this.operandStack,
+        string
+      )
+    )
+  }
 
   @builtin()
   @operands(ObjectType.String, ObjectType.String)

@@ -183,3 +183,26 @@ export class DictionaryForAllLoopContext extends LoopContext {
     }
   }
 }
+
+export class StringForAllLoopContext extends LoopContext {
+  private index = 0
+  constructor(
+    executionStack: PostScriptObject[],
+    procedure: PostScriptObject,
+    private operandStack: PostScriptObject[],
+    private string: PostScriptObject<ObjectType.String>
+  ) {
+    super(executionStack, procedure)
+  }
+  public finished(): boolean {
+    return this.index >= this.string.value.length
+  }
+
+  public execute(): void {
+    this.executeProcedure()
+    this.operandStack.push(
+      createLiteral(this.string.value.get(this.index), ObjectType.Integer)
+    )
+    ++this.index
+  }
+}
