@@ -53,6 +53,7 @@ export function prettyPrint(obj: PostScriptObject<unknown>): string {
     case ObjectType.Real:
     case ObjectType.Name:
     case ObjectType.Integer:
+      return String(obj.value)
     case ObjectType.Boolean:
       return (obj as PostScriptObject<ObjectType.Boolean>).value
         ? 'true'

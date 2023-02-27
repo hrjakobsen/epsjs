@@ -151,3 +151,35 @@ export class ArrayForAllLoopContext extends LoopContext {
     ++this.index
   }
 }
+
+export class DictionaryForAllLoopContext extends LoopContext {
+  private index = 0
+  private keys: PostScriptObject[]
+  constructor(
+    executionStack: PostScriptObject[],
+    procedure: PostScriptObject,
+    private operandStack: PostScriptObject[],
+    private dictionary: PostScriptObject<ObjectType.Dictionary>
+  ) {
+    super(executionStack, procedure)
+    this.keys = this.dictionary.value.keys()
+  }
+
+  public finished(): boolean {
+    return this.index >= this.keys.length
+  }
+
+  public execute(): void {
+    while (this.index < this.keys.length) {
+      const key = this.keys[this.index]!
+      const item = this.dictionary.value.get(key)
+      if (item !== undefined) {
+        this.operandStack.push(key, item)
+        this.executeProcedure()
+        this.index++
+        return
+      }
+      this.index++
+    }
+  }
+}

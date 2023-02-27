@@ -2,6 +2,9 @@ import { PostScriptObject } from '../scanner'
 
 export class PostScriptDictionary {
   protected readonly map = new Map<any, PostScriptObject>()
+  // HACK
+  private readonly keysMap = new Map<any, PostScriptObject>()
+
   constructor(
     public readonly readOnly: boolean,
     private readonly capacity: number
@@ -25,12 +28,18 @@ export class PostScriptDictionary {
     return this.map.entries()
   }
 
+  public keys(): PostScriptObject[] {
+    return [...this.map.keys()].map((key) => this.keysMap.get(key)!)
+  }
+
   public get(key: PostScriptObject) {
     return this.map.get(this.toKey(key))
   }
 
   public forceSet(key: PostScriptObject, value: PostScriptObject) {
-    this.map.set(this.toKey(key), value)
+    const keyInMap = this.toKey(key)
+    this.map.set(keyInMap, value)
+    this.keysMap.set(keyInMap, key)
   }
 
   public remove(key: PostScriptObject) {

@@ -15,6 +15,7 @@ import {
 import { CharStream, PostScriptLexer } from './lexer'
 import {
   ArrayForAllLoopContext,
+  DictionaryForAllLoopContext,
   ForLoopContext,
   InfiteLoopContext,
   LoopContext,
@@ -384,6 +385,7 @@ export class PostScriptInterpreter {
       throw new Error('>>: Missing mark on stack')
     }
     const elements = this.operandStack.splice(mark + 1)
+    this.operandStack.pop() // pop mark
     if (elements.length % 2 !== 0) {
       throw new Error('Dictionary entries must be key-value pairs')
     }
@@ -492,6 +494,22 @@ export class PostScriptInterpreter {
   @builtin()
   private countDictStack() {
     this.pushLiteral(this.dictionaryStack.length, ObjectType.Integer)
+  }
+
+  @builtin('forall')
+  @operands(ObjectType.Dictionary, ObjectType.Array)
+  private forallDictionary(
+    dictionary: PostScriptObject<ObjectType.Dictionary>,
+    proc: PostScriptObject<ObjectType.Array>
+  ) {
+    this.beginLoop(
+      new DictionaryForAllLoopContext(
+        this.executionStack,
+        proc,
+        this.operandStack,
+        dictionary
+      )
+    )
   }
 
   // TODO: cleardictstack, dictstack, forall, default dictionaries
