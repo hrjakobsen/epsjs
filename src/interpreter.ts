@@ -1,6 +1,8 @@
+import { PostScriptArray } from './array'
 import { builtin, operands } from './decorators'
 import { PostScriptDictionary } from './dictionary/dictionary'
 import { SystemDictionary } from './dictionary/system-dictionary'
+import { PostScriptFile, ReadableFile } from './file'
 import {
   ColorSpace,
   Direction,
@@ -12,7 +14,6 @@ import {
   SegmentType,
   toRelativeOffset,
 } from './graphics-state'
-import { CharStream, PostScriptLexer } from './lexer'
 import {
   ArrayForAllLoopContext,
   DictionaryForAllLoopContext,
@@ -28,7 +29,6 @@ import {
   Executability,
   ObjectType,
   PostScriptObject,
-  PostScriptScanner,
 } from './scanner'
 import { PostScriptString } from './string'
 import {
@@ -46,15 +46,26 @@ const MAX_LOOP_STACK_SIZE = 1024
 export class PostScriptInterpreter {
   public readonly metaData: EPSMetaData = {}
   private _ctx?: CanvasRenderingContext2D
-  private constructor(private scanner: PostScriptScanner) {
-    this.metaData = this.scanner.getMetaData()
+  private constructor(file: PostScriptFile) {
+    this.executionStack.push({
+      attributes: {
+        access: Access.Unlimited,
+        executability: Executability.Executable,
+      },
+      value: file,
+      type: ObjectType.File,
+    })
   }
+
   private dictionaryStack: PostScriptDictionary[] = [
     new SystemDictionary(),
     new PostScriptDictionary(false, 1024),
   ]
   public operandStack: PostScriptObject[] = []
-  private executionStack: PostScriptObject[] = []
+  private executionStack: (
+    | PostScriptObject<ObjectType.Array>
+    | PostScriptObject<ObjectType.File>
+  )[] = []
   private graphicsStack: GraphicsState[] = []
   private loopStack: LoopContext[] = []
 
@@ -97,8 +108,28 @@ export class PostScriptInterpreter {
     }
   }
 
-  private get next() {
-    return this.executionStack.pop()
+  private next() {
+    while (this.executionStack.length) {
+      const top = this.executionStack[this.executionStack.length - 1]!
+      if (top.type === ObjectType.Array) {
+        const procedure = (top as PostScriptObject<ObjectType.Array>).value
+        const nextInstruction = procedure.get(procedure.procedureIndex)
+        procedure.procedureIndex++
+        if (nextInstruction === undefined) {
+          this.executionStack.pop()
+          continue
+        }
+        return nextInstruction
+      } else {
+        const file = (top as PostScriptObject<ObjectType.File>).value
+        const nextInstruction = file.token()
+        if (nextInstruction === undefined) {
+          this.executionStack.pop()
+        }
+        return nextInstruction
+      }
+    }
+    return undefined
   }
 
   private get activeLoop() {
@@ -112,9 +143,7 @@ export class PostScriptInterpreter {
 
     return (
       this.stopped ||
-      (this.loopStack.length === 0 &&
-        this.executionStack.length === 0 &&
-        this.scanner.next === undefined)
+      (this.loopStack.length === 0 && this.executionStack.length === 0)
     )
   }
 
@@ -164,11 +193,11 @@ export class PostScriptInterpreter {
         return
       }
     }
-    if (!this.executionStack.length) {
-      this.executionStack.push(this.scanner.next!)
-      this.scanner.advance()
+    let item = this.next()
+    if (!item) {
+      this.stopped = true
+      return
     }
-    const item = this.next!
     if (
       item.attributes.executability === Executability.Literal ||
       (item.type === ObjectType.Array &&
@@ -195,11 +224,12 @@ export class PostScriptInterpreter {
         value.attributes.executability === Executability.Executable
       ) {
         // Push procedure to executionStack
-        const procedureBody = [
-          ...(value as PostScriptObject<ObjectType.Array>).value,
-        ]
-        procedureBody.reverse()
-        this.executionStack.push(...procedureBody)
+        const procedureBody: PostScriptObject<ObjectType.Array> = {
+          ...value,
+          value: (value as PostScriptObject<ObjectType.Array>).value.copy(),
+        }
+
+        this.executionStack.push(procedureBody)
         return
       } else if (value.attributes.executability === Executability.Literal) {
         this.operandStack.push(value)
@@ -222,7 +252,7 @@ export class PostScriptInterpreter {
 
   public static load(program: string) {
     const interpreter = new PostScriptInterpreter(
-      new PostScriptScanner(new PostScriptLexer(new CharStream(program)))
+      PostScriptFile.fromString(program)
     )
     return interpreter
   }
@@ -1223,7 +1253,7 @@ export class PostScriptInterpreter {
         `Index ${index} out of range of array with length ${elements.length}`
       )
     }
-    this.operandStack.push(elements[index]!)
+    this.operandStack.push(elements.get(index)!)
   }
 
   @builtin('put')
@@ -1238,7 +1268,7 @@ export class PostScriptInterpreter {
         `Index ${index} out of range of array with length ${elements.length}`
       )
     }
-    elements[index] = item
+    elements.set(index, item)
   }
 
   @builtin('getinterval')
@@ -1273,7 +1303,7 @@ export class PostScriptInterpreter {
         `putinterval: inserting source array with length ${source.length} in array with length ${target.length} starting at index ${index} is out of range`
       )
     }
-    target.splice(index, source.length, ...source)
+    target.splice(index, source.length, source)
   }
 
   @builtin()
@@ -1297,7 +1327,7 @@ export class PostScriptInterpreter {
   @builtin()
   @operands(ObjectType.Array)
   private aload(array: PostScriptObject<ObjectType.Array>) {
-    this.operandStack.push(...array.value, array)
+    this.operandStack.push(...array.value.items, array)
   }
 
   @builtin('copy')
@@ -1312,7 +1342,7 @@ export class PostScriptInterpreter {
         `copy: Cannot copy array of length ${source.length} into array of length ${target.length}`
       )
     }
-    const returnedElements = target.splice(0, source.length, ...source)
+    const returnedElements = target.splice(0, source.length, source)
     this.pushLiteral(returnedElements, ObjectType.Array)
   }
 
@@ -1827,7 +1857,7 @@ export class PostScriptInterpreter {
       throw new Error('Second argument to if is not a procedure')
     }
     if (bool) {
-      this.executionStack.push(...[...procedure.value].reverse())
+      this.executionStack.push({ ...procedure, value: procedure.value.copy() })
     }
   }
 
@@ -1845,9 +1875,15 @@ export class PostScriptInterpreter {
       throw new Error('Second argument to if is not a procedure')
     }
     if (bool) {
-      this.executionStack.push(...[...procedureTrue.value].reverse())
+      this.executionStack.push({
+        ...procedureTrue,
+        value: procedureTrue.value.copy(),
+      })
     } else {
-      this.executionStack.push(...[...procedureFalse.value].reverse())
+      this.executionStack.push({
+        ...procedureFalse,
+        value: procedureFalse.value.copy(),
+      })
     }
   }
 
@@ -1931,6 +1967,25 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
   //                           File Operators
   // ---------------------------------------------------------------------------
+
+  @builtin('file')
+  @builtin('write')
+  @builtin('closefile')
+  @builtin('flush')
+  @builtin('flushfile')
+  @builtin('resetfile')
+  @builtin('run')
+  @builtin('deletefile')
+  @builtin('renamefile')
+  @builtin('filenameforall')
+  @builtin('print')
+  @builtin('printobject')
+  @builtin('writeobject')
+  @builtin('setobjectformat')
+  @builtin('currentobjectformat')
+  private fileerror() {
+    throw new Error('not supported')
+  }
 
   @builtin()
   @operands(ObjectType.String)

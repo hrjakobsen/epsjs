@@ -1,4 +1,6 @@
+import { PostScriptArray } from './array'
 import { PostScriptDictionary } from './dictionary/dictionary'
+import { PostScriptFile } from './file'
 import { BASE_10_INT, PostScriptLexer, RADIX_NUMBER, TokenType } from './lexer'
 import { BufferedStreamer } from './stream'
 import { PostScriptString } from './string'
@@ -58,11 +60,11 @@ type ObjectValue<T extends ObjectType | unknown = unknown> =
     : T extends ObjectType.Operator
     ? string
     : T extends ObjectType.Array
-    ? PostScriptObject<unknown>[]
+    ? PostScriptArray
     : T extends ObjectType.Dictionary
     ? PostScriptDictionary
     : T extends ObjectType.File
-    ? never
+    ? PostScriptFile
     : T extends ObjectType.GState
     ? never
     : T extends ObjectType.PackedArray
@@ -212,7 +214,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
         access: Access.Unlimited,
         executability: Executability.Executable,
       },
-      value: [],
+      value: new PostScriptArray([]),
     }
     while (
       this._lexer.next &&

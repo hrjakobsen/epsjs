@@ -1,6 +1,14 @@
 import { BufferedStreamer, InputStream } from './stream'
 import { base85Decode } from './utils'
 
+export const BACKSPACE = 0x08
+export const NULL = 0x00
+export const TAB = 0x09
+export const LINE_FEED = 0x0a
+export const FORM_FEED = 0x0c
+export const CARRIAGE_RETURN = 0x0d
+export const SPACE = 0x20
+
 export enum TokenType {
   Number,
   Name,
@@ -179,8 +187,8 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
           escapeSequence('n', '\n') ||
           escapeSequence('r', '\r') ||
           escapeSequence('t', '\t') ||
-          escapeSequence('b', 0x08) || // Backspace
-          escapeSequence('f', 0x0c) || // Formfeed
+          escapeSequence('b', BACKSPACE) || // Backspace
+          escapeSequence('f', FORM_FEED) || // Formfeed
           escapeSequence('\\', '\\') ||
           escapeSequence('(', '(') ||
           escapeSequence(')', ')')
@@ -192,7 +200,7 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
           this.dataStream.advance(1)
           continue
         }
-        if (next === 0x0c) {
+        if (next === FORM_FEED) {
           // Ignore the formeed
           this.dataStream.advance(1)
           continue
@@ -385,12 +393,12 @@ const isTilde = isOneOf('~')
 const isAngleBracketOpen = isOneOf('<')
 const isAngleBracketClose = isOneOf('>')
 export const isWhitespace = isCharCodeOf(
-  0x00, // Null
-  0x09, // Tab
-  0x0a, // Line feed,
-  0x0c, // Form feed
-  0x0d, // Carriage return
-  0x20 // Space
+  NULL,
+  TAB,
+  LINE_FEED,
+  FORM_FEED,
+  CARRIAGE_RETURN,
+  SPACE
 )
 const isPercentageSign = isOneOf('%')
 const isNewLine = isOneOf('\n')

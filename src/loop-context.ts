@@ -30,9 +30,7 @@ export abstract class LoopContext {
   public abstract execute(): void
 
   protected executeProcedure() {
-    const procedureBody = [...this.procedure.value]
-    procedureBody.reverse()
-    this.executionStack.push(...procedureBody)
+    this.executionStack.push({ ...this.procedure, value: this.procedure.value })
   }
 }
 
@@ -147,7 +145,7 @@ export class ArrayForAllLoopContext extends LoopContext {
 
   public execute(): void {
     this.executeProcedure()
-    this.operandStack.push(this.array.value[this.index]!)
+    this.operandStack.push(this.array.value.get(this.index)!)
     ++this.index
   }
 }
