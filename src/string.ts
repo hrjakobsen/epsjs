@@ -72,4 +72,8 @@ export class PostScriptString {
     string.data = str.split('').map((char) => char.charCodeAt(0))
     return string
   }
+
+  toString() {
+    return this.asString()
+  }
 }

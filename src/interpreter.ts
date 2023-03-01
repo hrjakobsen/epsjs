@@ -32,6 +32,7 @@ import {
   EPSMetaData,
   Executability,
   ObjectType,
+  parseNumber,
   PostScriptObject,
 } from './scanner'
 import { PostScriptString } from './string'
@@ -1969,9 +1970,222 @@ export class PostScriptInterpreter {
   }
 
   // ---------------------------------------------------------------------------
-  //                           File Operators
+  //             Type, Attribute, and Conversion Operators
   // ---------------------------------------------------------------------------
 
+  @builtin()
+  @operands(ObjectType.Any)
+  private type({ type }: PostScriptObject) {
+    let name
+    switch (type) {
+      case ObjectType.Boolean:
+        name = 'booleantype'
+        break
+      case ObjectType.FontID:
+        name = 'fonttype'
+        break
+      case ObjectType.Integer:
+        name = 'integertype'
+        break
+      case ObjectType.Mark:
+        name = 'marktype'
+        break
+      case ObjectType.Name:
+        name = 'nametype'
+        break
+      case ObjectType.Null:
+        name = 'nulltype'
+        break
+      case ObjectType.Operator:
+        name = 'operatortype'
+        break
+      case ObjectType.Real:
+        name = 'realtype'
+        break
+      case ObjectType.Array:
+        name = 'arraytype'
+        break
+      case ObjectType.Dictionary:
+        name = 'dicttype'
+        break
+      case ObjectType.File:
+        name = 'filetype'
+        break
+      case ObjectType.GState:
+        name = 'gstatetype'
+        break
+      case ObjectType.PackedArray:
+        name = 'packedarraytype'
+        break
+      case ObjectType.Save:
+        name = 'savetype'
+        break
+      case ObjectType.String:
+        name = 'stringtype'
+        break
+      default:
+        name = 'unknown'
+    }
+    this.operandStack.push({
+      type: ObjectType.Name,
+      attributes: {
+        executability: Executability.Executable,
+        access: Access.Unlimited,
+      },
+      value: name,
+    })
+  }
+
+  @builtin()
+  @operands(ObjectType.Any)
+  private cvlit(obj: PostScriptObject) {
+    obj.attributes.executability = Executability.Literal
+    this.operandStack.push(obj)
+  }
+
+  @builtin()
+  @operands(ObjectType.Any)
+  private cvx(obj: PostScriptObject) {
+    obj.attributes.executability = Executability.Executable
+    this.operandStack.push(obj)
+  }
+
+  @builtin()
+  @operands(ObjectType.Any)
+  private xcheck(obj: PostScriptObject) {
+    this.operandStack.push(
+      createLiteral(
+        obj.attributes.executability === Executability.Executable,
+        ObjectType.Boolean
+      )
+    )
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Array |
+      ObjectType.PackedArray |
+      ObjectType.File |
+      ObjectType.String
+  )
+  private executeonly(obj: PostScriptObject) {
+    obj.attributes.access = Access.ExecuteOnly
+    this.operandStack.push(obj)
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Array |
+      ObjectType.PackedArray |
+      ObjectType.File |
+      ObjectType.Dictionary |
+      ObjectType.String
+  )
+  private noaccess(obj: PostScriptObject) {
+    obj.attributes.access = Access.None
+    this.operandStack.push(obj)
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Array |
+      ObjectType.PackedArray |
+      ObjectType.File |
+      ObjectType.Dictionary |
+      ObjectType.String
+  )
+  private readonly(obj: PostScriptObject) {
+    obj.attributes.access = Access.ReadOnly
+    this.operandStack.push(obj)
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Array |
+      ObjectType.PackedArray |
+      ObjectType.File |
+      ObjectType.Dictionary |
+      ObjectType.String
+  )
+  private rcheck(obj: PostScriptObject) {
+    this.operandStack.push(
+      createLiteral(
+        Boolean(obj.attributes.access | (Access.ReadOnly | Access.Unlimited)),
+        ObjectType.Boolean
+      )
+    )
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Array |
+      ObjectType.PackedArray |
+      ObjectType.File |
+      ObjectType.Dictionary |
+      ObjectType.String
+  )
+  private wcheck(obj: PostScriptObject) {
+    this.operandStack.push(
+      createLiteral(
+        Boolean(obj.attributes.access | Access.Unlimited),
+        ObjectType.Boolean
+      )
+    )
+  }
+
+  @builtin()
+  @operands(ObjectType.String | ObjectType.Real | ObjectType.Integer)
+  private cvi(
+    obj: PostScriptObject<
+      ObjectType.String | ObjectType.Real | ObjectType.Integer
+    >
+  ) {
+    // Convert to integer
+    let res: number
+    if (obj.type === ObjectType.String) {
+      res = parseNumber(obj.value.toString()).value
+    } else {
+      res = (obj as PostScriptObject<ObjectType.Integer | ObjectType.Real>)
+        .value
+    }
+    this.operandStack.push(createLiteral(Math.trunc(res), ObjectType.Integer))
+  }
+
+  @builtin()
+  @operands(ObjectType.String | ObjectType.Real | ObjectType.Integer)
+  private cvn(obj: PostScriptObject<ObjectType.String>) {
+    // Convert to name
+    this.operandStack.push({
+      attributes: {
+        executability: obj.attributes.executability,
+        access: obj.attributes.access,
+      },
+      type: ObjectType.Name,
+      value: obj.value.asString(),
+    })
+  }
+
+  @builtin()
+  @operands(ObjectType.String | ObjectType.Real | ObjectType.Integer)
+  private cvr(
+    obj: PostScriptObject<
+      ObjectType.String | ObjectType.Real | ObjectType.Integer
+    >
+  ) {
+    // Convert to real
+    let res: number
+    if (obj.type === ObjectType.String) {
+      res = parseNumber(obj.value.toString()).value
+    } else {
+      res = (obj as PostScriptObject<ObjectType.Integer | ObjectType.Real>)
+        .value
+    }
+    this.operandStack.push(createLiteral(res, ObjectType.Real))
+  }
+
+  // ---------------------------------------------------------------------------
+  //                           File Operators
+  // ---------------------------------------------------------------------------
   @builtin()
   @operands(ObjectType.File, ObjectType.String)
   private readString(

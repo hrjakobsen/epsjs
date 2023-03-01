@@ -156,27 +156,16 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
 
   scanNumber(): PostScriptObject {
     const numberString = this._lexer.next!.content
-    let value: number
-    let type = ObjectType.Real
-    if (numberString.match(RADIX_NUMBER)) {
-      const parts = numberString.split('#')
-      const base = parseInt(parts[0]!)
-      value = parseInt(parts[1]!, base)
-    } else if (numberString.match(BASE_10_INT)) {
-      value = parseInt(numberString)
-      type = ObjectType.Integer
-    } else {
-      value = parseFloat(numberString)
-    }
+    const parsedNumber = parseNumber(numberString)
 
     this._lexer.advance()
     return {
-      type,
+      type: parsedNumber.type,
       attributes: {
         executability: Executability.Literal,
         access: Access.Unlimited,
       },
-      value,
+      value: parsedNumber.value,
     }
   }
 
@@ -228,4 +217,23 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
     this._lexer.advance(1)
     return procedure
   }
+}
+
+export function parseNumber(numberString: string): {
+  value: number
+  type: ObjectType
+} {
+  let value: number
+  let type = ObjectType.Real
+  if (numberString.match(RADIX_NUMBER)) {
+    const parts = numberString.split('#')
+    const base = parseInt(parts[0]!)
+    value = parseInt(parts[1]!, base)
+  } else if (numberString.match(BASE_10_INT)) {
+    value = parseInt(numberString)
+    type = ObjectType.Integer
+  } else {
+    value = parseFloat(numberString)
+  }
+  return { value, type }
 }
