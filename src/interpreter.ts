@@ -2,7 +2,11 @@ import { PostScriptArray } from './array'
 import { builtin, operands } from './decorators'
 import { PostScriptDictionary } from './dictionary/dictionary'
 import { SystemDictionary } from './dictionary/system-dictionary'
-import { PostScriptFile, ReadableFile } from './file'
+import {
+  Ascii85DecodeFilter,
+  CharStreamBackedFile,
+  PostScriptReadableFile,
+} from './file'
 import {
   ColorSpace,
   Direction,
@@ -46,7 +50,7 @@ const MAX_LOOP_STACK_SIZE = 1024
 export class PostScriptInterpreter {
   public readonly metaData: EPSMetaData = {}
   private _ctx?: CanvasRenderingContext2D
-  private constructor(file: PostScriptFile) {
+  private constructor(file: CharStreamBackedFile) {
     this.executionStack.push({
       attributes: {
         access: Access.Unlimited,
@@ -252,7 +256,7 @@ export class PostScriptInterpreter {
 
   public static load(program: string) {
     const interpreter = new PostScriptInterpreter(
-      PostScriptFile.fromString(program)
+      CharStreamBackedFile.fromString(program)
     )
     return interpreter
   }
@@ -1967,6 +1971,47 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
   //                           File Operators
   // ---------------------------------------------------------------------------
+
+  @builtin()
+  @operands(ObjectType.File, ObjectType.String)
+  private readString(
+    { value: file }: PostScriptObject<ObjectType.File>,
+    { value: target }: PostScriptObject<ObjectType.String>
+  ) {
+    const result = file.readString(target)
+    this.operandStack.push(
+      createLiteral(result.substring, ObjectType.String),
+      createLiteral(result.success, ObjectType.Boolean)
+    )
+  }
+
+  @builtin()
+  @operands(ObjectType.File, ObjectType.Name)
+  private filter(
+    { value: inputFile }: PostScriptObject<ObjectType.File>,
+    name: PostScriptObject<ObjectType.Name>
+  ) {
+    if (name.attributes.executability !== Executability.Literal) {
+      throw new Error('filter: Must be a literal name')
+    }
+    if (name.value !== 'ASCII85Decode') {
+      throw new Error(`Unsupported filter: ${name.value}`)
+    }
+    this.operandStack.push(
+      createLiteral(new Ascii85DecodeFilter(inputFile), ObjectType.File)
+    )
+  }
+
+  @builtin()
+  private currentFile() {
+    const files = this.executionStack.filter((x) => x.type === ObjectType.File)
+    if (files.length === 0) {
+      throw new Error('No current file')
+    }
+    this.operandStack.push(
+      createLiteral(files[files.length - 1]!.value, ObjectType.File)
+    )
+  }
 
   @builtin('file')
   @builtin('write')

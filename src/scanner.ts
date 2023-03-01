@@ -1,6 +1,6 @@
 import { PostScriptArray } from './array'
 import { PostScriptDictionary } from './dictionary/dictionary'
-import { PostScriptFile } from './file'
+import { PostScriptReadableFile } from './file'
 import { BASE_10_INT, PostScriptLexer, RADIX_NUMBER, TokenType } from './lexer'
 import { BufferedStreamer } from './stream'
 import { PostScriptString } from './string'
@@ -64,7 +64,7 @@ type ObjectValue<T extends ObjectType | unknown = unknown> =
     : T extends ObjectType.Dictionary
     ? PostScriptDictionary
     : T extends ObjectType.File
-    ? PostScriptFile
+    ? PostScriptReadableFile
     : T extends ObjectType.GState
     ? never
     : T extends ObjectType.PackedArray

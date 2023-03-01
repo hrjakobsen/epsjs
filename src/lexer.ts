@@ -1,5 +1,5 @@
 import { BufferedStreamer, InputStream } from './stream'
-import { base85Decode } from './utils'
+import { ascii85Decode } from './ascii85'
 
 export const BACKSPACE = 0x08
 export const NULL = 0x00
@@ -53,13 +53,11 @@ export class CharStream extends InputStream<number> {
     return this.data.charCodeAt(this.pos + offset)
   }
 
-  advance(n: number = 1): number | undefined {
+  advance(n: number = 1) {
     if (n < 1) {
       throw new Error('CharStream: advance: n must be greater than 1')
     }
-    const val = this.peek(n)
     this._pos = Math.min(this.data.length, this.pos + n)
-    return val
   }
 }
 
@@ -77,21 +75,22 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
       return undefined
     }
 
+    let token = undefined
     if (isSlash(nextChar) || isRegularCharacter(nextChar)) {
-      return this.parseNameOrNumber(nextChar)
+      token = this.parseNameOrNumber(nextChar)
     } else if (isPercentageSign(nextChar)) {
-      return this.parseComment()
+      token = this.parseComment()
     } else if (isParenStart(nextChar)) {
-      return this.parseLiteralString()
+      token = this.parseLiteralString()
     } else if (isSingleCharacterDelimenator(nextChar)) {
-      return this.parseSingleCharacterDelimenator(nextChar)
+      token = this.parseSingleCharacterDelimenator(nextChar)
     } else if (isAngleBracketOpen(nextChar)) {
-      return this.parseAngleBracketExpression()
+      token = this.parseAngleBracketExpression()
     } else if (isAngleBracketClose(nextChar)) {
-      return this.parseDictionaryClose()
+      token = this.parseDictionaryClose()
     }
 
-    if (!isEOF(this.dataStream.next)) {
+    if (token == undefined && !isEOF(this.dataStream.next)) {
       throw new Error(
         `Lexer error: Unexpected input at position ${
           this.dataStream.pos
@@ -99,7 +98,8 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
       )
     }
 
-    return undefined
+    this.skipWhitespace()
+    return token
   }
 
   private skipWhitespace() {
@@ -304,7 +304,7 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
 
     return {
       kind: TokenType.String,
-      content: String.fromCharCode(...base85Decode(string)),
+      content: String.fromCharCode(...ascii85Decode(string)),
       span: {
         from: start,
         to: this.dataStream.pos,

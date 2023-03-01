@@ -24,7 +24,7 @@ export abstract class InputStream<Input> {
 
   abstract get pos(): number
   abstract peek(offset: number): Input | undefined
-  abstract advance(n?: number): Input | undefined
+  abstract advance(n?: number): void
 }
 
 export abstract class BufferedStreamer<
@@ -50,13 +50,11 @@ export abstract class BufferedStreamer<
     return this.tokenBuffer[offset]
   }
 
-  advance(n: number = 1): TokenType | undefined {
+  advance(n: number = 1) {
     if (n < 1) {
       throw new Error('PostScriptLexer: advance: n must be greater than 1')
     }
-    const val = this.peek(n)
     const removed = this.tokenBuffer.splice(0, n)
     this._pos += removed.length
-    return val
   }
 }

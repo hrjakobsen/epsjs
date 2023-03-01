@@ -1,4 +1,11 @@
 import {
+  decodeAscii85Group,
+  EXCLAM_OFFSET,
+  GREATER_THAN_CHARCODE,
+  TILDE_CHARCODE,
+  Z_CHARCODE,
+} from './ascii85'
+import {
   CARRIAGE_RETURN,
   CharStream,
   LINE_FEED,
@@ -13,41 +20,39 @@ type ReadResult = {
   success: boolean
 }
 
-export interface ReadableFile {
+export interface PostScriptReadableFile {
   isAtEndOfFile(): boolean
   read(): number | undefined
+  peek(): number | undefined
   readString(string: PostScriptString): ReadResult
   readLine(string: PostScriptString): ReadResult
   readHexString(string: PostScriptString): ReadResult
   token(): PostScriptObject | undefined
 }
 
-abstract class Filter implements ReadableFile {
-  abstract isAtEndOfFile(): boolean
-  abstract read(): number | undefined
-  abstract readString(): ReadResult
-  abstract readLine(): ReadResult
-  abstract readHexString(): ReadResult
-  abstract token(): PostScriptObject | undefined
-}
-
-export class PostScriptFile implements ReadableFile {
-  private scanner: PostScriptScanner
-
-  constructor(private charStream: InputStream<number>) {
-    this.scanner = new PostScriptScanner(new PostScriptLexer(this.charStream))
-  }
+abstract class PeekableFile implements PostScriptReadableFile {
+  private bufferedCharCode: number | undefined
 
   isAtEndOfFile(): boolean {
-    return this.charStream.next === undefined
+    return this.peek() === undefined
   }
 
+  abstract readCharacter(): number | undefined
+
   read(): number | undefined {
-    const next = this.charStream.next
-    if (next !== undefined) {
-      this.charStream.advance(1)
+    if (this.bufferedCharCode !== undefined) {
+      this.bufferedCharCode = undefined
+      return this.bufferedCharCode
     }
-    return next
+    return this.readCharacter()
+  }
+
+  peek(): number | undefined {
+    if (this.bufferedCharCode !== undefined) {
+      return this.bufferedCharCode
+    }
+    this.bufferedCharCode = this.readCharacter()
+    return this.bufferedCharCode
   }
 
   readString(string: PostScriptString): ReadResult {
@@ -61,10 +66,7 @@ export class PostScriptFile implements ReadableFile {
       }
       string.set(i, next)
     }
-    return {
-      success: true,
-      substring: string.subString(0),
-    }
+    return { success: true, substring: string.subString(0) }
   }
 
   readLine(string: PostScriptString): ReadResult {
@@ -81,14 +83,12 @@ export class PostScriptFile implements ReadableFile {
           success: true,
           substring: string.subString(0, i),
         }
-        this.charStream.advance(1)
-        if (this.charStream.next === LINE_FEED) {
-          this.charStream.advance(1)
+        if (this.peek() === LINE_FEED) {
+          this.read()
         }
         return result
       } else if (next === LINE_FEED) {
         // Stop at LF and advance past it
-        this.charStream.advance(1)
         return {
           success: true,
           substring: string.subString(0, i),
@@ -101,11 +101,11 @@ export class PostScriptFile implements ReadableFile {
 
   readHexString(string: PostScriptString): ReadResult {
     const findHex = (): number | undefined => {
-      while (this.charStream.next !== undefined) {
-        if (isHex(this.charStream.next)) {
-          return this.charStream.next
+      while (this.peek() !== undefined) {
+        if (isHex(this.peek()!)) {
+          return this.peek()
         }
-        this.charStream.advance(1)
+        this.read()
       }
       return undefined
     }
@@ -130,14 +130,102 @@ export class PostScriptFile implements ReadableFile {
     }
   }
 
+  abstract token(): PostScriptObject<unknown> | undefined
+}
+
+export class CharStreamBackedFile extends PeekableFile {
+  private scanner: PostScriptScanner
+
+  constructor(private charStream: InputStream<number>) {
+    super()
+    this.scanner = new PostScriptScanner(new PostScriptLexer(this.charStream))
+  }
+
+  readCharacter(): number | undefined {
+    const next = this.charStream.next
+    if (next !== undefined) {
+      this.charStream.advance(1)
+    }
+    return next
+  }
+
   token(): PostScriptObject | undefined {
     const next = this.scanner.next
     this.scanner.advance(1)
     return next
   }
 
-  public static fromString(contents: string): PostScriptFile {
-    return new PostScriptFile(new CharStream(contents))
+  public static fromString(contents: string): CharStreamBackedFile {
+    return new CharStreamBackedFile(new CharStream(contents))
+  }
+}
+
+abstract class DecodingFilter extends PeekableFile {
+  constructor(protected backingFile: PostScriptReadableFile) {
+    super()
+  }
+
+  token(): PostScriptObject<unknown> | undefined {
+    throw new Error('Method not implemented.')
+  }
+}
+
+export class Ascii85DecodeFilter extends DecodingFilter {
+  private bufferedCharacters: number[] = []
+  private isEof = false
+
+  override isAtEndOfFile(): boolean {
+    return this.bufferedCharacters.length === 0 && this.isEof
+  }
+
+  readCharacter(): number | undefined {
+    if (this.bufferedCharacters.length) {
+      return this.bufferedCharacters.shift()!
+    }
+    const buffer: number[] = []
+    const nextChar = this.backingFile.read()
+    if (nextChar === undefined) {
+      throw new Error('ioerror')
+    }
+    if (nextChar === TILDE_CHARCODE) {
+      // next must be >
+      if (this.backingFile.read() !== GREATER_THAN_CHARCODE) {
+        throw new Error('ioerror: Invalid eod')
+      }
+      this.isEof = true
+      return undefined
+    }
+    if (nextChar === Z_CHARCODE) {
+      buffer.push(
+        EXCLAM_OFFSET,
+        EXCLAM_OFFSET,
+        EXCLAM_OFFSET,
+        EXCLAM_OFFSET,
+        EXCLAM_OFFSET
+      )
+      this.bufferedCharacters.push(...decodeAscii85Group(buffer))
+      return this.bufferedCharacters.shift()!
+    }
+    buffer.push(nextChar)
+    for (let i = 0; i < 4; ++i) {
+      // Read up to 5 characters or ->
+      const next = this.backingFile.read()
+      if (next === undefined) {
+        throw new Error('invalid eof')
+      }
+      if (next === TILDE_CHARCODE) {
+        // next must be >
+        if (this.backingFile.read() !== GREATER_THAN_CHARCODE) {
+          throw new Error('ioerror: Invalid eod')
+        }
+        this.isEof = true
+        this.bufferedCharacters.push(...decodeAscii85Group(buffer))
+        return this.bufferedCharacters.shift()
+      }
+      buffer.push(next)
+    }
+    this.bufferedCharacters.push(...decodeAscii85Group(buffer))
+    return this.bufferedCharacters.shift()
   }
 }
 
