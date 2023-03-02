@@ -1368,8 +1368,31 @@ export class PostScriptInterpreter {
   }
 
   // ---------------------------------------------------------------------------
+  //                      Miscellaneous Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  @operands(ObjectType.Array)
+  private bind(proc: PostScriptObject<ObjectType.Array>) {
+    // TODO: implement recursive binding
+    this.operandStack.push(proc)
+  }
+
+  // ---------------------------------------------------------------------------
   //                      Graphics State Operators
   // ---------------------------------------------------------------------------
+
+  @builtin()
+  private gsave() {
+    // TODO: save graphics state
+    this._ctx?.save()
+  }
+
+  @builtin()
+  private grestore() {
+    // TODO: pop graphics state
+    this._ctx?.restore()
+  }
 
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
@@ -1487,6 +1510,16 @@ export class PostScriptInterpreter {
   }
 
   // ---------------------------------------------------------------------------
+  //                      Graphics State Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  @operands(ObjectType.Array)
+  private concat(_matrix: PostScriptObject<ObjectType.Array>) {
+    // TODO: Implement
+  }
+
+  // ---------------------------------------------------------------------------
   //                       Path Construction Operators
   // ---------------------------------------------------------------------------
 
@@ -1563,7 +1596,7 @@ export class PostScriptInterpreter {
     this.ctx.lineTo(nextCoordinate.x, nextCoordinate.y)
   }
 
-  @builtin()
+  @builtin('rlineto')
   @operands(
     ObjectType.Real | ObjectType.Integer,
     ObjectType.Real | ObjectType.Integer
@@ -1773,6 +1806,24 @@ export class PostScriptInterpreter {
         this.graphicsState.path.subpaths[0]![0]!.coordinates![0]!,
       ],
     })
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real
+  )
+  private rectClip(
+    { value: x }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    { value: y }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    { value: width }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
+    { value: height }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
+  ) {
+    // TODO: Save in graphics state
+    this._ctx?.rect(x, y, width, height)
+    this._ctx?.clip()
   }
 
   // ---------------------------------------------------------------------------
@@ -2255,4 +2306,11 @@ export class PostScriptInterpreter {
       this.graphicsState.path.currentPoint.y
     )
   }
+
+  // ---------------------------------------------------------------------------
+  //                 Device Setup and Output Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  private showPage() {}
 }
