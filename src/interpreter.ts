@@ -1,22 +1,15 @@
-import { PostScriptArray } from './array'
 import { builtin, operands } from './decorators'
 import { PostScriptDictionary } from './dictionary/dictionary'
 import { SystemDictionary } from './dictionary/system-dictionary'
-import {
-  Ascii85DecodeFilter,
-  CharStreamBackedFile,
-  PostScriptReadableFile,
-} from './file'
+import { Ascii85DecodeFilter, CharStreamBackedFile } from './file'
 import {
   ColorSpace,
   Direction,
   GraphicsState,
   LineCap,
   LineJoin,
-  offsetCoordinate,
   Path,
   SegmentType,
-  toRelativeOffset,
 } from './graphics-state'
 import {
   ArrayForAllLoopContext,
@@ -27,6 +20,11 @@ import {
   RepeatLoopContext,
   StringForAllLoopContext,
 } from './loop-context'
+import {
+  matrixFromPostScriptArray,
+  matrixMultiply,
+  offsetCoordinate,
+} from './coordinate'
 import {
   Access,
   EPSMetaData,
@@ -43,6 +41,7 @@ import {
   prettyPrint,
   radiansToDegrees,
 } from './utils'
+import { PostScriptArray } from './array'
 
 const MAX_STEPS = 100_000
 const MAX_DICT_CAPACITY = 1024
@@ -1238,7 +1237,7 @@ export class PostScriptInterpreter {
     }
     const list = this.operandStack.splice(markIndex + 1)
     this.operandStack.pop() // Remove mark
-    this.pushLiteral(list, ObjectType.Array)
+    this.pushLiteral(new PostScriptArray(list), ObjectType.Array)
   }
 
   @builtin('length')
@@ -1384,13 +1383,14 @@ export class PostScriptInterpreter {
 
   @builtin()
   private gsave() {
-    // TODO: save graphics state
+    this.graphicsStack.push(this.graphicsState.copy())
+    this.graphicsState.clippingPathStack = []
     this._ctx?.save()
   }
 
   @builtin()
   private grestore() {
-    // TODO: pop graphics state
+    this.graphicsStack.pop()
     this._ctx?.restore()
   }
 
@@ -1515,8 +1515,12 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Array)
-  private concat(_matrix: PostScriptObject<ObjectType.Array>) {
-    // TODO: Implement
+  private concat(matrix: PostScriptObject<ObjectType.Array>) {
+    const transformationMatrix = matrixFromPostScriptArray(matrix)
+    this.graphicsState.currentTransformationMatrix = matrixMultiply(
+      transformationMatrix,
+      this.graphicsState.currentTransformationMatrix
+    )
   }
 
   // ---------------------------------------------------------------------------
@@ -1773,15 +1777,15 @@ export class PostScriptInterpreter {
     { value: y3 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
     const cp1 = offsetCoordinate(
-      toRelativeOffset({ x: x1, y: y1 }, this.graphicsState),
+      this.graphicsState.toRelativeOffset({ x: x1, y: y1 }),
       this.graphicsState.path.currentPoint
     )
     const cp2 = offsetCoordinate(
-      toRelativeOffset({ x: x2, y: y2 }, this.graphicsState),
+      this.graphicsState.toRelativeOffset({ x: x2, y: y2 }),
       this.graphicsState.path.currentPoint
     )
     const endPoint = offsetCoordinate(
-      toRelativeOffset({ x: x3, y: y3 }, this.graphicsState),
+      this.graphicsState.toRelativeOffset({ x: x3, y: y3 }),
       this.graphicsState.path.currentPoint
     )
     this.graphicsState.path.currentPoint = endPoint

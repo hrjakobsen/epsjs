@@ -1,3 +1,10 @@
+import {
+  Coordinate,
+  offsetCoordinate,
+  TransformationMatrix,
+  transformCoordinate,
+} from './coordinate'
+
 export enum LineCap {
   Butt = 0,
   Round = 1,
@@ -16,11 +23,6 @@ export enum ColorSpace {
   DeviceCMYK,
   DeviceGray,
   Pattern,
-}
-
-type Coordinate = {
-  x: number
-  y: number
 }
 
 export enum SegmentType {
@@ -79,19 +81,18 @@ export class Path {
   public addSegment(segment: Segment) {
     this.currentSubpath.push(segment)
   }
+
+  public copy(): Path {
+    // TODO: implement
+    return this
+  }
 }
 
-// Represents a 3x3 matrix
-//   a  b  0
-//   c  d  0
-//  tx ty  0
-// as [a, b, c, d, tx, ty]
-type TransformationMatrix = [number, number, number, number, number, number]
-
 export class GraphicsState {
-  public constructor(canvasHeight: number) {
-    this.currentTransformationMatrix =
-      getDefaultCanvasTransformationMatrix(canvasHeight)
+  public constructor(private canvasHeight: number) {
+    this.currentTransformationMatrix = getDefaultCanvasTransformationMatrix(
+      this.canvasHeight
+    )
   }
   public currentTransformationMatrix: TransformationMatrix
   public position: { x: number; y: number } = { x: -1, y: -1 }
@@ -128,7 +129,7 @@ export class GraphicsState {
       },
     ],
   ])
-  public clippingPathStack: PathData[] = []
+  public clippingPathStack: Path[] = []
   // TODO implement
   public colorSpace: ColorSpace = ColorSpace.DeviceRGB
   public color: number = 0x000
@@ -144,6 +145,35 @@ export class GraphicsState {
   public toDeviceCoordinate(coordinate: Coordinate) {
     return transformCoordinate(coordinate, this.currentTransformationMatrix)
   }
+
+  public toRelativeOffset(c: Coordinate) {
+    const origin = this.toDeviceCoordinate({ x: 0, y: 0 })
+    const offsetWithTranslation = this.toDeviceCoordinate(c)
+    const offsetWithOutTranslation = offsetCoordinate(offsetWithTranslation, {
+      x: -origin.x,
+      y: -origin.y,
+    })
+    return offsetWithOutTranslation
+  }
+
+  public copy(): GraphicsState {
+    const newState = new GraphicsState(this.canvasHeight)
+    newState.currentTransformationMatrix = [...this.currentTransformationMatrix]
+    newState.position = { x: this.position.x, y: this.position.y }
+    newState.path = this.path.copy()
+    newState.clippingPath = this.clippingPath.copy()
+    newState.clippingPathStack = this.clippingPathStack.map((x) => x.copy())
+    newState.colorSpace = this.colorSpace
+    newState.color = this.color
+    newState.font = this.font
+    newState.lineJoin = this.lineWidth
+    newState.lineCap = this.lineCap
+    newState.lineJoin = this.lineJoin
+    newState.miterLimit = this.miterLimit
+    newState.dashPattern = [...this.dashPattern]
+    newState.strokeAdjustment = this.strokeAdjustment
+    return newState
+  }
 }
 
 function getDefaultCanvasTransformationMatrix(
@@ -154,32 +184,4 @@ function getDefaultCanvasTransformationMatrix(
   //  0 -1  0
   //  0 -h  1
   return [1, 0, 0, -1, 0, canvasHeight]
-}
-
-function transformCoordinate(
-  coord: Coordinate,
-  matrix: TransformationMatrix
-): Coordinate {
-  const [a, b, c, d, tx, ty] = matrix
-  return {
-    x: a * coord.x + c * coord.y + tx,
-    y: b * coord.x + d * coord.y + ty,
-  }
-}
-
-export function offsetCoordinate(c1: Coordinate, c2: Coordinate): Coordinate {
-  return {
-    x: c1.x + c2.x,
-    y: c1.y + c2.y,
-  }
-}
-
-export function toRelativeOffset(c: Coordinate, state: GraphicsState) {
-  const origin = state.toDeviceCoordinate({ x: 0, y: 0 })
-  const offsetWithTranslation = state.toDeviceCoordinate(c)
-  const offsetWithOutTranslation = offsetCoordinate(offsetWithTranslation, {
-    x: -origin.x,
-    y: -origin.y,
-  })
-  return offsetWithOutTranslation
 }
