@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "A javascript library for rendering an EPS file into a canvas",
   "main": "dist/epsjs.mjs",
+  "types": "dist/epsjs.d.ts",
   "type": "module",
   "scripts": {
     "test": "tsc && mocha \"./dist/tests/**/*.test.js\"",
