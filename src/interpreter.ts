@@ -32,6 +32,7 @@ import {
   ObjectType,
   parseNumber,
   PostScriptObject,
+  PostScriptScanner,
 } from './scanner'
 import { PostScriptString } from './string'
 import {
@@ -42,15 +43,18 @@ import {
   radiansToDegrees,
 } from './utils'
 import { PostScriptArray } from './array'
+import { CharStream, PostScriptLexer } from './lexer'
 
 const MAX_STEPS = 100_000
 const MAX_DICT_CAPACITY = 1024
 const MAX_LOOP_STACK_SIZE = 1024
 
 export class PostScriptInterpreter {
-  public readonly metaData: EPSMetaData = {}
   private _ctx?: CanvasRenderingContext2D
-  private constructor(file: CharStreamBackedFile) {
+  private constructor(
+    file: CharStreamBackedFile,
+    public readonly metaData: EPSMetaData
+  ) {
     this.executionStack.push({
       attributes: {
         access: Access.Unlimited,
@@ -255,8 +259,17 @@ export class PostScriptInterpreter {
   }
 
   public static load(program: string) {
+    let metadata = {}
+    try {
+      metadata = new PostScriptScanner(
+        new PostScriptLexer(new CharStream(program))
+      ).getMetaData()
+    } catch (error) {
+      console.log('error collecting metadata')
+    }
     const interpreter = new PostScriptInterpreter(
-      CharStreamBackedFile.fromString(program)
+      CharStreamBackedFile.fromString(program),
+      metadata
     )
     return interpreter
   }

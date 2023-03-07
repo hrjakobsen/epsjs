@@ -112,7 +112,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
           }
         }
         if (token.content.match(/^%EndComments$/)) {
-          break
+          return metaData
         }
       }
     }
