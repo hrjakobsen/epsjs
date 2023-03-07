@@ -39,7 +39,7 @@ export class PostScriptString {
     return true
   }
 
-  public search(other: PostScriptString, index: number = 0): number | false {
+  public search(other: PostScriptString, index = 0): number | false {
     const matchIndex = this.asString().indexOf(other.asString(), index)
     if (matchIndex < 0) {
       return false

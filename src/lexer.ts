@@ -53,7 +53,7 @@ export class CharStream extends InputStream<number> {
     return this.data.charCodeAt(this.pos + offset)
   }
 
-  advance(n: number = 1) {
+  advance(n = 1) {
     if (n < 1) {
       throw new Error('CharStream: advance: n must be greater than 1')
     }
@@ -423,8 +423,8 @@ function conjunction(...predicate: ((codepoint?: number) => boolean)[]) {
   }
 }
 
-export const BASE_10_NUMBER = /^[+\-]?((\d+(\.\d*)?)|(\.\d+))([eE]-?\d+)?$/
-export const BASE_10_INT = /^[+\-]?\d+$/
+export const BASE_10_NUMBER = /^[+-]?((\d+(\.\d*)?)|(\.\d+))([eE]-?\d+)?$/
+export const BASE_10_INT = /^[+-]?\d+$/
 export const RADIX_NUMBER = /^\d+#[0-9a-zA-Z]$/
 
 function isNumber(contentChars: number[]) {

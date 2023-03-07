@@ -2,11 +2,7 @@ import { PostScriptInterpreter } from './interpreter'
 import { ObjectType } from './scanner'
 
 export function builtin(name?: string) {
-  return function (
-    _target: Object,
-    methodName: string,
-    _descriptor: PropertyDescriptor
-  ) {
+  return function (_target: unknown, methodName: string) {
     if (!name) {
       name = methodName.toLowerCase()
     }
@@ -19,12 +15,12 @@ export function builtin(name?: string) {
 
 export function operands(...types: (ObjectType | -1)[]) {
   return function (
-    _targetPrototype: Object,
+    _targetPrototype: unknown,
     methodName: string,
     descriptor: PropertyDescriptor
   ) {
     PostScriptInterpreter.OVERLOADS.set(methodName, types)
-    const currentFunction: Function = descriptor.value
+    const currentFunction = descriptor.value
     descriptor.value = function (this: PostScriptInterpreter) {
       const args = []
       for (let i = types.length - 1; i >= 0; --i) {

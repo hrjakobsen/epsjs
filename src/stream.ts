@@ -50,7 +50,7 @@ export abstract class BufferedStreamer<
     return this.tokenBuffer[offset]
   }
 
-  advance(n: number = 1) {
+  advance(n = 1) {
     if (n < 1) {
       throw new Error('PostScriptLexer: advance: n must be greater than 1')
     }

@@ -201,7 +201,7 @@ export class PostScriptInterpreter {
         return
       }
     }
-    let item = this.next()
+    const item = this.next()
     if (!item) {
       this.stopped = true
       return
@@ -2351,5 +2351,7 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
 
   @builtin()
-  private showPage() {}
+  private showPage() {
+    // Do nothing
+  }
 }

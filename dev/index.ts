@@ -37,6 +37,7 @@ function render() {
   try {
     document.getElementById('error')!.innerText = ''
     const canvas = document.getElementById('canvas') as HTMLCanvasElement
+    // eslint-disable-next-line no-self-assign
     canvas.width = canvas.width
     const context = canvas.getContext('2d')!
     const interpreter = PostScriptInterpreter.load(

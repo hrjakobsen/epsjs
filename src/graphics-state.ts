@@ -138,10 +138,10 @@ export class GraphicsState {
   public clippingPathStack: Path[] = []
   // TODO implement
   public colorSpace: ColorSpace = ColorSpace.DeviceRGB
-  public color: number = 0x000
+  public color = 0x000
   // TODO: implement
-  public font: undefined = undefined
-  public lineWidth: number = 1.0
+  public font = undefined
+  public lineWidth = 1.0
   public lineCap: LineCap = LineCap.Butt
   public lineJoin: LineJoin = LineJoin.Miter
   public miterLimit = 10.0
