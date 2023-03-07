@@ -2,7 +2,7 @@ import { dirname, resolve, join } from 'path'
 import { fileURLToPath } from 'url'
 const rootDir = dirname(fileURLToPath(import.meta.url))
 
-export default {
+export default (_, argv) => ({
   entry: {
     epsjs: {
       import: './src/index.ts',
@@ -10,7 +10,9 @@ export default {
         type: 'module',
       },
     },
-    dev: { import: './dev/index.ts' },
+    ...(argv.mode === 'development'
+      ? { dev: { import: './dev/index.ts' } }
+      : {}),
   },
   module: {
     rules: [
@@ -35,4 +37,4 @@ export default {
     compress: true,
     port: 9000,
   },
-}
+})
