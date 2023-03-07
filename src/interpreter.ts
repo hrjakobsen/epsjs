@@ -1219,7 +1219,9 @@ export class PostScriptInterpreter {
   @operands(ObjectType.Integer)
   private array({ value: length }: PostScriptObject<ObjectType.Integer>) {
     this.pushLiteral(
-      Array(length).fill(createLiteral(null, ObjectType.Null)),
+      new PostScriptArray(
+        Array(length).fill(createLiteral(null, ObjectType.Null))
+      ),
       ObjectType.Array
     )
   }
@@ -1312,8 +1314,8 @@ export class PostScriptInterpreter {
 
   @builtin()
   @operands(ObjectType.Array)
-  private astore(array: PostScriptObject) {
-    const { value: elements } = <{ value: PostScriptObject[] }>array
+  private astore(array: PostScriptObject<ObjectType.Array>) {
+    const { value: elements } = array
     if (this.operandStack.length < elements.length) {
       throw new Error(
         `astore: Not enough elements on stack. Required ${elements.length} found ${this.operandStack.length}`
@@ -1323,7 +1325,9 @@ export class PostScriptInterpreter {
     elements.splice(
       0,
       elements.length,
-      ...this.operandStack.splice(this.operandStack.length - elements.length)
+      new PostScriptArray([
+        ...this.operandStack.splice(this.operandStack.length - elements.length),
+      ])
     )
     this.operandStack.push(array)
   }
