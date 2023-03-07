@@ -1,2 +1,2 @@
 # epsjs
-[![Unit tests](https://github.com/hrjakobsen/epsjs/actions/workflows/unittest.yml/badge.svg)](https://github.com/hrjakobsen/epsjs/actions/workflows/unittest.yml)
+[![CI](https://github.com/hrjakobsen/epsjs/actions/workflows/ci.yml/badge.svg)](https://github.com/hrjakobsen/epsjs/actions/workflows/ci.yml)
