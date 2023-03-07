@@ -110,7 +110,7 @@ export class PostScriptInterpreter {
 
   public run(ctx: CanvasRenderingContext2D) {
     this._ctx = ctx
-    this.graphicsStack.push(new GraphicsState(this.ctx.canvas.height))
+    this.graphicsStack.push(new GraphicsState(this.metaData.boundingBox))
     while (!this.done()) {
       this.fetchAndExecute()
     }
@@ -1384,6 +1384,22 @@ export class PostScriptInterpreter {
   }
 
   // ---------------------------------------------------------------------------
+  //                      Virtual Memory Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  private save() {
+    // TODO: Implement
+    this.pushLiteral(1, ObjectType.Integer)
+  }
+
+  @builtin()
+  @operands(ObjectType.Any)
+  private restore(_val: PostScriptObject) {
+    // TODO: Implement
+  }
+
+  // ---------------------------------------------------------------------------
   //                      Miscellaneous Operators
   // ---------------------------------------------------------------------------
 
@@ -1852,11 +1868,13 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
   @builtin()
   private stroke() {
+    this.graphicsState.path = new Path()
     this.ctx.stroke()
   }
 
   @builtin()
   private fill() {
+    this.graphicsState.path = new Path()
     this.ctx.fill()
   }
 

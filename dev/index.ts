@@ -43,8 +43,12 @@ function render() {
       view.state.doc.sliceString(0)
     )
     if (interpreter.metaData.boundingBox) {
-      canvas.width = interpreter.metaData.boundingBox.width
-      canvas.height = interpreter.metaData.boundingBox.height
+      canvas.width =
+        interpreter.metaData.boundingBox.upperRightX -
+        interpreter.metaData.boundingBox.lowerLeftX
+      canvas.height =
+        interpreter.metaData.boundingBox.upperRightY -
+        interpreter.metaData.boundingBox.lowerLeftY
     } else {
       canvas.width = 300
       canvas.height = 300

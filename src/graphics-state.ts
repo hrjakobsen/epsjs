@@ -4,6 +4,7 @@ import {
   TransformationMatrix,
   transformCoordinate,
 } from './coordinate'
+import { BoundingBox } from './scanner'
 
 export enum LineCap {
   Butt = 0,
@@ -47,8 +48,6 @@ export type Segment = {
 
 type SubPath = Segment[]
 
-type PathData = SubPath[]
-
 export class Path {
   public subpaths: SubPath[]
   constructor(subpaths?: SubPath[]) {
@@ -89,9 +88,16 @@ export class Path {
 }
 
 export class GraphicsState {
-  public constructor(private canvasHeight: number) {
+  public constructor(
+    private boundingBox: BoundingBox = {
+      lowerLeftX: 0,
+      lowerLeftY: 0,
+      upperRightX: 300,
+      upperRightY: 300,
+    }
+  ) {
     this.currentTransformationMatrix = getDefaultCanvasTransformationMatrix(
-      this.canvasHeight
+      this.boundingBox
     )
   }
   public currentTransformationMatrix: TransformationMatrix
@@ -157,7 +163,7 @@ export class GraphicsState {
   }
 
   public copy(): GraphicsState {
-    const newState = new GraphicsState(this.canvasHeight)
+    const newState = new GraphicsState(this.boundingBox)
     newState.currentTransformationMatrix = [...this.currentTransformationMatrix]
     newState.position = { x: this.position.x, y: this.position.y }
     newState.path = this.path.copy()
@@ -176,12 +182,13 @@ export class GraphicsState {
   }
 }
 
+// TODO: Figure out how to take the boundingbox lly into account
 function getDefaultCanvasTransformationMatrix(
-  canvasHeight: number
+  boundingBox: BoundingBox
 ): TransformationMatrix {
   // This represents a 3x3 matrix:
-  //  1  0  0
-  //  0 -1  0
-  //  0 -h  1
-  return [1, 0, 0, -1, 0, canvasHeight]
+  //  1    0  0
+  //  0   -1  0
+  //  x  h-y  1
+  return [1, 0, 0, -1, -boundingBox.lowerLeftX, boundingBox.upperRightY]
 }

@@ -81,13 +81,15 @@ export type PostScriptObject<T extends ObjectType | unknown = unknown> = {
   value: ObjectValue<T>
 }
 
+export type BoundingBox = {
+  lowerLeftX: number
+  lowerLeftY: number
+  upperRightX: number
+  upperRightY: number
+}
+
 export type EPSMetaData = {
-  boundingBox?: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
+  boundingBox?: BoundingBox
 }
 
 export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
@@ -105,10 +107,10 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
         )
         if (boundingBox) {
           metaData.boundingBox = {
-            x: parseInt(boundingBox[1]!),
-            y: parseInt(boundingBox[2]!),
-            width: parseInt(boundingBox[3]!),
-            height: parseInt(boundingBox[4]!),
+            lowerLeftX: parseInt(boundingBox[1]!),
+            lowerLeftY: parseInt(boundingBox[2]!),
+            upperRightX: parseInt(boundingBox[3]!),
+            upperRightY: parseInt(boundingBox[4]!),
           }
         }
         if (token.content.match(/^%EndComments$/)) {
