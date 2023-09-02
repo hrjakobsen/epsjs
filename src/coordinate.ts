@@ -43,9 +43,9 @@ export function matrixMultiply(
 
   // Row 3
   // C31 = (A31 * B11) + (A32 * B21) + (A33 * B31)
-  const c31 = a[4] * b[0] + a[5] * b[3] + b[4]
+  const c31 = a[4] * b[0] + a[5] * b[2] + b[4]
   // C32 = (A31 * B12) + (A32 * B22) + (A33 * B32)
-  const c32 = a[4] * b[1] + a[5] * b[4] + b[5]
+  const c32 = a[4] * b[1] + a[5] * b[3] + b[5]
 
   return [c11, c12, c21, c22, c31, c32]
 }
@@ -93,3 +93,13 @@ export function matrixFromPostScriptArray(
     array.value.get(5)!.value as number,
   ]
 }
+
+export function translationMatrix(offsetX: number, offsetY: number) {
+  return [1, 0, 0, 1, offsetX, offsetY] as TransformationMatrix
+}
+
+export function scalingMatrix(scaleX: number, scaleY: number) {
+  return [scaleX, 0, 0, scaleY, 0, 0] as TransformationMatrix
+}
+
+export const IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0] as TransformationMatrix

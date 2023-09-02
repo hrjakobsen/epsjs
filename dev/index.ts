@@ -11,7 +11,7 @@ const INITIAL_DOC = `10 280 moveto
 
 1 0.5 0.4 setrgbcolor
 newpath
-radius 0 moveto
+0 0 moveto
 0 0 radius 0 90 arc
 fill`
 

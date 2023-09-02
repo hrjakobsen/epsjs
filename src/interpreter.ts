@@ -3,15 +3,6 @@ import { PostScriptDictionary } from './dictionary/dictionary'
 import { SystemDictionary } from './dictionary/system-dictionary'
 import { Ascii85DecodeFilter, CharStreamBackedFile } from './file'
 import {
-  ColorSpace,
-  Direction,
-  GraphicsState,
-  LineCap,
-  LineJoin,
-  Path,
-  SegmentType,
-} from './graphics-state'
-import {
   ArrayForAllLoopContext,
   DictionaryForAllLoopContext,
   ForLoopContext,
@@ -22,8 +13,8 @@ import {
 } from './loop-context'
 import {
   matrixFromPostScriptArray,
-  matrixMultiply,
-  offsetCoordinate,
+  scalingMatrix,
+  translationMatrix,
 } from './coordinate'
 import {
   Access,
@@ -44,13 +35,15 @@ import {
 } from './utils'
 import { PostScriptArray } from './array'
 import { CharStream, PostScriptLexer } from './lexer'
+import { GraphicsContext, LineCap, LineJoin } from './graphics/context'
+import { CanvasBackedGraphicsContext } from './graphics/canvas'
 
 const MAX_STEPS = 100_000
 const MAX_DICT_CAPACITY = 1024
 const MAX_LOOP_STACK_SIZE = 1024
 
 export class PostScriptInterpreter {
-  private _ctx?: CanvasRenderingContext2D
+  private _printer?: GraphicsContext
   private constructor(
     file: CharStreamBackedFile,
     public readonly metaData: EPSMetaData
@@ -74,7 +67,6 @@ export class PostScriptInterpreter {
     | PostScriptObject<ObjectType.Array>
     | PostScriptObject<ObjectType.File>
   )[] = []
-  private graphicsStack: GraphicsState[] = []
   private loopStack: LoopContext[] = []
 
   private beginLoop(loop: LoopContext) {
@@ -84,22 +76,15 @@ export class PostScriptInterpreter {
     this.loopStack.push(loop)
   }
 
-  private get ctx() {
-    if (!this._ctx) {
-      throw new Error('No canvas rendering ctx')
+  private get printer() {
+    if (!this._printer) {
+      throw new Error('No printer attached')
     }
-    return this._ctx
+    return this._printer
   }
 
   private stopped = false
   private stepsLeft = MAX_STEPS
-
-  private get graphicsState() {
-    if (!this.graphicsStack) {
-      throw new Error('Missing GraphicState')
-    }
-    return this.graphicsStack[this.graphicsStack.length - 1]!
-  }
 
   private get dictionary() {
     if (!this.dictionaryStack.length) {
@@ -109,8 +94,7 @@ export class PostScriptInterpreter {
   }
 
   public run(ctx: CanvasRenderingContext2D) {
-    this._ctx = ctx
-    this.graphicsStack.push(new GraphicsState(this.metaData.boundingBox))
+    this._printer = new CanvasBackedGraphicsContext(this, ctx)
     while (!this.done()) {
       this.fetchAndExecute()
     }
@@ -428,11 +412,13 @@ export class PostScriptInterpreter {
     this.pushLiteral(dictionary, ObjectType.Dictionary)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=539
   @builtin('<<')
   private startDict() {
     this.pushLiteral(undefined, ObjectType.Mark)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=539
   @builtin('>>')
   private endDict() {
     const mark = this.findIndexOfMark()
@@ -1423,15 +1409,12 @@ export class PostScriptInterpreter {
 
   @builtin()
   private gsave() {
-    this.graphicsStack.push(this.graphicsState.copy())
-    this.graphicsState.clippingPathStack = []
-    this._ctx?.save()
+    this.printer.save()
   }
 
   @builtin()
   private grestore() {
-    this.graphicsStack.pop()
-    this._ctx?.restore()
+    this.printer.restore()
   }
 
   @builtin()
@@ -1439,66 +1422,45 @@ export class PostScriptInterpreter {
   private setLineWidth({
     value: lineWidth,
   }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
-    this.graphicsState.lineWidth = lineWidth
-    this.ctx.lineWidth = lineWidth
+    this.printer.setLineWidth(lineWidth)
   }
 
   @builtin()
   @operands()
   private currentLineWidth() {
-    this.pushLiteral(this.graphicsState.lineWidth, ObjectType.Real)
+    this.pushLiteral(this.printer.getLineWidth(), ObjectType.Real)
   }
 
   @builtin()
   @operands(ObjectType.Integer)
-  private setLineCap({ value: lineCap }: PostScriptObject) {
-    switch (lineCap) {
-      case LineCap.Butt:
-        this.ctx.lineCap = 'butt'
-        this.graphicsState.lineCap = LineCap.Butt
-        return
-      case LineCap.Round:
-        this.ctx.lineCap = 'round'
-        this.graphicsState.lineCap = LineCap.Round
-        return
-      case LineCap.Square:
-        this.ctx.lineCap = 'square'
-        this.graphicsState.lineCap = LineCap.Square
-        return
-      default:
-        throw new Error(`Invalid line cap type ${lineCap}`)
+  private setLineCap({ value: lineCap }: PostScriptObject<ObjectType.Integer>) {
+    if (lineCap in LineCap) {
+      this.printer.setLineCap(lineCap)
+    } else {
+      throw new Error('Invalid line cap type')
     }
   }
 
   @builtin()
   private currentLineCap() {
-    this.pushLiteral(this.graphicsState.lineCap, ObjectType.Integer)
+    this.pushLiteral(this.printer.getLineCap(), ObjectType.Integer)
   }
 
   @builtin()
   @operands(ObjectType.Integer)
-  private setLineJoin({ value: lineJoin }: PostScriptObject) {
-    switch (lineJoin) {
-      case LineJoin.Miter:
-        this.ctx.lineJoin = 'miter'
-        this.graphicsState.lineJoin = LineJoin.Miter
-        return
-      case LineJoin.Round:
-        this.ctx.lineJoin = 'round'
-        this.graphicsState.lineJoin = LineJoin.Round
-        return
-      case LineJoin.Bevel:
-        this.ctx.lineJoin = 'bevel'
-        this.graphicsState.lineJoin = LineJoin.Bevel
-        return
-      default:
-        throw new Error(`Invalid line join type ${lineJoin}`)
+  private setLineJoin({
+    value: lineJoin,
+  }: PostScriptObject<ObjectType.Integer>) {
+    if (lineJoin in LineJoin) {
+      this.printer.setLineJoin(lineJoin)
+    } else {
+      throw new Error('Invalid line join type')
     }
   }
 
   @builtin()
   private currentLineJoin() {
-    this.pushLiteral(this.graphicsState.lineJoin, ObjectType.Integer)
+    this.pushLiteral(this.printer.getLineJoin(), ObjectType.Integer)
   }
 
   @builtin()
@@ -1506,13 +1468,12 @@ export class PostScriptInterpreter {
   private setMiterLimit({
     value: miterLimit,
   }: PostScriptObject<ObjectType.Integer>) {
-    this.graphicsState.miterLimit = miterLimit
-    this.ctx.miterLimit = miterLimit
+    this.printer.setMiterLimit(miterLimit)
   }
 
   @builtin()
   private currentMiterLimit() {
-    this.pushLiteral(this.graphicsState.miterLimit, ObjectType.Integer)
+    this.pushLiteral(this.printer.getMiterLimit(), ObjectType.Integer)
   }
 
   // TODO: strokeadjust
@@ -1521,7 +1482,6 @@ export class PostScriptInterpreter {
   @operands(ObjectType.Array, ObjectType.Name)
   private setColorSpace() {
     // FIXME: Support more than rgb
-    this.graphicsState.colorSpace = ColorSpace.DeviceRGB
   }
 
   @builtin()
@@ -1543,10 +1503,7 @@ export class PostScriptInterpreter {
     const r = fitToRgbRange(rInput)
     const g = fitToRgbRange(gInput)
     const b = fitToRgbRange(bInput)
-    const newColor: number = (r << 16) + (g << 8) + b
-    this.graphicsState.color = newColor
-    this.ctx.strokeStyle = `#${newColor.toString(16).padStart(6, '0')}`
-    this.ctx.fillStyle = `#${newColor.toString(16).padStart(6, '0')}`
+    this.printer.setRgbColor(r, g, b)
   }
 
   // ---------------------------------------------------------------------------
@@ -1557,10 +1514,116 @@ export class PostScriptInterpreter {
   @operands(ObjectType.Array)
   private concat(matrix: PostScriptObject<ObjectType.Array>) {
     const transformationMatrix = matrixFromPostScriptArray(matrix)
-    this.graphicsState.currentTransformationMatrix = matrixMultiply(
-      transformationMatrix,
-      this.graphicsState.currentTransformationMatrix
+    this.printer.concat(transformationMatrix)
+  }
+
+  // ---------------------------------------------------------------------------
+  //                  Coordinate System and Matrix Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  @operands()
+  private matrix() {
+    this.pushLiteral(
+      new PostScriptArray(
+        [1, 0, 0, 1, 0, 0].map((x) => createLiteral(x, ObjectType.Real))
+      ),
+      ObjectType.Array
     )
+  }
+
+  @builtin()
+  @operands(ObjectType.Array)
+  private currentMatrix(matrix: PostScriptObject<ObjectType.Array>) {
+    if (matrix.value.length !== 6) {
+      throw new Error(
+        `currentmatrix: Invalid matrix length ${matrix.value.length}`
+      )
+    }
+    matrix.value = new PostScriptArray(
+      this.printer
+        .getTransformationMatrix()
+        .map((x) => createLiteral(x, ObjectType.Real))
+    )
+    this.operandStack.push(matrix)
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer | ObjectType.Array
+  )
+  private translate(
+    offsetXOrY: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    offsetYOrMatrix: PostScriptObject<
+      ObjectType.Real | ObjectType.Integer | ObjectType.Array
+    >
+  ) {
+    let offsetX: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+    let offsetY: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+    const modifyCTM = offsetYOrMatrix.type !== ObjectType.Array
+    if (!modifyCTM) {
+      offsetY = offsetXOrY
+      const topOfStack = this.operandStack.pop()
+      if (
+        topOfStack?.type !== ObjectType.Real &&
+        topOfStack?.type !== ObjectType.Integer
+      ) {
+        throw new Error('translate: Invalid x offset')
+      }
+      offsetX = topOfStack
+    } else {
+      offsetX = offsetXOrY
+      offsetY = offsetYOrMatrix
+    }
+    const translation = translationMatrix(offsetX.value, offsetY.value)
+    if (modifyCTM) {
+      this.printer.concat(translation)
+    } else {
+      offsetYOrMatrix.value = new PostScriptArray(
+        translation.map((number) => createLiteral(number, ObjectType.Real))
+      )
+      this.operandStack.push(offsetYOrMatrix)
+    }
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer | ObjectType.Array
+  )
+  private scale(
+    scaleXOrY: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    scaleYOrMatrix: PostScriptObject<
+      ObjectType.Real | ObjectType.Integer | ObjectType.Array
+    >
+  ) {
+    let scaleX: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+    let scaleY: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+    const modifyCTM = scaleYOrMatrix.type !== ObjectType.Array
+    if (!modifyCTM) {
+      scaleY = scaleXOrY
+      const topOfStack = this.operandStack.pop()
+      if (
+        topOfStack?.type !== ObjectType.Real &&
+        topOfStack?.type !== ObjectType.Integer
+      ) {
+        throw new Error('scale: Invalid x scale')
+      }
+      scaleX = topOfStack
+    } else {
+      scaleX = scaleXOrY
+      scaleY = scaleYOrMatrix
+    }
+    const scale = scalingMatrix(scaleX.value, scaleY.value)
+    if (modifyCTM) {
+      this.printer.concat(scale)
+    } else {
+      scaleYOrMatrix.value = new PostScriptArray(
+        scale.map((number) => createLiteral(number, ObjectType.Real))
+      )
+      this.operandStack.push(scaleYOrMatrix)
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1569,13 +1632,12 @@ export class PostScriptInterpreter {
 
   @builtin()
   private newPath() {
-    this.graphicsState.path = new Path([])
-    this.ctx.beginPath()
+    this.printer.newPath()
   }
 
   @builtin()
   private currentPoint() {
-    const currentPoint = this.graphicsState.path.currentPoint
+    const currentPoint = this.printer.getCurrentPoint()
     this.pushLiteral(currentPoint.x, ObjectType.Real)
     this.pushLiteral(currentPoint.y, ObjectType.Real)
   }
@@ -1589,12 +1651,11 @@ export class PostScriptInterpreter {
     x: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
     y: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
-    const nextCoordinate = this.graphicsState.toDeviceCoordinate({
+    const nextCoordinate = {
       x: x.value,
       y: y.value,
-    })
-    this.graphicsState.path.currentPoint = nextCoordinate
-    this.ctx.moveTo(nextCoordinate.x, nextCoordinate.y)
+    }
+    this.printer.moveTo(nextCoordinate)
   }
 
   @builtin('rmoveto')
@@ -1606,17 +1667,12 @@ export class PostScriptInterpreter {
     x: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
     y: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
-    const currentPoint = this.graphicsState.path.currentPoint
-    const offsetCoordinate = this.graphicsState.toDeviceCoordinate({
-      x: x.value,
-      y: y.value,
-    })
+    const currentPoint = this.printer.getCurrentPoint()
     const nextCoordinate = {
-      x: currentPoint.x + offsetCoordinate.x,
-      y: currentPoint.y + offsetCoordinate.y,
+      x: currentPoint.x + x.value,
+      y: currentPoint.y + y.value,
     }
-    this.graphicsState.path.currentPoint = nextCoordinate
-    this.ctx.moveTo(nextCoordinate.x, nextCoordinate.y)
+    this.printer.moveTo(nextCoordinate)
   }
 
   @builtin()
@@ -1628,16 +1684,7 @@ export class PostScriptInterpreter {
     x: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
     y: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
-    const nextCoordinate = this.graphicsState.toDeviceCoordinate({
-      x: x.value,
-      y: y.value,
-    })
-    this.graphicsState.path.addSegment({
-      type: SegmentType.Straight,
-      coordinates: [this.graphicsState.path.currentPoint, nextCoordinate],
-    })
-    this.graphicsState.path.currentPoint = nextCoordinate
-    this.ctx.lineTo(nextCoordinate.x, nextCoordinate.y)
+    this.printer.lineTo({ x: x.value, y: y.value })
   }
 
   @builtin('rlineto')
@@ -1649,21 +1696,12 @@ export class PostScriptInterpreter {
     x: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
     y: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
-    const currentPoint = this.graphicsState.path.currentPoint
-    const offsetCoordinate = this.graphicsState.toDeviceCoordinate({
-      x: x.value,
-      y: y.value,
-    })
+    const currentPoint = this.printer.getCurrentPoint()
     const nextCoordinate = {
-      x: currentPoint.x + offsetCoordinate.x,
-      y: currentPoint.y + offsetCoordinate.y,
+      x: currentPoint.x + x.value,
+      y: currentPoint.y + y.value,
     }
-    this.graphicsState.path.addSegment({
-      type: SegmentType.Straight,
-      coordinates: [this.graphicsState.path.currentPoint, nextCoordinate],
-    })
-    this.graphicsState.path.currentPoint = nextCoordinate
-    this.ctx.lineTo(nextCoordinate.x, nextCoordinate.y)
+    this.printer.lineTo(nextCoordinate)
   }
 
   @builtin()
@@ -1684,23 +1722,7 @@ export class PostScriptInterpreter {
     if (angle1 < 0 || angle1 > 360 || angle2 < 0 || angle2 > 360) {
       throw new Error(`Invalid angles ${angle1} or ${angle2}`)
     }
-    // FIXME: calculate currentPoint
-    const coord = this.graphicsState.toDeviceCoordinate({ x, y })
-    this.graphicsState.path.addSegment({
-      type: SegmentType.Arc,
-      coordinates: [coord],
-      angles: [angle1, angle2],
-      radius,
-      direction: Direction.CounterClockwise,
-    })
-    this.ctx.arc(
-      coord.x,
-      coord.y,
-      radius,
-      degreeToRadians(angle1),
-      degreeToRadians(angle2),
-      true
-    )
+    this.printer.arc({ x, y }, radius, angle1, angle2, true)
   }
 
   @builtin()
@@ -1721,23 +1743,7 @@ export class PostScriptInterpreter {
     if (angle1 < 0 || angle1 > 360 || angle2 < 0 || angle2 > 360) {
       throw new Error(`Invalid angles ${angle1} or ${angle2}`)
     }
-    const coord = this.graphicsState.toDeviceCoordinate({ x, y })
-    this.graphicsState.path.addSegment({
-      type: SegmentType.Arc,
-      coordinates: [coord],
-      angles: [angle1, angle2],
-      radius,
-      direction: Direction.Clockwise,
-    })
-    // FIXME: calculate currentPoint
-    this.ctx.arc(
-      coord.x,
-      coord.y,
-      radius,
-      degreeToRadians(angle1),
-      degreeToRadians(angle2),
-      false
-    )
+    this.printer.arc({ x, y }, radius, angle1, angle2, false)
   }
 
   @builtin()
@@ -1749,23 +1755,14 @@ export class PostScriptInterpreter {
     ObjectType.Real | ObjectType.Integer
   )
   private arct(
-    { value: x1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
-    { value: y1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
-    { value: x2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
-    { value: y2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
-    { value: radius }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+    { value: _x1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: _y1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: _x2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: _y2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: _radius }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
-    const coordinates = [
-      this.graphicsState.toDeviceCoordinate({ x: x1, y: y1 }),
-      this.graphicsState.toDeviceCoordinate({ x: x2, y: y2 }),
-    ]
-    this.graphicsState.path.currentPoint = coordinates[1]!
-    this.graphicsState.path.addSegment({
-      type: SegmentType.Arc,
-      coordinates,
-      radius,
-    })
     // TODO: ctx arct?
+    throw new Error('arct: Not implemented')
   }
 
   // TODO: arcto
@@ -1787,16 +1784,11 @@ export class PostScriptInterpreter {
     { value: x3 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
     { value: y3 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
-    const cp1 = this.graphicsState.toDeviceCoordinate({ x: x1, y: y1 })
-    const cp2 = this.graphicsState.toDeviceCoordinate({ x: x2, y: y2 })
-    const endPoint = this.graphicsState.toDeviceCoordinate({ x: x3, y: y3 })
-    const coordinates = [cp1, cp2, endPoint]
-    this.graphicsState.path.currentPoint = endPoint
-    this.graphicsState.path.addSegment({
-      type: SegmentType.Bezier,
-      coordinates,
-    })
-    this.ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, endPoint.x, endPoint.y)
+    this.printer.bezierCurveTo(
+      { x: x1, y: y1 },
+      { x: x2, y: y2 },
+      { x: x3, y: y3 }
+    )
   }
 
   @builtin()
@@ -1816,40 +1808,16 @@ export class PostScriptInterpreter {
     { value: x3 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
     { value: y3 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
-    const cp1 = offsetCoordinate(
-      this.graphicsState.toRelativeOffset({ x: x1, y: y1 }),
-      this.graphicsState.path.currentPoint
-    )
-    const cp2 = offsetCoordinate(
-      this.graphicsState.toRelativeOffset({ x: x2, y: y2 }),
-      this.graphicsState.path.currentPoint
-    )
-    const endPoint = offsetCoordinate(
-      this.graphicsState.toRelativeOffset({ x: x3, y: y3 }),
-      this.graphicsState.path.currentPoint
-    )
-    this.graphicsState.path.currentPoint = endPoint
-    const coordinates = [cp1, cp2, endPoint]
-    this.graphicsState.path.addSegment({
-      type: SegmentType.Bezier,
-      coordinates,
-    })
-    this.ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, endPoint.x, endPoint.y)
+    const currentPoint = this.printer.getCurrentPoint()
+    const cp1 = { x: currentPoint.x + x1, y: currentPoint.y + y1 }
+    const cp2 = { x: currentPoint.x + x2, y: currentPoint.y + y2 }
+    const endPoint = { x: currentPoint.x + x3, y: currentPoint.y + y3 }
+    this.printer.bezierCurveTo(cp1, cp2, endPoint)
   }
 
   @builtin()
   private closePath() {
-    if (!this.graphicsState.path.subpaths.length) {
-      // do nothing
-      return
-    }
-    this.graphicsState.path.addSegment({
-      type: SegmentType.Straight,
-      coordinates: [
-        this.graphicsState.path.currentPoint,
-        this.graphicsState.path.subpaths[0]![0]!.coordinates![0]!,
-      ],
-    })
+    this.printer.closePath()
   }
 
   @builtin()
@@ -1865,9 +1833,7 @@ export class PostScriptInterpreter {
     { value: width }: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
     { value: height }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
   ) {
-    // TODO: Save in graphics state
-    this._ctx?.rect(x, y, width, height)
-    this._ctx?.clip()
+    this.printer.rectClip({ x, y }, width, height)
   }
 
   // ---------------------------------------------------------------------------
@@ -1875,20 +1841,17 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
   @builtin()
   private stroke() {
-    this.graphicsState.path = new Path()
-    this.ctx.stroke()
+    this.printer.stroke()
   }
 
   @builtin()
   private fill() {
-    this.graphicsState.path = new Path()
-    this.ctx.fill()
+    this.printer.fill()
   }
 
   @builtin('eofill')
   private evenOddFill() {
-    // TODO: Implement actual operator
-    this.ctx.fill()
+    this.printer.eofill()
   }
 
   @builtin('rectstroke')
@@ -1904,18 +1867,7 @@ export class PostScriptInterpreter {
     { value: width }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
     { value: height }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
-    const bottomLeft = this.graphicsState.toDeviceCoordinate({ x, y })
-    // To get device width/height
-    const topRight = this.graphicsState.toDeviceCoordinate({
-      x: x + width,
-      y: y + height,
-    })
-    this.ctx.strokeRect(
-      bottomLeft.x,
-      bottomLeft.y,
-      Math.abs(topRight.x - bottomLeft.x),
-      Math.abs(topRight.y - bottomLeft.y) * -1 // multiply by -1 because canvas y axis is flipped
-    )
+    this.printer.strokeRect({ x, y }, width, height)
   }
 
   @builtin('rectfill')
@@ -1931,18 +1883,7 @@ export class PostScriptInterpreter {
     { value: width }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
     { value: height }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
   ) {
-    const bottomLeft = this.graphicsState.toDeviceCoordinate({ x, y })
-    // To get device width/height
-    const topRight = this.graphicsState.toDeviceCoordinate({
-      x: x + width,
-      y: y + height,
-    })
-    this.ctx.fillRect(
-      bottomLeft.x,
-      bottomLeft.y,
-      Math.abs(topRight.x - bottomLeft.x),
-      Math.abs(topRight.y - bottomLeft.y) * -1 // multiply by -1 because canvas y axis is flipped
-    )
+    this.printer.fillRect({ x, y }, width, height)
   }
 
   // ---------------------------------------------------------------------------
@@ -2044,12 +1985,14 @@ export class PostScriptInterpreter {
   //                           File Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=540
   @builtin('=')
   @operands(ObjectType.Any)
   private debugPrint(obj: PostScriptObject) {
     console.log(prettyPrint(obj))
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=540
   @builtin('==')
   @operands(ObjectType.Any)
   private debugPrintObject(obj: PostScriptObject) {
@@ -2346,11 +2289,7 @@ export class PostScriptInterpreter {
   @builtin()
   @operands(ObjectType.String)
   private show({ value: string }: PostScriptObject<ObjectType.String>) {
-    this.ctx.fillText(
-      string.asString(),
-      this.graphicsState.path.currentPoint.x,
-      this.graphicsState.path.currentPoint.y
-    )
+    this.printer.fillText(string.asString(), this.printer.getCurrentPoint())
   }
 
   // ---------------------------------------------------------------------------

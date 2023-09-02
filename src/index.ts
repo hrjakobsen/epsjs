@@ -1,2 +1,2 @@
 export { PostScriptInterpreter } from './interpreter'
-export { Direction } from './graphics-state'
+export { Direction } from './graphics/context'

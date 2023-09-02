@@ -1,0 +1,70 @@
+import { Coordinate, TransformationMatrix } from '../coordinate'
+
+export enum LineCap {
+  Butt = 0,
+  Round = 1,
+  Square = 2,
+}
+
+export enum LineJoin {
+  Miter,
+  Round,
+  Bevel,
+}
+
+// FIXME: Only RGB is implemented
+export enum ColorSpace {
+  DeviceRGB,
+  DeviceCMYK,
+  DeviceGray,
+  Pattern,
+}
+
+export enum Direction {
+  Clockwise,
+  CounterClockwise,
+}
+
+export abstract class GraphicsContext {
+  abstract getCurrentPoint(): Coordinate
+  abstract newPath(): void
+  abstract save(): void
+  abstract restore(): void
+  abstract setLineWidth(width: number): void
+  abstract getLineWidth(): number
+  abstract setLineCap(lineCap: LineCap): void
+  abstract getLineCap(): LineCap
+  abstract setLineJoin(lineJoin: LineJoin): void
+  abstract getLineJoin(): LineJoin
+  abstract setMiterLimit(miterLimit: number): void
+  abstract getMiterLimit(): number
+  abstract setRgbColor(r: number, g: number, b: number): void
+  abstract moveTo(coordinate: Coordinate): void
+  abstract lineTo(coordinate: Coordinate): void
+  abstract arc(
+    coordinate: Coordinate,
+    radius: number,
+    degreeStart: number,
+    degreeEnd: number,
+    counterClockWise: boolean
+  ): void
+  abstract bezierCurveTo(
+    controlPoint1: Coordinate,
+    controlPoint2: Coordinate,
+    endPoint: Coordinate
+  ): void
+  abstract rectClip(coordinate: Coordinate, width: number, height: number): void
+  abstract stroke(): void
+  abstract fill(): void
+  abstract eofill(): void
+  abstract strokeRect(
+    coordinate: Coordinate,
+    width: number,
+    height: number
+  ): void
+  abstract fillRect(coordinate: Coordinate, width: number, height: number): void
+  abstract closePath(): void
+  abstract fillText(text: string, coordinate: Coordinate): void
+  abstract concat(matrix: TransformationMatrix): void
+  abstract getTransformationMatrix(): TransformationMatrix
+}
