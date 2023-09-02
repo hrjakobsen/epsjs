@@ -357,12 +357,19 @@ export class PostScriptInterpreter {
     if (this.operandStack.length < numElements) {
       throw new Error('roll: Not enough elements')
     }
-    const toDuplicate = this.operandStack.slice(
-      this.operandStack.length - numElements
+    const toRotate = this.operandStack.splice(
+      this.operandStack.length - numElements,
+      numElements
     )
-    for (let i = 0; i < numRolls; ++i) {
-      this.operandStack.push(...toDuplicate)
+    for (let i = 0; i < Math.abs(numRolls); ++i) {
+      const upwards = numRolls > 0
+      if (upwards) {
+        toRotate.unshift(toRotate.pop()!)
+      } else {
+        toRotate.push(toRotate.shift()!)
+      }
     }
+    this.operandStack.push(...toRotate)
   }
 
   @builtin()
