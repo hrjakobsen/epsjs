@@ -144,13 +144,11 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
 
   override lineTo(coordinate: Coordinate): void {
-    console.log('lineTo', coordinate)
     this.canvasContext.lineTo(coordinate.x, coordinate.y)
     this.setCurrentPoint(coordinate)
   }
 
   override moveTo(coordinate: Coordinate): void {
-    console.log('moveTo', coordinate)
     this.canvasContext.moveTo(coordinate.x, coordinate.y)
     this.setCurrentPoint(coordinate)
   }
