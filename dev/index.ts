@@ -17,12 +17,13 @@ fill`
 
 export const view = new EditorView({
   state: EditorState.create({
-    doc: INITIAL_DOC,
+    doc: localStorage.getItem('doc') || INITIAL_DOC,
     extensions: [
       basicSetup,
       ViewPlugin.define(() => ({
         update(update) {
           if (update.docChanged) {
+            localStorage.setItem('doc', update.state.doc.toString())
             render()
           }
         },
@@ -59,5 +60,11 @@ function render() {
     document.getElementById('error')!.innerText = e.message + '\n' + e.stack
   }
 }
+
+document.getElementById('reset')!.addEventListener('click', () => {
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: INITIAL_DOC },
+  })
+})
 
 render()

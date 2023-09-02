@@ -21,7 +21,6 @@
     }
     #text {
       flex: 1 0 auto;
-      width: 60%;
     }
 
     #graphics {
@@ -49,10 +48,21 @@
       height: 20%;
       overflow: scroll;
     }
+    .text-container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      width: 60%;
+    }
   </style>
   <body>
     <main>
-      <div id="text"></div>
+      <div class="text-container">
+        <div class="buttons">
+          <button id="reset">Reset</button>
+        </div>
+        <div id="text"></div>
+      </div>
       <div id="graphics">
         <div id="titled-graphics">
           <h2>Output</h2>
