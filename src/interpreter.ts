@@ -218,7 +218,8 @@ export class PostScriptInterpreter {
         if (!(methodName in this)) {
           throw new Error("Can't find builtin method " + methodName)
         }
-        const method = (this as any)[methodName]()
+        const method = (this as any)[methodName].bind(this)
+        method()
         return
       } else if (
         value.type === ObjectType.Array &&
@@ -2341,6 +2342,7 @@ export class PostScriptInterpreter {
 
   @builtin()
   private debug() {
+    // eslint-disable-next-line no-debugger
     debugger
   }
 

@@ -239,7 +239,6 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     private canvasContext: CanvasRenderingContext2D
   ) {
     super()
-    const boundingBox = interpreter.metaData.boundingBox
     this.canvasContext.setTransform(
       ...getTransformationMatrix(
         this.canvasContext.canvas.height,
