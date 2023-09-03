@@ -258,7 +258,7 @@ export class PostScriptInterpreter {
         new PostScriptLexer(new CharStream(program))
       ).getMetaData()
     } catch (error) {
-      console.log('error collecting metadata')
+      console.warn('error collecting metadata')
     }
     const interpreter = new PostScriptInterpreter(
       CharStreamBackedFile.fromString(program),
@@ -2029,6 +2029,7 @@ export class PostScriptInterpreter {
   @builtin('=')
   @operands(ObjectType.Any)
   private debugPrint(obj: PostScriptObject) {
+    // eslint-disable-next-line no-console
     console.log(prettyPrint(obj))
   }
 
@@ -2036,16 +2037,19 @@ export class PostScriptInterpreter {
   @builtin('==')
   @operands(ObjectType.Any)
   private debugPrintObject(obj: PostScriptObject) {
+    // eslint-disable-next-line no-console
     console.log(obj)
   }
 
   @builtin('stack')
   private stack() {
+    // eslint-disable-next-line no-console
     console.log(this.operandStack.map(prettyPrint))
   }
 
   @builtin('pstack')
   private pstack() {
+    // eslint-disable-next-line no-console
     console.log(this.operandStack)
   }
 
