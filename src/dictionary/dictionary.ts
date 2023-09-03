@@ -1,10 +1,14 @@
+import { PostScriptArray } from '../array'
 import { ObjectType, PostScriptObject } from '../scanner'
+import { PostScriptString } from '../string'
 import { createLiteral } from '../utils'
 
+const MIN_FONT_CAPACITY = 3
+
 export class PostScriptDictionary {
-  protected readonly map = new Map<any, PostScriptObject>()
+  protected map = new Map<any, PostScriptObject>()
   // HACK
-  private readonly keysMap = new Map<any, PostScriptObject>()
+  private keysMap = new Map<any, PostScriptObject>()
 
   constructor(
     public readonly readOnly: boolean,
@@ -56,7 +60,11 @@ export class PostScriptDictionary {
   }
 
   public isFontDictionary() {
-    return false
+    return (
+      Boolean(this.searchByName('FontType')) &&
+      Boolean(this.searchByName('FontName')) &&
+      Boolean(this.searchByName('FontMatrix'))
+    )
   }
 
   public searchByName(name: string) {
@@ -65,9 +73,34 @@ export class PostScriptDictionary {
 
   public copy() {
     const newDict = new PostScriptDictionary(this.readOnly, this.capacity)
-    for (const [key, value] of this.map.entries()) {
-      newDict.forceSet(key, value)
-    }
+    const newDictEntries = Array.from(this.map.entries())
+    const newDictKeys = Array.from(this.keysMap.entries())
+    newDict.map = new Map(newDictEntries)
+    newDict.keysMap = new Map(newDictKeys)
     return newDict
+  }
+
+  public static newFont(fontName: string, scale = 1) {
+    const fontDict = new PostScriptDictionary(false, MIN_FONT_CAPACITY)
+    fontDict.forceSet(
+      createLiteral('FontType', ObjectType.Name),
+      createLiteral(42, ObjectType.Integer)
+    )
+    fontDict.forceSet(
+      createLiteral('FontName', ObjectType.Name),
+      createLiteral(PostScriptString.fromString(fontName), ObjectType.String)
+    )
+    fontDict.forceSet(
+      createLiteral('FontMatrix', ObjectType.Name),
+      createLiteral(
+        new PostScriptArray(
+          [0.001 * scale, 0, 0, 0.001 * scale, 0, 0].map((num) =>
+            createLiteral(num, ObjectType.Real)
+          )
+        ),
+        ObjectType.Array
+      )
+    )
+    return fontDict
   }
 }

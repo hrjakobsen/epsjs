@@ -39,7 +39,6 @@ import { PostScriptArray } from './array'
 import { CharStream, PostScriptLexer } from './lexer'
 import { GraphicsContext, LineCap, LineJoin } from './graphics/context'
 import { CanvasBackedGraphicsContext } from './graphics/canvas'
-import { PostScriptFontDictionary } from './dictionary/font'
 
 const MAX_STEPS = 100_000
 const MAX_DICT_CAPACITY = 1024
@@ -63,6 +62,7 @@ export class PostScriptInterpreter {
       type: ObjectType.File,
     })
   }
+  private fonts = new PostScriptDictionary(false, 1024)
 
   private dictionaryStack: PostScriptDictionary[] = [
     new SystemDictionary(),
@@ -527,6 +527,7 @@ export class PostScriptInterpreter {
         // TODO: Should we have a single object for a dictionary, in case
         // someone dups and changes access?
         this.pushLiteral(currentDictionary, ObjectType.Dictionary)
+        this.pushLiteral(true, ObjectType.Boolean)
         return
       }
     }
@@ -535,7 +536,7 @@ export class PostScriptInterpreter {
 
   @builtin()
   private currentDict() {
-    this.pushLiteral(this.currentDict, ObjectType.Dictionary)
+    this.pushLiteral(this.dictionary, ObjectType.Dictionary)
   }
 
   @builtin()
@@ -2350,22 +2351,28 @@ export class PostScriptInterpreter {
   //                         Glyph and Font Operators
   // ---------------------------------------------------------------------------
 
-  @builtin()
-  @operands(ObjectType.String | ObjectType.Name)
-  private findFont({
-    value: fontName,
-  }: PostScriptObject<ObjectType.String | ObjectType.Name>) {
+  private _findFont(key: PostScriptObject<ObjectType.Any>) {
+    if (this.fonts.has(key)) {
+      return this.fonts.get(key)!.value as PostScriptDictionary
+    }
+    if (key.type !== ObjectType.Name && key.type !== ObjectType.String) {
+      throw new Error('findfont: invalid key type')
+    }
+    let fontName = key.value as string | PostScriptString
     if (typeof fontName !== 'string') {
       fontName = fontName.asString()
     }
     if (!document.fonts.check(`12px ${fontName}`)) {
       throw new Error(`Font ${fontName} not found`)
-      // FIXME: Check locally defined fonts
     }
-    this.pushLiteral(
-      new PostScriptFontDictionary(fontName),
-      ObjectType.Dictionary
-    )
+    return PostScriptDictionary.newFont(fontName)
+  }
+
+  @builtin()
+  @operands(ObjectType.Any)
+  private findFont(key: PostScriptObject<ObjectType.Any>) {
+    const font = this._findFont(key)
+    this.pushLiteral(font, ObjectType.Dictionary)
   }
 
   @builtin()
@@ -2377,27 +2384,91 @@ export class PostScriptInterpreter {
     this.printer.setFont(font)
   }
 
-  @builtin()
-  @operands(ObjectType.Dictionary, ObjectType.Real | ObjectType.Integer)
-  private scaleFont(
-    { value: font }: PostScriptObject<ObjectType.Dictionary>,
-    { value: scale }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+  private _scaleFontMatrix(
+    font: PostScriptDictionary,
+    matrix: TransformationMatrix
   ) {
     if (!font.isFontDictionary()) {
-      throw new Error('scalefont: Not a font dictionary')
+      throw new Error('Not a font dictionary')
     }
-    const copy = font.copy()
-    const matrix = (
+    const fontMatrix = (
       font.searchByName('FontMatrix')!.value as PostScriptArray
     ).map((x) => x.value as number) as TransformationMatrix
-    const newMatrix = matrixMultiply(scalingMatrix(scale, scale), matrix)
-    copy.set(
+    const newMatrix = matrixMultiply(matrix, fontMatrix)
+    font.set(
       createLiteral('FontMatrix', ObjectType.Name),
       createLiteral(
         new PostScriptArray(newMatrix.map(createLiteral)),
         ObjectType.Array
       )
     )
+  }
+
+  private _scaleFont(font: PostScriptDictionary, scale: number) {
+    if (!font.isFontDictionary()) {
+      throw new Error('scalefont: Not a font dictionary')
+    }
+    const copy = font.copy()
+    this._scaleFontMatrix(copy, scalingMatrix(scale, scale))
+    return copy
+  }
+
+  @builtin()
+  @operands(ObjectType.Dictionary, ObjectType.Real | ObjectType.Integer)
+  private scaleFont(
+    { value: font }: PostScriptObject<ObjectType.Dictionary>,
+    { value: scale }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+  ) {
+    const copy = this._scaleFont(font, scale)
     this.pushLiteral(copy, ObjectType.Dictionary)
+  }
+
+  @builtin()
+  @operands(ObjectType.Any, ObjectType.Dictionary)
+  private defineFont(
+    key: PostScriptObject<ObjectType.Any>,
+    font: PostScriptObject<ObjectType.Dictionary>
+  ) {
+    if (!font.value.isFontDictionary()) {
+      throw new Error('definefont: Not a font dictionary')
+    }
+    this.fonts.set(key, font)
+    this.operandStack.push(font)
+  }
+
+  @builtin()
+  @operands(
+    ObjectType.Any,
+    ObjectType.Integer | ObjectType.Real | ObjectType.Array
+  )
+  private selectFont(
+    key: PostScriptObject<ObjectType.Any>,
+    scaleOrMatrix: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.Array
+    >
+  ) {
+    const font = this._findFont(key).copy()
+    if (scaleOrMatrix.type === ObjectType.Array) {
+      this._scaleFontMatrix(font, matrixFromPostScriptArray(scaleOrMatrix))
+      this.printer.setFont(font)
+    } else {
+      const scale = scaleOrMatrix.value as number
+      const scaledFont = this._scaleFont(font, scale)
+      this.printer.setFont(scaledFont)
+    }
+  }
+
+  @builtin()
+  @operands(ObjectType.Dictionary, ObjectType.Array)
+  private makeFont(
+    font: PostScriptObject<ObjectType.Dictionary>,
+    matrix: PostScriptObject<ObjectType.Array>
+  ) {
+    if (!font.value.isFontDictionary()) {
+      throw new Error('makefont: Not a font dictionary')
+    }
+    const copy = font.value.copy()
+    this._scaleFontMatrix(copy, matrixFromPostScriptArray(matrix))
+    this.operandStack.push(createLiteral(copy, ObjectType.Dictionary))
   }
 }

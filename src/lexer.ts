@@ -316,7 +316,7 @@ export class PostScriptLexer extends BufferedStreamer<Token> {
     const start = this.dataStream.pos - 1
     const hexString = String.fromCharCode(
       ...this.dataStream.collectUntil(isAngleBracketClose)
-    )
+    ).replace(/\s/g, '')
     if (!isAngleBracketClose(this.dataStream.next)) {
       throw new Error('Missing end of hex string')
     }

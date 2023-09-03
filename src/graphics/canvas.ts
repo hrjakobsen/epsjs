@@ -3,15 +3,15 @@ import { PostScriptInterpreter } from '../interpreter'
 import { degreeToRadians } from '../utils'
 import { GraphicsContext, LineCap, LineJoin } from './context'
 import { BoundingBox } from '../scanner'
-import { PostScriptFontDictionary } from '../dictionary/font'
 import { PostScriptArray } from '../array'
+import { PostScriptDictionary } from '../dictionary/dictionary'
 
 export class CanvasBackedGraphicsContext extends GraphicsContext {
-  private fonts: PostScriptFontDictionary[] = [
-    new PostScriptFontDictionary('Helvetica', 10),
+  private fonts: PostScriptDictionary[] = [
+    PostScriptDictionary.newFont('Helvetica', 10),
   ]
 
-  override setFont(font: PostScriptFontDictionary): void {
+  override setFont(font: PostScriptDictionary): void {
     this.fonts[this.fonts.length - 1] = font
   }
 
@@ -143,10 +143,9 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     const matrix = (
       font.searchByName('FontMatrix')?.value as PostScriptArray
     ).map((x) => x.value) as TransformationMatrix
+    const fontName = font.searchByName('FontName')!.value as string
     const fontsize = matrix[3] * 1000
-    this.canvasContext.font = `${fontsize}px ${
-      font.searchByName('FontName')!.value
-    }`
+    this.canvasContext.font = `${fontsize}px ${fontName}`
     this.canvasContext.save()
     this.canvasContext.scale(1, -1) // Flip to draw the text
     this.canvasContext.fillText(text, coordinate.x, -coordinate.y)
