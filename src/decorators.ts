@@ -1,4 +1,4 @@
-import { PostScriptInterpreter } from './interpreter'
+import { BUILT_INS, OVERLOADS, PostScriptInterpreter } from './interpreter'
 import { ObjectType } from './scanner'
 
 export function builtin(name?: string) {
@@ -6,10 +6,10 @@ export function builtin(name?: string) {
     if (!name) {
       name = methodName.toLowerCase()
     }
-    if (!PostScriptInterpreter.BUILT_INS.has(name)) {
-      PostScriptInterpreter.BUILT_INS.set(name, [])
+    if (!BUILT_INS.has(name)) {
+      BUILT_INS.set(name, [])
     }
-    PostScriptInterpreter.BUILT_INS.get(name)!.push(methodName)
+    BUILT_INS.get(name)!.push(methodName)
   }
 }
 
@@ -19,7 +19,7 @@ export function operands(...types: (ObjectType | -1)[]) {
     methodName: string,
     descriptor: PropertyDescriptor
   ) {
-    PostScriptInterpreter.OVERLOADS.set(methodName, types)
+    OVERLOADS.set(methodName, types)
     const currentFunction = descriptor.value
     descriptor.value = function (this: PostScriptInterpreter) {
       const args = []

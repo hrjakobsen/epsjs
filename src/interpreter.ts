@@ -42,6 +42,9 @@ const MAX_STEPS = 100_000
 const MAX_DICT_CAPACITY = 1024
 const MAX_LOOP_STACK_SIZE = 1024
 
+export const BUILT_INS = new Map<string, string[]>()
+export const OVERLOADS = new Map<string, (ObjectType | -1)[]>()
+
 export class PostScriptInterpreter {
   private _printer?: GraphicsContext
   private constructor(
@@ -141,7 +144,7 @@ export class PostScriptInterpreter {
   }
 
   private resolveBuiltin(operatorName: string): string {
-    const overloads = PostScriptInterpreter.BUILT_INS.get(operatorName)
+    const overloads = BUILT_INS.get(operatorName)
     if (overloads === undefined) {
       throw new Error(`Unknown builtin ${operatorName}`)
     }
@@ -150,7 +153,7 @@ export class PostScriptInterpreter {
     }
 
     outer: for (const overloadName of overloads) {
-      const overloadTypes = PostScriptInterpreter.OVERLOADS.get(overloadName)
+      const overloadTypes = OVERLOADS.get(overloadName)
       if (overloadTypes === undefined) {
         throw new Error(
           `${overloadName} has no declared operands, even though it is an overload`
@@ -206,11 +209,13 @@ export class PostScriptInterpreter {
       // Look up name and invoke procedure
       const value = this.symbolLookup(item)!
       if (value.type === ObjectType.Operator) {
-        // TODO: Find a better way to express this
         const methodName = this.resolveBuiltin(
           (value as PostScriptObject<ObjectType.Operator>).value
         )
-        ;(this as any)[methodName]!()
+        if (!(methodName in this)) {
+          throw new Error("Can't find builtin method " + methodName)
+        }
+        const method = (this as any)[methodName]()
         return
       } else if (
         value.type === ObjectType.Array &&
@@ -271,9 +276,6 @@ export class PostScriptInterpreter {
     }
     this.pushLiteral(num, type)
   }
-
-  public static BUILT_INS = new Map<string, string[]>()
-  public static OVERLOADS = new Map<string, (ObjectType | -1)[]>()
 
   private findIndexOfMark() {
     for (let index = this.operandStack.length - 1; index >= 0; --index) {
@@ -1251,7 +1253,7 @@ export class PostScriptInterpreter {
   @builtin('length')
   @operands(ObjectType.Array)
   private arrayLength({ value: elements }: PostScriptObject<ObjectType.Array>) {
-    return elements.length
+    this.pushLiteral(elements.length, ObjectType.Integer)
   }
 
   @builtin('get')
