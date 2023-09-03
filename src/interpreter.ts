@@ -1506,6 +1506,17 @@ export class PostScriptInterpreter {
     this.printer.setRgbColor(r, g, b)
   }
 
+  @builtin()
+  @operands(ObjectType.Real | ObjectType.Integer)
+  private setGray({
+    value: gray,
+  }: PostScriptObject<ObjectType.Real | ObjectType.Integer>) {
+    if (gray < 0 || gray > 1) {
+      throw new Error('Invalid gray value')
+    }
+    this.printer.setRgbColor(gray * 255, gray * 255, gray * 255)
+  }
+
   // ---------------------------------------------------------------------------
   //                      Graphics State Operators
   // ---------------------------------------------------------------------------
