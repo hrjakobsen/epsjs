@@ -23,14 +23,28 @@ export abstract class LoopContext {
     this.executionStack.splice(this.executionStackStartIndex + 1)
   }
 
+  private isDepletedOnStack() {
+    return (
+      this.executionStack.length === this.executionStackStartIndex + 1 &&
+      this.procedure.value.procedureIndex >= this.procedure.value.length
+    )
+  }
+
   public isReadyToExecute() {
-    return this.executionStack.length === this.executionStackStartIndex
+    return (
+      this.executionStack.length === this.executionStackStartIndex ||
+      this.isDepletedOnStack()
+    )
   }
 
   public abstract execute(): void
 
   protected executeProcedure() {
-    this.executionStack.push({ ...this.procedure, value: this.procedure.value })
+    if (this.isDepletedOnStack()) {
+      this.executionStack.pop()
+    }
+    this.procedure.value.procedureIndex = 0
+    this.executionStack.push(this.procedure)
   }
 }
 

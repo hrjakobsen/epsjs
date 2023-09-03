@@ -117,6 +117,7 @@ export class PostScriptInterpreter {
         const nextInstruction = file.token()
         if (nextInstruction === undefined) {
           this.executionStack.pop()
+          continue
         }
         return nextInstruction
       }
@@ -220,7 +221,6 @@ export class PostScriptInterpreter {
           ...value,
           value: (value as PostScriptObject<ObjectType.Array>).value.copy(),
         }
-
         this.executionStack.push(procedureBody)
         return
       } else if (value.attributes.executability === Executability.Literal) {
@@ -2299,5 +2299,10 @@ export class PostScriptInterpreter {
   @builtin()
   private showPage() {
     // Do nothing
+  }
+
+  @builtin()
+  private debug() {
+    debugger
   }
 }
