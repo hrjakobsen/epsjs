@@ -1,4 +1,5 @@
-import { PostScriptObject } from '../scanner'
+import { ObjectType, PostScriptObject } from '../scanner'
+import { createLiteral } from '../utils'
 
 export class PostScriptDictionary {
   protected readonly map = new Map<any, PostScriptObject>()
@@ -52,5 +53,21 @@ export class PostScriptDictionary {
 
   public get size() {
     return this.map.size
+  }
+
+  public isFontDictionary() {
+    return false
+  }
+
+  public searchByName(name: string) {
+    return this.get(createLiteral(name, ObjectType.Name))
+  }
+
+  public copy() {
+    const newDict = new PostScriptDictionary(this.readOnly, this.capacity)
+    for (const [key, value] of this.map.entries()) {
+      newDict.forceSet(key, value)
+    }
+    return newDict
   }
 }

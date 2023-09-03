@@ -3,8 +3,27 @@ import { PostScriptInterpreter } from '../interpreter'
 import { degreeToRadians } from '../utils'
 import { GraphicsContext, LineCap, LineJoin } from './context'
 import { BoundingBox } from '../scanner'
+import { PostScriptFontDictionary } from '../dictionary/font'
+import { PostScriptArray } from '../array'
 
 export class CanvasBackedGraphicsContext extends GraphicsContext {
+  private fonts: PostScriptFontDictionary[] = [
+    new PostScriptFontDictionary('Helvetica', 10),
+  ]
+
+  override setFont(font: PostScriptFontDictionary): void {
+    this.fonts[this.fonts.length - 1] = font
+  }
+
+  override clip(): void {
+    this.canvasContext.clip()
+  }
+
+  override setDash(array: number[], _offset: number): void {
+    // TODO: Handle offset
+    this.canvasContext.setLineDash(array)
+  }
+
   private currentPoints: (Coordinate | undefined)[] = [undefined]
   override getCurrentPoint(): Coordinate {
     const point = this.currentPoints[this.currentPoints.length - 1]
@@ -120,6 +139,14 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   override fillText(text: string, coordinate: Coordinate): void {
     // Postscript has inverted y axis, so we temporarily flip the canvas to
     // draw the text
+    const font = this.fonts[this.fonts.length - 1]!
+    const matrix = (
+      font.searchByName('FontMatrix')?.value as PostScriptArray
+    ).map((x) => x.value) as TransformationMatrix
+    const fontsize = matrix[3] * 1000
+    this.canvasContext.font = `${fontsize}px ${
+      font.searchByName('FontName')!.value
+    }`
     this.canvasContext.save()
     this.canvasContext.scale(1, -1) // Flip to draw the text
     this.canvasContext.fillText(text, coordinate.x, -coordinate.y)

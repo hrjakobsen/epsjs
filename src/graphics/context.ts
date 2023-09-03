@@ -1,4 +1,5 @@
 import { Coordinate, TransformationMatrix } from '../coordinate'
+import { PostScriptFontDictionary } from '../dictionary/font'
 
 export enum LineCap {
   Butt = 0,
@@ -26,6 +27,9 @@ export enum Direction {
 }
 
 export abstract class GraphicsContext {
+  abstract setFont(font: PostScriptFontDictionary): void
+  abstract clip(): void
+  abstract setDash(array: number[], offset: number): void
   abstract getCurrentPoint(): Coordinate
   abstract newPath(): void
   abstract save(): void

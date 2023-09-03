@@ -12,7 +12,9 @@ import {
   StringForAllLoopContext,
 } from './loop-context'
 import {
+  TransformationMatrix,
   matrixFromPostScriptArray,
+  matrixMultiply,
   scalingMatrix,
   translationMatrix,
 } from './coordinate'
@@ -37,6 +39,7 @@ import { PostScriptArray } from './array'
 import { CharStream, PostScriptLexer } from './lexer'
 import { GraphicsContext, LineCap, LineJoin } from './graphics/context'
 import { CanvasBackedGraphicsContext } from './graphics/canvas'
+import { PostScriptFontDictionary } from './dictionary/font'
 
 const MAX_STEPS = 100_000
 const MAX_DICT_CAPACITY = 1024
@@ -1466,10 +1469,10 @@ export class PostScriptInterpreter {
   }
 
   @builtin()
-  @operands(ObjectType.Integer)
+  @operands(ObjectType.Integer | ObjectType.Real)
   private setMiterLimit({
     value: miterLimit,
-  }: PostScriptObject<ObjectType.Integer>) {
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Real>) {
     this.printer.setMiterLimit(miterLimit)
   }
 
@@ -1528,6 +1531,23 @@ export class PostScriptInterpreter {
   private concat(matrix: PostScriptObject<ObjectType.Array>) {
     const transformationMatrix = matrixFromPostScriptArray(matrix)
     this.printer.concat(transformationMatrix)
+  }
+
+  @builtin()
+  @operands(ObjectType.Array, ObjectType.Integer | ObjectType.Real)
+  private setDash(
+    { value: array }: PostScriptObject<ObjectType.Array>,
+    { value: offset }: PostScriptObject<ObjectType.Integer | ObjectType.Real>
+  ) {
+    for (const item of array.items) {
+      if (item.type !== ObjectType.Integer && item.type !== ObjectType.Real) {
+        throw new Error('Invalid dash array')
+      }
+    }
+    this.printer.setDash(
+      array.map((x) => x.value as number),
+      offset
+    )
   }
 
   // ---------------------------------------------------------------------------
@@ -1831,6 +1851,11 @@ export class PostScriptInterpreter {
   @builtin()
   private closePath() {
     this.printer.closePath()
+  }
+
+  @builtin()
+  private clip() {
+    this.printer.clip()
   }
 
   @builtin()
@@ -2317,5 +2342,60 @@ export class PostScriptInterpreter {
   @builtin()
   private debug() {
     debugger
+  }
+
+  // ---------------------------------------------------------------------------
+  //                         Glyph and Font Operators
+  // ---------------------------------------------------------------------------
+
+  @builtin()
+  @operands(ObjectType.String | ObjectType.Name)
+  private findFont({
+    value: fontName,
+  }: PostScriptObject<ObjectType.String | ObjectType.Name>) {
+    if (typeof fontName !== 'string') {
+      fontName = fontName.asString()
+    }
+    if (!document.fonts.check(`12px ${fontName}`)) {
+      throw new Error(`Font ${fontName} not found`)
+      // FIXME: Check locally defined fonts
+    }
+    this.pushLiteral(
+      new PostScriptFontDictionary(fontName),
+      ObjectType.Dictionary
+    )
+  }
+
+  @builtin()
+  @operands(ObjectType.Dictionary)
+  private setFont({ value: font }: PostScriptObject<ObjectType.Dictionary>) {
+    if (!font.isFontDictionary()) {
+      throw new Error('setFont: Not a font dictionary')
+    }
+    this.printer.setFont(font)
+  }
+
+  @builtin()
+  @operands(ObjectType.Dictionary, ObjectType.Real | ObjectType.Integer)
+  private scaleFont(
+    { value: font }: PostScriptObject<ObjectType.Dictionary>,
+    { value: scale }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+  ) {
+    if (!font.isFontDictionary()) {
+      throw new Error('scalefont: Not a font dictionary')
+    }
+    const copy = font.copy()
+    const matrix = (
+      font.searchByName('FontMatrix')!.value as PostScriptArray
+    ).map((x) => x.value as number) as TransformationMatrix
+    const newMatrix = matrixMultiply(scalingMatrix(scale, scale), matrix)
+    copy.set(
+      createLiteral('FontMatrix', ObjectType.Name),
+      createLiteral(
+        new PostScriptArray(newMatrix.map(createLiteral)),
+        ObjectType.Array
+      )
+    )
+    this.pushLiteral(copy, ObjectType.Dictionary)
   }
 }
