@@ -20,6 +20,7 @@ export const view = new EditorView({
     doc: localStorage.getItem('doc') || INITIAL_DOC,
     extensions: [
       basicSetup,
+      EditorView.lineWrapping,
       ViewPlugin.define(() => ({
         update(update) {
           if (update.docChanged) {
