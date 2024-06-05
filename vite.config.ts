@@ -13,4 +13,7 @@ export default defineConfig({
     },
   },
   plugins: [dts({ rollupTypes: true })],
+  esbuild: {
+    target: 'es2022',
+  },
 })

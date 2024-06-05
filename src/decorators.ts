@@ -2,26 +2,30 @@ import { BUILT_INS, OVERLOADS, PostScriptInterpreter } from './interpreter'
 import { ObjectType } from './scanner'
 
 export function builtin(name?: string) {
-  return function (_target: unknown, methodName: string) {
-    if (!name) {
-      name = methodName.toLowerCase()
-    }
+  return function decorator(
+    originalMethod: Function,
+    context: ClassMethodDecoratorContext
+  ) {
+    const methodName = String(context.name)
+    name = name ?? String(context.name).toLowerCase()
     if (!BUILT_INS.has(name)) {
       BUILT_INS.set(name, [])
     }
     BUILT_INS.get(name)!.push(methodName)
+    return function replacementMethod(this: any, ...args: any[]) {
+      return originalMethod.apply(this, ...args)
+    }
   }
 }
 
 export function operands(...types: (ObjectType | -1)[]) {
-  return function (
-    _targetPrototype: unknown,
-    methodName: string,
-    descriptor: PropertyDescriptor
+  return function decorator(
+    originalMethod: Function,
+    context: ClassMethodDecoratorContext
   ) {
+    const methodName = String(context.name)
     OVERLOADS.set(methodName, types)
-    const currentFunction = descriptor.value
-    descriptor.value = function (this: PostScriptInterpreter) {
+    return function replacementMethod(this: PostScriptInterpreter) {
       const args = []
       for (let i = types.length - 1; i >= 0; --i) {
         const type = types[i]!
@@ -42,7 +46,7 @@ export function operands(...types: (ObjectType | -1)[]) {
         }
         args.push(arg)
       }
-      currentFunction.apply(this, args.reverse())
+      originalMethod.apply(this, args.reverse())
     }
   }
 }
