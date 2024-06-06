@@ -71,4 +71,5 @@ export abstract class GraphicsContext {
   abstract fillText(text: string, coordinate: Coordinate): void
   abstract concat(matrix: TransformationMatrix): void
   abstract getTransformationMatrix(): TransformationMatrix
+  abstract setTransformationMatrix(matrix: TransformationMatrix): void
 }

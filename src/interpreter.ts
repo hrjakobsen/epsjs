@@ -17,6 +17,7 @@ import {
   matrixMultiply,
   scalingMatrix,
   translationMatrix,
+  rotationMatrix,
 } from './coordinate'
 import {
   Access,
@@ -1584,6 +1585,20 @@ export class PostScriptInterpreter {
   }
 
   @builtin()
+  @operands(ObjectType.Array)
+  private setMatrix(matrix: PostScriptObject<ObjectType.Array>) {
+    if (matrix.value.length !== 6) {
+      throw new Error(
+        `currentmatrix: Invalid matrix length ${matrix.value.length}`
+      )
+    }
+
+    this.printer.setTransformationMatrix(
+      matrix.value.items.map((x) => x.value as number) as TransformationMatrix
+    )
+  }
+
+  @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
     ObjectType.Real | ObjectType.Integer | ObjectType.Array
@@ -1658,6 +1673,42 @@ export class PostScriptInterpreter {
         scale.map((number) => createLiteral(number, ObjectType.Real))
       )
       this.operandStack.push(scaleYOrMatrix)
+    }
+  }
+
+  @builtin()
+  private rotate() {
+    const arg = this.operandStack.pop()
+    if (!arg) {
+      throw new Error('rotate: Missing argument')
+    }
+    if (arg.type === ObjectType.Array) {
+      const matrixArray = arg as PostScriptObject<ObjectType.Array>
+      // There must be a angle argument as well
+      const angle = this.operandStack.pop()
+      if (!angle) {
+        throw new Error('rotate: Missing angle argument')
+      }
+      if (angle.type !== ObjectType.Real && angle.type !== ObjectType.Integer) {
+        throw new Error('rotate: Invalid angle type. Must be a number')
+      }
+      const matrix = matrixFromPostScriptArray(matrixArray)
+      const rotation = rotationMatrix(
+        (angle as PostScriptObject<ObjectType.Integer | ObjectType.Real>).value
+      )
+      const res = matrixMultiply(matrix, rotation)
+      matrixArray.value = new PostScriptArray(
+        res.map((x) => createLiteral(x, ObjectType.Real))
+      )
+      this.operandStack.push(matrixArray)
+    } else if (
+      arg.type === ObjectType.Real ||
+      arg.type === ObjectType.Integer
+    ) {
+      const rotation = rotationMatrix(
+        (arg as PostScriptObject<ObjectType.Integer | ObjectType.Real>).value
+      )
+      this.printer.concat(rotation)
     }
   }
 

@@ -103,3 +103,18 @@ export function scalingMatrix(scaleX: number, scaleY: number) {
 }
 
 export const IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0] as TransformationMatrix
+
+function degreesToRadians(degrees: number): number {
+  return (degrees * Math.PI) / 180
+}
+
+export function rotationMatrix(angle_degrees: number): TransformationMatrix {
+  return [
+    Math.cos(degreesToRadians(angle_degrees)),
+    Math.sin(degreesToRadians(angle_degrees)),
+    -Math.sin(degreesToRadians(angle_degrees)),
+    Math.cos(degreesToRadians(angle_degrees)),
+    0,
+    0,
+  ]
+}

@@ -196,7 +196,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
   override save(): void {
     this.canvasContext.save()
-    this.currentPoints.push(undefined)
+    this.currentPoints.push(this.getCurrentPoint())
   }
   override restore(): void {
     this.canvasContext.restore()
@@ -231,6 +231,10 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
         this.canvasContext.lineJoin = 'bevel'
         return
     }
+  }
+
+  override setTransformationMatrix(matrix: TransformationMatrix): void {
+    this.canvasContext.setTransform(...matrix)
   }
 
   constructor(
