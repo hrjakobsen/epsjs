@@ -3,6 +3,7 @@ import { EditorView, ViewPlugin, keymap } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import { indentWithTab } from '@codemirror/commands'
 import { PostScriptInterpreter } from '../src'
+import { TokenError } from '../src/scanner'
 
 const INITIAL_DOC = `10 280 moveto
 (<- Write PostScript over there) show
@@ -58,7 +59,19 @@ function render() {
     }
     interpreter.run(context)
   } catch (e: any) {
-    document.getElementById('error')!.innerText = e.message + '\n' + e.stack
+    let message = ''
+    if (e instanceof TokenError) {
+      if (e.token.span) {
+        const line = view.state.doc.lineAt(e.token.span.from)
+        const column = e.token.span.from - line.from
+        message += `Error at ${line.number}:${column}: ${e.message}`
+      } else {
+        message += e.message
+      }
+    } else {
+      message += e.message
+    }
+    document.getElementById('error')!.innerText = message + '\n' + e.stack
   }
 }
 

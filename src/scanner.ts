@@ -1,7 +1,13 @@
 import { PostScriptArray } from './array'
 import { PostScriptDictionary } from './dictionary/dictionary'
 import { PostScriptReadableFile } from './file'
-import { BASE_10_INT, PostScriptLexer, RADIX_NUMBER, TokenType } from './lexer'
+import {
+  BASE_10_INT,
+  PostScriptLexer,
+  RADIX_NUMBER,
+  Token,
+  TokenType,
+} from './lexer'
 import { BufferedStreamer } from './stream'
 import { PostScriptString } from './string'
 
@@ -39,6 +45,12 @@ export enum Access {
 type Attributes = {
   executability: Executability
   access: Access
+}
+
+export class TokenError extends Error {
+  constructor(public token: Token, message: string) {
+    super(message)
+  }
 }
 
 // TODO: There's probably a nicer way of doing this
@@ -135,7 +147,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
       case TokenType.LiteralName:
         return this.scanName(Access.Unlimited, Executability.Literal)
       case TokenType.ImmediatelyEvaluatedName:
-        throw new Error('Not implemented')
+        throw new TokenError(token, 'Not implemented')
       case TokenType.Comment:
         // Skip the comment token
         this._lexer.advance()
@@ -150,7 +162,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
       case TokenType.ProcedureOpen:
         return this.scanProcedure()
       case TokenType.ProcedureClose:
-        throw new Error('Unexpected }')
+        throw new TokenError(token, 'Unexpected }')
       default:
         return undefined
     }
