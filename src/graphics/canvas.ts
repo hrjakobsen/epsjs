@@ -196,7 +196,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
   override save(): void {
     this.canvasContext.save()
-    this.currentPoints.push(this.getCurrentPoint())
+    this.currentPoints.push(this.currentPoints[this.currentPoints.length - 1])
   }
   override restore(): void {
     this.canvasContext.restore()
