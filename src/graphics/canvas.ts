@@ -1,4 +1,9 @@
-import { Coordinate, TransformationMatrix } from '../coordinate'
+import {
+  Coordinate,
+  IDENTITY_MATRIX,
+  matrixMultiply,
+  TransformationMatrix,
+} from '../coordinate'
 import { PostScriptInterpreter } from '../interpreter'
 import { degreeToRadians } from '../utils'
 import { GraphicsContext, LineCap, LineJoin } from './context'
@@ -10,6 +15,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   private fonts: PostScriptDictionary[] = [
     PostScriptDictionary.newFont('Helvetica', 10),
   ]
+  private transformationMatrix: TransformationMatrix
 
   override setFont(font: PostScriptDictionary): void {
     this.fonts[this.fonts.length - 1] = font
@@ -37,8 +43,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
 
   override getTransformationMatrix(): TransformationMatrix {
-    const { a, b, c, d, e, f } = this.canvasContext.getTransform()
-    return [a, b, c, d, e, f]
+    return this.transformationMatrix
   }
 
   override getLineWidth(): number {
@@ -71,6 +76,10 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
 
   override concat(matrix: TransformationMatrix): void {
+    this.transformationMatrix = matrixMultiply(
+      this.transformationMatrix,
+      matrix
+    )
     this.canvasContext.transform(...matrix)
   }
 
@@ -234,6 +243,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
 
   override setTransformationMatrix(matrix: TransformationMatrix): void {
+    this.transformationMatrix = matrix
     this.canvasContext.setTransform(...matrix)
   }
 
@@ -242,6 +252,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     private canvasContext: CanvasRenderingContext2D
   ) {
     super()
+    this.transformationMatrix = IDENTITY_MATRIX
     this.canvasContext.setTransform(
       ...getTransformationMatrix(
         this.canvasContext.canvas.height,
