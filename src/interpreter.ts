@@ -293,27 +293,31 @@ export class PostScriptInterpreter {
   }
 
   // ---------------------------------------------------------------------------
-  //                          STACK OPERATIONS
+  //                 Operand Stack Manipulation Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=647
   @builtin()
   @operands(ObjectType.Any)
   private pop(_obj: PostScriptObject) {
     // arg has already been popped
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=595
   @builtin()
   @operands(ObjectType.Any, ObjectType.Any)
   private exch(first: PostScriptObject, second: PostScriptObject) {
     this.operandStack.push(second, first)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=589
   @builtin()
   @operands(ObjectType.Any)
   private dup(obj: PostScriptObject) {
     this.operandStack.push(obj, obj)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=563
   @builtin('copy')
   @operands(ObjectType.Integer)
   private copyStack({
@@ -328,6 +332,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(...slice)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=624
   @builtin()
   @operands(ObjectType.Integer)
   private index({ value: offset }: PostScriptObject<ObjectType.Integer>) {
@@ -339,6 +344,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=664
   @builtin()
   @operands(ObjectType.Integer, ObjectType.Integer)
   private roll(
@@ -363,16 +369,19 @@ export class PostScriptInterpreter {
     this.operandStack.push(...toRotate)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555
   @builtin()
   private clear() {
     this.operandStack = []
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=564
   @builtin()
   private count() {
     this.pushLiteralNumber(this.operandStack.length)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=639
   @builtin()
   private mark() {
     this.operandStack.push({
@@ -385,6 +394,7 @@ export class PostScriptInterpreter {
     })
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555
   @builtin()
   private clearToMark() {
     const markIndex = this.findIndexOfMark()
@@ -394,6 +404,7 @@ export class PostScriptInterpreter {
     this.operandStack.splice(markIndex)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=564
   @builtin()
   private countToMark() {
     const markIndex = this.findIndexOfMark()
@@ -407,6 +418,7 @@ export class PostScriptInterpreter {
   //                       Dictionary Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=586
   @builtin()
   @operands(ObjectType.Integer)
   private dict({ value: capacity }: PostScriptObject<ObjectType.Integer>) {
@@ -444,6 +456,27 @@ export class PostScriptInterpreter {
     this.pushLiteral(dictionary, ObjectType.Dictionary)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=635
+  @builtin('length')
+  @operands(ObjectType.Dictionary)
+  private dictLength({
+    value: dictionary,
+  }: PostScriptObject<ObjectType.Dictionary>) {
+    this.pushLiteral(dictionary.size, ObjectType.Integer)
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=640
+  @builtin()
+  @operands(ObjectType.Dictionary)
+  private maxLength({
+    value: dictionary,
+  }: PostScriptObject<ObjectType.Dictionary>) {
+    // Language level 1: return capacity
+    this.pushLiteral(dictionary.capacity, ObjectType.Integer)
+    // TODO: Language level 2 + 3: return current length
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=550
   @builtin()
   @operands(ObjectType.Dictionary)
   private begin({
@@ -452,6 +485,7 @@ export class PostScriptInterpreter {
     this.dictionaryStack.push(dictionary)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=591
   @builtin()
   private end() {
     if (this.dictionaryStack.length === 0) {
@@ -460,12 +494,14 @@ export class PostScriptInterpreter {
     this.dictionaryStack.pop()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
   @builtin()
   @operands(ObjectType.Any, ObjectType.Any)
   private def(name: PostScriptObject, procedure: PostScriptObject) {
     this.dictionary.set(name, procedure)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
   @builtin()
   @operands(ObjectType.Any)
   private load(name: PostScriptObject) {
@@ -476,12 +512,14 @@ export class PostScriptInterpreter {
     this.operandStack.push(element)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=712
   @builtin()
   @operands(ObjectType.Any, ObjectType.Any)
   private store(key: PostScriptObject, value: PostScriptObject) {
     this.dictionary.set(key, value)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
   @builtin('get')
   @operands(ObjectType.Dictionary, ObjectType.Any)
   private getDict(
@@ -491,6 +529,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(dictionary.get(key)!)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
   @builtin('put')
   @operands(ObjectType.Dictionary, ObjectType.Any, ObjectType.Any)
   private putDict(
@@ -501,6 +540,7 @@ export class PostScriptInterpreter {
     dictionary.set(key, value)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=722
   @builtin()
   @operands(ObjectType.Dictionary, ObjectType.Any)
   private undef(
@@ -510,6 +550,7 @@ export class PostScriptInterpreter {
     dictionary.remove(key)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=633
   @builtin()
   @operands(ObjectType.Dictionary, ObjectType.Any)
   private known(
@@ -519,6 +560,7 @@ export class PostScriptInterpreter {
     this.pushLiteral(dictionary.has(key), ObjectType.Boolean)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=732
   @builtin()
   @operands(ObjectType.Any)
   private where(key: PostScriptObject) {
@@ -535,16 +577,7 @@ export class PostScriptInterpreter {
     this.pushLiteral(false, ObjectType.Boolean)
   }
 
-  @builtin()
-  private currentDict() {
-    this.pushLiteral(this.dictionary, ObjectType.Dictionary)
-  }
-
-  @builtin()
-  private countDictStack() {
-    this.pushLiteral(this.dictionaryStack.length, ObjectType.Integer)
-  }
-
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=611
   @builtin('forall')
   @operands(ObjectType.Dictionary, ObjectType.Array)
   private forallDictionary(
@@ -561,12 +594,90 @@ export class PostScriptInterpreter {
     )
   }
 
-  // TODO: cleardictstack, dictstack, forall, default dictionaries
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=569
+  @builtin()
+  private currentDict() {
+    this.pushLiteral(this.dictionary, ObjectType.Dictionary)
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=595
+  @builtin()
+  private errorDict() {
+    throw new Error('errordict: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541
+  @builtin('$error')
+  private error() {
+    throw new Error('errordict: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=716
+  @builtin()
+  private systemDict() {
+    throw new Error('systemdict: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=727
+  @builtin()
+  private userDict() {
+    throw new Error('userdict: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=615
+  @builtin()
+  private globalDict() {
+    throw new Error('globaldict: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=710
+  @builtin()
+  private statusDict() {
+    throw new Error('statusdict: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=565
+  @builtin()
+  private countDictStack() {
+    this.pushLiteral(this.dictionaryStack.length, ObjectType.Integer)
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=587
+  @builtin()
+  @operands(ObjectType.Array)
+  private dictStack({ value: array }: PostScriptObject<ObjectType.Array>) {
+    if (array.length < this.dictionaryStack.length) {
+      // TODO: rangecheck error
+      throw new Error('Not enough space in array')
+    }
+    const n = this.dictionaryStack.length
+    for (let i = 0; i < n; ++i) {
+      array.set(i, {
+        value: this.dictionaryStack[i]!,
+        type: ObjectType.Dictionary,
+        attributes: {
+          access: Access.Unlimited,
+          executability: Executability.Literal,
+        },
+      })
+    }
+    // TODO: The pushed array should only contain n elements
+    this.pushLiteral(array, ObjectType.Array)
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555
+  @builtin()
+  @operands()
+  private cleardictstack() {
+    // TODO: Can we do this less magically?
+    this.dictionaryStack.slice(2)
+  }
 
   // ---------------------------------------------------------------------------
   //                          String Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=713
   @builtin()
   @operands(ObjectType.Integer)
   private string({ value: length }: PostScriptObject<ObjectType.Integer>) {
@@ -574,12 +685,14 @@ export class PostScriptInterpreter {
     this.pushLiteral(new PostScriptString(length), ObjectType.String)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=635
   @builtin('length')
   @operands(ObjectType.String)
   private stringLength({ value: string }: PostScriptObject<ObjectType.String>) {
     this.pushLiteral(string.length, ObjectType.Integer)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
   @builtin('get')
   @operands(ObjectType.String, ObjectType.Integer)
   private stringGet(
@@ -589,6 +702,7 @@ export class PostScriptInterpreter {
     this.pushLiteral(string.get(index), ObjectType.Integer)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
   @builtin('put')
   @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
   private stringPut(
@@ -599,6 +713,7 @@ export class PostScriptInterpreter {
     string.set(index, newValue)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=613
   @builtin('getinterval')
   @operands(ObjectType.String, ObjectType.Integer, ObjectType.Integer)
   private stringGetInterval(
@@ -617,6 +732,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=650
   @builtin('putinterval')
   @operands(ObjectType.String, ObjectType.Integer, ObjectType.String)
   private stringPutInterval(
@@ -637,6 +753,7 @@ export class PostScriptInterpreter {
     target.data.splice(index, source.length, ...source.data)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=562
   @builtin('copy')
   @operands(ObjectType.String, ObjectType.String)
   private copyString(
@@ -656,6 +773,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=611
   @builtin('forall')
   @operands(ObjectType.String, ObjectType.Array)
   private forallString(
@@ -672,6 +790,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=543
   @builtin()
   @operands(ObjectType.String, ObjectType.String)
   private anchorSearch(
@@ -691,9 +810,10 @@ export class PostScriptInterpreter {
     this.pushLiteral(true, ObjectType.Boolean)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=669
   @builtin()
   @operands(ObjectType.String, ObjectType.String)
-  private seek(
+  private search(
     haystack: PostScriptObject<ObjectType.String>,
     { value: needle }: PostScriptObject<ObjectType.String>
   ) {
@@ -712,10 +832,18 @@ export class PostScriptInterpreter {
     this.pushLiteral(true, ObjectType.Boolean)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=716
+  @builtin()
+  @operands(ObjectType.String)
+  private token({ value: tokenString }: PostScriptObject<ObjectType.String>) {
+    throw new Error('token: Not implemented')
+  }
+
   // ---------------------------------------------------------------------------
   //               Relational, Boolean, and Bitwise Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=594
   @builtin()
   @operands(ObjectType.Any, ObjectType.Any)
   private eq(
@@ -728,6 +856,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=642
   @builtin()
   @operands(ObjectType.Any, ObjectType.Any)
   private ne(
@@ -740,6 +869,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=704
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real | ObjectType.String,
@@ -765,6 +895,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=618
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real | ObjectType.String,
@@ -790,6 +921,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=634
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real | ObjectType.String,
@@ -815,6 +947,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=637
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real | ObjectType.String,
@@ -840,6 +973,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=543
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Boolean,
@@ -865,6 +999,21 @@ export class PostScriptInterpreter {
     }
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=643
+  @builtin()
+  @operands(ObjectType.Integer | ObjectType.Boolean)
+  private not({
+    value: v1,
+    type: t1,
+  }: PostScriptObject<ObjectType.Integer | ObjectType.Boolean>) {
+    if (t1 === ObjectType.Boolean) {
+      this.pushLiteral(!v1, ObjectType.Boolean)
+    } else {
+      this.pushLiteral(~v1, ObjectType.Integer)
+    }
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=645
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Boolean,
@@ -890,6 +1039,7 @@ export class PostScriptInterpreter {
     }
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=736
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Boolean,
@@ -915,31 +1065,7 @@ export class PostScriptInterpreter {
     }
   }
 
-  @builtin()
-  @operands(ObjectType.Integer, ObjectType.Integer)
-  private bitshift(
-    { value }: PostScriptObject<ObjectType.Integer>,
-    { value: shift }: PostScriptObject<ObjectType.Integer>
-  ) {
-    this.pushLiteral(
-      shift ? value << shift : value >> shift,
-      ObjectType.Integer
-    )
-  }
-
-  @builtin()
-  @operands(ObjectType.Integer | ObjectType.Boolean)
-  private not({
-    value: v1,
-    type: t1,
-  }: PostScriptObject<ObjectType.Integer | ObjectType.Boolean>) {
-    if (t1 === ObjectType.Boolean) {
-      this.pushLiteral(!v1, ObjectType.Boolean)
-    } else {
-      this.pushLiteral(~v1, ObjectType.Integer)
-    }
-  }
-
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=718
   @builtin('true')
   private _true() {
     this.operandStack.push({
@@ -952,6 +1078,7 @@ export class PostScriptInterpreter {
     })
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=601
   @builtin('false')
   private _false() {
     this.operandStack.push({
@@ -964,10 +1091,24 @@ export class PostScriptInterpreter {
     })
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=553
+  @builtin()
+  @operands(ObjectType.Integer, ObjectType.Integer)
+  private bitshift(
+    { value }: PostScriptObject<ObjectType.Integer>,
+    { value: shift }: PostScriptObject<ObjectType.Integer>
+  ) {
+    this.pushLiteral(
+      shift ? value << shift : value >> shift,
+      ObjectType.Integer
+    )
+  }
+
   // ---------------------------------------------------------------------------
   //                    Arithmetic and Math Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -990,6 +1131,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=588
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -1002,6 +1144,7 @@ export class PostScriptInterpreter {
     this.pushLiteralNumber(v1 / v2, ObjectType.Real)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=619
   @builtin()
   @operands(ObjectType.Integer, ObjectType.Integer)
   private idiv(
@@ -1011,6 +1154,7 @@ export class PostScriptInterpreter {
     this.pushLiteralNumber(Math.floor(v1 / v2))
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=641
   @builtin()
   @operands(ObjectType.Integer, ObjectType.Integer)
   private mod(
@@ -1020,6 +1164,7 @@ export class PostScriptInterpreter {
     this.pushLiteralNumber(v1 % v2)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=641
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -1042,6 +1187,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=715
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -1064,6 +1210,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private abs({
@@ -1076,6 +1223,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=642
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private neg({
@@ -1085,6 +1233,7 @@ export class PostScriptInterpreter {
     this.pushLiteralNumber(-v1, t1 as ObjectType.Integer | ObjectType.Real)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=554
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private ceiling({
@@ -1097,6 +1246,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=610
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private floor({
@@ -1109,6 +1259,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=666
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private round({
@@ -1121,6 +1272,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=719
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private truncate({
@@ -1133,6 +1285,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private sqrt({
@@ -1141,6 +1294,7 @@ export class PostScriptInterpreter {
     this.pushLiteralNumber(Math.sqrt(v1), ObjectType.Real)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=549
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -1156,6 +1310,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=564
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private cos({
@@ -1167,6 +1322,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private sin({
@@ -1178,6 +1334,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=600
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -1190,6 +1347,7 @@ export class PostScriptInterpreter {
     this.pushLiteralNumber(Math.pow(v1, v2), ObjectType.Real)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private ln({
@@ -1198,6 +1356,7 @@ export class PostScriptInterpreter {
     this.pushLiteralNumber(Math.log2(v1), ObjectType.Real)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=637
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private log({
@@ -1206,11 +1365,13 @@ export class PostScriptInterpreter {
     this.pushLiteralNumber(Math.log10(v1), ObjectType.Real)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=651
   @builtin()
   private rand() {
     this.pushLiteralNumber(Math.floor(Math.random() * (Math.pow(2, 31) - 1)))
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
   @builtin()
   @operands(ObjectType.Integer)
   private srand({ value }: PostScriptObject) {
@@ -1219,6 +1380,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=666
   @builtin()
   private rrand() {
     console.warn(`Trying to read random seed. Seeding the RNG is not supported`)
@@ -1229,6 +1391,7 @@ export class PostScriptInterpreter {
   //                             Array Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=548
   @builtin()
   @operands(ObjectType.Integer)
   private array({ value: length }: PostScriptObject<ObjectType.Integer>) {
@@ -1240,11 +1403,13 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=538
   @builtin('[')
   private arrayStart() {
     this.pushLiteral(undefined, ObjectType.Mark)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=538
   @builtin(']')
   private arrayEnd() {
     const markIndex = this.findIndexOfMark()
@@ -1256,12 +1421,14 @@ export class PostScriptInterpreter {
     this.pushLiteral(new PostScriptArray(list), ObjectType.Array)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=635
   @builtin('length')
   @operands(ObjectType.Array)
   private arrayLength({ value: elements }: PostScriptObject<ObjectType.Array>) {
     this.pushLiteral(elements.length, ObjectType.Integer)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
   @builtin('get')
   @operands(ObjectType.Array, ObjectType.Integer)
   private getArray(
@@ -1276,6 +1443,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(elements.get(index)!)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
   @builtin('put')
   @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Any)
   private putArray(
@@ -1291,6 +1459,7 @@ export class PostScriptInterpreter {
     elements.set(index, item)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=613
   @builtin('getinterval')
   @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Integer)
   private arrayGetInterval(
@@ -1311,6 +1480,7 @@ export class PostScriptInterpreter {
     this.pushLiteral(elements.slice(index, index + count), ObjectType.Array)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=650
   @builtin('putinterval')
   @operands(ObjectType.Array, ObjectType.Integer, ObjectType.Array)
   private arrayPutInterval(
@@ -1326,6 +1496,7 @@ export class PostScriptInterpreter {
     target.splice(index, source.length, source)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=549
   @builtin()
   @operands(ObjectType.Array)
   private astore(array: PostScriptObject<ObjectType.Array>) {
@@ -1345,13 +1516,14 @@ export class PostScriptInterpreter {
     )
     this.operandStack.push(array)
   }
-
-  @builtin()
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=542
+  @builtin('aload')
   @operands(ObjectType.Array)
-  private aload(array: PostScriptObject<ObjectType.Array>) {
+  private arrayAload(array: PostScriptObject<ObjectType.Array>) {
     this.operandStack.push(...array.value.items, array)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=562
   @builtin('copy')
   @operands(ObjectType.Array, ObjectType.Array)
   private copyArray(
@@ -1368,6 +1540,7 @@ export class PostScriptInterpreter {
     this.pushLiteral(returnedElements, ObjectType.Array)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=611
   @builtin('forall')
   @operands(ObjectType.Array, ObjectType.Array)
   private forallArray(
@@ -1385,15 +1558,98 @@ export class PostScriptInterpreter {
   }
 
   // ---------------------------------------------------------------------------
-  //                      Virtual Memory Operators
+  //                      Packed Array Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=645
+  @builtin()
+  @operands(ObjectType.Integer)
+  private packedArray({ value: length }: PostScriptObject<ObjectType.Integer>) {
+    throw new Error('packedarray: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=692
+  @builtin()
+  @operands(ObjectType.Boolean)
+  private setPacking({ value }: PostScriptObject<ObjectType.Boolean>) {
+    throw new Error('setpacking: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=574
+  @builtin()
+  @operands()
+  private currentPacking() {
+    throw new Error('currentpacking: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=635
+  @builtin('length')
+  @operands(ObjectType.PackedArray)
+  private packedArrayLength({
+    value: array,
+  }: PostScriptObject<ObjectType.PackedArray>) {
+    throw new Error('packedarray length: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
+  @builtin('get')
+  @operands(ObjectType.PackedArray, ObjectType.Integer)
+  private getPackedArray(
+    { value: array }: PostScriptObject<ObjectType.PackedArray>,
+    { value: index }: PostScriptObject<ObjectType.Integer>
+  ) {
+    throw new Error('get: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=613
+  @builtin('getinterval')
+  @operands(ObjectType.PackedArray, ObjectType.Integer, ObjectType.Integer)
+  private packedArrayGetInterval(
+    { value: array }: PostScriptObject<ObjectType.PackedArray>,
+    { value: index }: PostScriptObject<ObjectType.Integer>,
+    { value: count }: PostScriptObject<ObjectType.Integer>
+  ) {
+    throw new Error('getinterval: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=542
+  @builtin('aload')
+  @operands(ObjectType.PackedArray)
+  private packedArrayAload(array: PostScriptObject<ObjectType.PackedArray>) {
+    throw new Error('aload: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=562
+  @builtin('copy')
+  @operands(ObjectType.PackedArray, ObjectType.PackedArray)
+  private copyPackedArray(
+    { value: source }: PostScriptObject<ObjectType.PackedArray>,
+    { value: target }: PostScriptObject<ObjectType.PackedArray>
+  ) {
+    throw new Error('copy: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=611
+  @builtin('forall')
+  @operands(ObjectType.PackedArray, ObjectType.Array)
+  private forallPackedArray(
+    array: PostScriptObject<ObjectType.PackedArray>,
+    proc: PostScriptObject<ObjectType.Array>
+  ) {
+    throw new Error('forall: Not implemented')
+  }
+
+  // ---------------------------------------------------------------------------
+  //                      Virtual Memory Operators
+  // ---------------------------------------------------------------------------
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=667
   @builtin()
   private save() {
     // TODO: Implement
     this.pushLiteral(1, ObjectType.Integer)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=662
   @builtin()
   @operands(ObjectType.Any)
   private restore(_val: PostScriptObject) {
@@ -1404,6 +1660,7 @@ export class PostScriptInterpreter {
   //                      Miscellaneous Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=552
   @builtin()
   @operands(ObjectType.Array)
   private bind(proc: PostScriptObject<ObjectType.Array>) {
@@ -1415,16 +1672,19 @@ export class PostScriptInterpreter {
   //                      Graphics State Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=617
   @builtin()
   private gsave() {
     this.printer.save()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=617
   @builtin()
   private grestore() {
     this.printer.restore()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=688
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private setLineWidth({
@@ -1433,12 +1693,14 @@ export class PostScriptInterpreter {
     this.printer.setLineWidth(lineWidth)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573
   @builtin()
   @operands()
   private currentLineWidth() {
     this.pushLiteral(this.printer.getLineWidth(), ObjectType.Real)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=687
   @builtin()
   @operands(ObjectType.Integer)
   private setLineCap({ value: lineCap }: PostScriptObject<ObjectType.Integer>) {
@@ -1449,11 +1711,13 @@ export class PostScriptInterpreter {
     }
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573
   @builtin()
   private currentLineCap() {
     this.pushLiteral(this.printer.getLineCap(), ObjectType.Integer)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=687
   @builtin()
   @operands(ObjectType.Integer)
   private setLineJoin({
@@ -1466,11 +1730,13 @@ export class PostScriptInterpreter {
     }
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573
   @builtin()
   private currentLineJoin() {
     this.pushLiteral(this.printer.getLineJoin(), ObjectType.Integer)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=689
   @builtin()
   @operands(ObjectType.Integer | ObjectType.Real)
   private setMiterLimit({
@@ -1479,6 +1745,7 @@ export class PostScriptInterpreter {
     this.printer.setMiterLimit(miterLimit)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=574
   @builtin()
   private currentMiterLimit() {
     this.pushLiteral(this.printer.getMiterLimit(), ObjectType.Integer)
@@ -1486,14 +1753,17 @@ export class PostScriptInterpreter {
 
   // TODO: strokeadjust
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=679
   @builtin()
   @operands(ObjectType.Array, ObjectType.Name)
   private setColorSpace() {
     // FIXME: Support more than rgb
   }
 
-  @builtin()
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=695
   @builtin('setrgbcolor')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=676
+  @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
     ObjectType.Real | ObjectType.Integer,
@@ -1514,6 +1784,7 @@ export class PostScriptInterpreter {
     this.printer.setRgbColor(r, g, b)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=685
   @builtin()
   @operands(ObjectType.Real | ObjectType.Integer)
   private setGray({
@@ -1529,6 +1800,7 @@ export class PostScriptInterpreter {
   //                      Graphics State Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=561
   @builtin()
   @operands(ObjectType.Array)
   private concat(matrix: PostScriptObject<ObjectType.Array>) {
@@ -1536,6 +1808,7 @@ export class PostScriptInterpreter {
     this.printer.concat(transformationMatrix)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=680
   @builtin()
   @operands(ObjectType.Array, ObjectType.Integer | ObjectType.Real)
   private setDash(
@@ -1557,6 +1830,7 @@ export class PostScriptInterpreter {
   //                  Coordinate System and Matrix Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=640
   @builtin()
   @operands()
   private matrix() {
@@ -1568,6 +1842,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573
   @builtin()
   @operands(ObjectType.Array)
   private currentMatrix(matrix: PostScriptObject<ObjectType.Array>) {
@@ -1584,6 +1859,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(matrix)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=689
   @builtin()
   @operands(ObjectType.Array)
   private setMatrix(matrix: PostScriptObject<ObjectType.Array>) {
@@ -1598,6 +1874,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=718
   @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1637,6 +1914,7 @@ export class PostScriptInterpreter {
     }
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=668
   @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1676,6 +1954,7 @@ export class PostScriptInterpreter {
     }
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=665
   @builtin()
   private rotate() {
     const arg = this.operandStack.pop()
@@ -1716,11 +1995,13 @@ export class PostScriptInterpreter {
   //                       Path Construction Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=642
   @builtin()
   private newPath() {
     this.printer.newPath()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=575
   @builtin()
   private currentPoint() {
     const currentPoint = this.printer.getCurrentPoint()
@@ -1728,6 +2009,7 @@ export class PostScriptInterpreter {
     this.pushLiteral(currentPoint.y, ObjectType.Real)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=641
   @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1744,6 +2026,7 @@ export class PostScriptInterpreter {
     this.printer.moveTo(nextCoordinate)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=664
   @builtin('rmoveto')
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1761,6 +2044,7 @@ export class PostScriptInterpreter {
     this.printer.moveTo(nextCoordinate)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
   @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1773,6 +2057,7 @@ export class PostScriptInterpreter {
     this.printer.lineTo({ x: x.value, y: y.value })
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=664
   @builtin('rlineto')
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1790,6 +2075,7 @@ export class PostScriptInterpreter {
     this.printer.lineTo(nextCoordinate)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=544
   @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1811,6 +2097,7 @@ export class PostScriptInterpreter {
     this.printer.arc({ x, y }, radius, angle1, angle2, true)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=545
   @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1832,6 +2119,7 @@ export class PostScriptInterpreter {
     this.printer.arc({ x, y }, radius, angle1, angle2, false)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=546
   @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1851,8 +2139,26 @@ export class PostScriptInterpreter {
     throw new Error('arct: Not implemented')
   }
 
-  // TODO: arcto
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=548
+  @builtin()
+  @operands(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer
+  )
+  private arcto(
+    { value: _x1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: _y1 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: _x2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: _y2 }: PostScriptObject<ObjectType.Real | ObjectType.Integer>,
+    { value: _radius }: PostScriptObject<ObjectType.Real | ObjectType.Integer>
+  ) {
+    throw new Error('arcto: Not implemented')
+  }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=578
   @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1877,6 +2183,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=652
   @builtin()
   @operands(
     ObjectType.Real | ObjectType.Integer,
@@ -1901,16 +2208,19 @@ export class PostScriptInterpreter {
     this.printer.bezierCurveTo(cp1, cp2, endPoint)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=568
   @builtin()
   private closePath() {
     this.printer.closePath()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=556
   @builtin()
   private clip() {
     this.printer.clip()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=655
   @builtin()
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -1930,21 +2240,25 @@ export class PostScriptInterpreter {
   // ---------------------------------------------------------------------------
   //                         Painting Operators
   // ---------------------------------------------------------------------------
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=714
   @builtin()
   private stroke() {
     this.printer.stroke()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=603
   @builtin()
   private fill() {
     this.printer.fill()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=594
   @builtin('eofill')
   private evenOddFill() {
     this.printer.eofill()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=657
   @builtin('rectstroke')
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -1961,6 +2275,7 @@ export class PostScriptInterpreter {
     this.printer.strokeRect({ x, y }, width, height)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=656
   @builtin('rectfill')
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -1981,6 +2296,14 @@ export class PostScriptInterpreter {
   //                           Control Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=596
+  @builtin()
+  @operands(ObjectType.Any)
+  private exec(obj: PostScriptObject) {
+    throw new Error('exec: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=620
   @builtin('if')
   @operands(ObjectType.Boolean, ObjectType.Array)
   private _if(
@@ -1995,6 +2318,7 @@ export class PostScriptInterpreter {
     }
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=621
   @builtin()
   @operands(ObjectType.Boolean, ObjectType.Array, ObjectType.Array)
   private ifelse(
@@ -2021,6 +2345,7 @@ export class PostScriptInterpreter {
     }
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=610
   @builtin('for')
   @operands(
     ObjectType.Integer | ObjectType.Real,
@@ -2046,18 +2371,21 @@ export class PostScriptInterpreter {
     )
   }
 
-  @builtin()
-  @operands(ObjectType.Array)
-  private loop(proc: PostScriptObject) {
-    this.beginLoop(new InfiteLoopContext(this.executionStack, proc))
-  }
-
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=659
   @builtin()
   @operands(ObjectType.Integer, ObjectType.Array)
   private repeat(iterations: PostScriptObject, proc: PostScriptObject) {
     this.beginLoop(new RepeatLoopContext(this.executionStack, proc, iterations))
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=637
+  @builtin()
+  @operands(ObjectType.Array)
+  private loop(proc: PostScriptObject) {
+    this.beginLoop(new InfiteLoopContext(this.executionStack, proc))
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=599
   @builtin()
   private exit() {
     if (this.activeLoop === undefined) {
@@ -2067,10 +2395,41 @@ export class PostScriptInterpreter {
     this.loopStack.pop()
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=711
+  @builtin()
+  private stop() {
+    throw new Error('stop: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=711
+  @builtin('stopped')
+  @operands(ObjectType.Any)
+  private _stopped(obj: PostScriptObject) {
+    throw new Error('stopped: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=565
+  @builtin()
+  private countExecStack() {
+    this.pushLiteralNumber(this.executionStack.length)
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=597
+  @builtin()
+  @operands(ObjectType.Array)
+  private execStack(array: PostScriptObject<ObjectType.Array>) {
+    throw new Error('execstack: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=651
   @builtin()
   private quit(_obj: PostScriptObject) {
     this.stopped = true
   }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=707
+  @builtin()
+  private start() {}
 
   // ---------------------------------------------------------------------------
   //                           File Operators
@@ -2092,12 +2451,14 @@ export class PostScriptInterpreter {
     console.log(obj)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
   @builtin('stack')
   private stack() {
     // eslint-disable-next-line no-console
     console.log(this.operandStack.map(prettyPrint))
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
   @builtin('pstack')
   private pstack() {
     // eslint-disable-next-line no-console
@@ -2108,6 +2469,7 @@ export class PostScriptInterpreter {
   //             Type, Attribute, and Conversion Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=719
   @builtin()
   @operands(ObjectType.Any)
   private type({ type }: PostScriptObject) {
@@ -2171,6 +2533,7 @@ export class PostScriptInterpreter {
     })
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=580
   @builtin()
   @operands(ObjectType.Any)
   private cvlit(obj: PostScriptObject) {
@@ -2178,6 +2541,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(obj)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
   @builtin()
   @operands(ObjectType.Any)
   private cvx(obj: PostScriptObject) {
@@ -2185,6 +2549,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(obj)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=735
   @builtin()
   @operands(ObjectType.Any)
   private xcheck(obj: PostScriptObject) {
@@ -2196,6 +2561,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=598
   @builtin()
   @operands(
     ObjectType.Array |
@@ -2208,6 +2574,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(obj)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=642
   @builtin()
   @operands(
     ObjectType.Array |
@@ -2221,6 +2588,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(obj)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=654
   @builtin()
   @operands(
     ObjectType.Array |
@@ -2234,6 +2602,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(obj)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=652
   @builtin()
   @operands(
     ObjectType.Array |
@@ -2251,6 +2620,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=732
   @builtin()
   @operands(
     ObjectType.Array |
@@ -2268,6 +2638,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=580
   @builtin()
   @operands(ObjectType.String | ObjectType.Real | ObjectType.Integer)
   private cvi(
@@ -2286,6 +2657,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(createLiteral(Math.trunc(res), ObjectType.Integer))
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=580
   @builtin()
   @operands(ObjectType.String | ObjectType.Real | ObjectType.Integer)
   private cvn(obj: PostScriptObject<ObjectType.String>) {
@@ -2300,6 +2672,7 @@ export class PostScriptInterpreter {
     })
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=581
   @builtin()
   @operands(ObjectType.String | ObjectType.Real | ObjectType.Integer)
   private cvr(
@@ -2318,9 +2691,36 @@ export class PostScriptInterpreter {
     this.operandStack.push(createLiteral(res, ObjectType.Real))
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=581
+  @builtin()
+  @operands(
+    ObjectType.Integer | ObjectType.Real | ObjectType.String,
+    ObjectType.Integer,
+    ObjectType.String
+  )
+  private cvrs(
+    {
+      value: num,
+    }: PostScriptObject<
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    >,
+    { value: radix }: PostScriptObject<ObjectType.Integer>,
+    { value: str }: PostScriptObject<ObjectType.String>
+  ) {
+    throw new Error('cvrs: Not implemented')
+  }
+
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
+  @builtin()
+  @operands(ObjectType.Any, ObjectType.String)
+  private cvs(obj: PostScriptObject, str: PostScriptObject<ObjectType.String>) {
+    throw new Error('cvs: Not implemented')
+  }
+
   // ---------------------------------------------------------------------------
   //                           File Operators
   // ---------------------------------------------------------------------------
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=655
   @builtin()
   @operands(ObjectType.File, ObjectType.String)
   private readString(
@@ -2334,6 +2734,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=603
   @builtin()
   @operands(ObjectType.File, ObjectType.Name)
   private filter(
@@ -2351,6 +2752,7 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=570
   @builtin()
   private currentFile() {
     const files = this.executionStack.filter((x) => x.type === ObjectType.File)
@@ -2362,25 +2764,41 @@ export class PostScriptInterpreter {
     )
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=601
   @builtin('file')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=734
   @builtin('write')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=558
   @builtin('closefile')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=608
   @builtin('flush')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=608
   @builtin('flushfile')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=659
   @builtin('resetfile')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=667
   @builtin('run')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=586
   @builtin('deletefile')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=658
   @builtin('renamefile')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=602
   @builtin('filenameforall')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=647
   @builtin('print')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=648
   @builtin('printobject')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=735
   @builtin('writeobject')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=691
   @builtin('setobjectformat')
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=574
   @builtin('currentobjectformat')
   private fileerror() {
     throw new Error('not supported')
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=704
   @builtin()
   @operands(ObjectType.String)
   private show({ value: string }: PostScriptObject<ObjectType.String>) {
@@ -2391,6 +2809,7 @@ export class PostScriptInterpreter {
   //                 Device Setup and Output Operators
   // ---------------------------------------------------------------------------
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=704
   @builtin()
   private showPage() {
     // Do nothing
@@ -2423,6 +2842,7 @@ export class PostScriptInterpreter {
     return PostScriptDictionary.newFont(fontName)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=606
   @builtin()
   @operands(ObjectType.Any)
   private findFont(key: PostScriptObject<ObjectType.Any>) {
@@ -2430,6 +2850,7 @@ export class PostScriptInterpreter {
     this.pushLiteral(font, ObjectType.Dictionary)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=684
   @builtin()
   @operands(ObjectType.Dictionary)
   private setFont({ value: font }: PostScriptObject<ObjectType.Dictionary>) {
@@ -2468,6 +2889,7 @@ export class PostScriptInterpreter {
     return copy
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=668
   @builtin()
   @operands(ObjectType.Dictionary, ObjectType.Real | ObjectType.Integer)
   private scaleFont(
@@ -2478,6 +2900,7 @@ export class PostScriptInterpreter {
     this.pushLiteral(copy, ObjectType.Dictionary)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=583
   @builtin()
   @operands(ObjectType.Any, ObjectType.Dictionary)
   private defineFont(
@@ -2491,6 +2914,7 @@ export class PostScriptInterpreter {
     this.operandStack.push(font)
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=670
   @builtin()
   @operands(
     ObjectType.Any,
@@ -2513,6 +2937,7 @@ export class PostScriptInterpreter {
     }
   }
 
+  // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=638
   @builtin()
   @operands(ObjectType.Dictionary, ObjectType.Array)
   private makeFont(

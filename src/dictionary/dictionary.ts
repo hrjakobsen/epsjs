@@ -12,7 +12,7 @@ export class PostScriptDictionary {
 
   constructor(
     public readonly readOnly: boolean,
-    private readonly capacity: number
+    public readonly capacity: number
   ) {}
 
   public set(key: PostScriptObject, value: PostScriptObject) {
