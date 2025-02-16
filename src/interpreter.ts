@@ -259,7 +259,7 @@ export class PostScriptInterpreter {
         new PostScriptLexer(new CharStream(program))
       ).getMetaData()
     } catch (error) {
-      console.warn('error collecting metadata')
+      console.warn('error collecting metadata', { error })
     }
     const interpreter = new PostScriptInterpreter(
       CharStreamBackedFile.fromString(program),
@@ -835,7 +835,7 @@ export class PostScriptInterpreter {
   // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=716
   @builtin()
   @operands(ObjectType.String)
-  private token({ value: tokenString }: PostScriptObject<ObjectType.String>) {
+  private token({ value: _tokenString }: PostScriptObject<ObjectType.String>) {
     throw new Error('token: Not implemented')
   }
 
@@ -1564,14 +1564,16 @@ export class PostScriptInterpreter {
   // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=645
   @builtin()
   @operands(ObjectType.Integer)
-  private packedArray({ value: length }: PostScriptObject<ObjectType.Integer>) {
+  private packedArray({
+    value: _length,
+  }: PostScriptObject<ObjectType.Integer>) {
     throw new Error('packedarray: Not implemented')
   }
 
   // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=692
   @builtin()
   @operands(ObjectType.Boolean)
-  private setPacking({ value }: PostScriptObject<ObjectType.Boolean>) {
+  private setPacking({ value: _packed }: PostScriptObject<ObjectType.Boolean>) {
     throw new Error('setpacking: Not implemented')
   }
 
@@ -1586,7 +1588,7 @@ export class PostScriptInterpreter {
   @builtin('length')
   @operands(ObjectType.PackedArray)
   private packedArrayLength({
-    value: array,
+    value: _array,
   }: PostScriptObject<ObjectType.PackedArray>) {
     throw new Error('packedarray length: Not implemented')
   }
@@ -1595,8 +1597,8 @@ export class PostScriptInterpreter {
   @builtin('get')
   @operands(ObjectType.PackedArray, ObjectType.Integer)
   private getPackedArray(
-    { value: array }: PostScriptObject<ObjectType.PackedArray>,
-    { value: index }: PostScriptObject<ObjectType.Integer>
+    { value: _array }: PostScriptObject<ObjectType.PackedArray>,
+    { value: _index }: PostScriptObject<ObjectType.Integer>
   ) {
     throw new Error('get: Not implemented')
   }
@@ -1605,9 +1607,9 @@ export class PostScriptInterpreter {
   @builtin('getinterval')
   @operands(ObjectType.PackedArray, ObjectType.Integer, ObjectType.Integer)
   private packedArrayGetInterval(
-    { value: array }: PostScriptObject<ObjectType.PackedArray>,
-    { value: index }: PostScriptObject<ObjectType.Integer>,
-    { value: count }: PostScriptObject<ObjectType.Integer>
+    { value: _array }: PostScriptObject<ObjectType.PackedArray>,
+    { value: _index }: PostScriptObject<ObjectType.Integer>,
+    { value: _count }: PostScriptObject<ObjectType.Integer>
   ) {
     throw new Error('getinterval: Not implemented')
   }
@@ -1615,7 +1617,7 @@ export class PostScriptInterpreter {
   // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=542
   @builtin('aload')
   @operands(ObjectType.PackedArray)
-  private packedArrayAload(array: PostScriptObject<ObjectType.PackedArray>) {
+  private packedArrayAload(_array: PostScriptObject<ObjectType.PackedArray>) {
     throw new Error('aload: Not implemented')
   }
 
@@ -1623,8 +1625,8 @@ export class PostScriptInterpreter {
   @builtin('copy')
   @operands(ObjectType.PackedArray, ObjectType.PackedArray)
   private copyPackedArray(
-    { value: source }: PostScriptObject<ObjectType.PackedArray>,
-    { value: target }: PostScriptObject<ObjectType.PackedArray>
+    { value: _source }: PostScriptObject<ObjectType.PackedArray>,
+    { value: _target }: PostScriptObject<ObjectType.PackedArray>
   ) {
     throw new Error('copy: Not implemented')
   }
@@ -1633,8 +1635,8 @@ export class PostScriptInterpreter {
   @builtin('forall')
   @operands(ObjectType.PackedArray, ObjectType.Array)
   private forallPackedArray(
-    array: PostScriptObject<ObjectType.PackedArray>,
-    proc: PostScriptObject<ObjectType.Array>
+    _array: PostScriptObject<ObjectType.PackedArray>,
+    _proc: PostScriptObject<ObjectType.Array>
   ) {
     throw new Error('forall: Not implemented')
   }
@@ -2299,7 +2301,7 @@ export class PostScriptInterpreter {
   // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=596
   @builtin()
   @operands(ObjectType.Any)
-  private exec(obj: PostScriptObject) {
+  private exec(_obj: PostScriptObject) {
     throw new Error('exec: Not implemented')
   }
 
@@ -2404,7 +2406,7 @@ export class PostScriptInterpreter {
   // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=711
   @builtin('stopped')
   @operands(ObjectType.Any)
-  private _stopped(obj: PostScriptObject) {
+  private _stopped(_obj: PostScriptObject) {
     throw new Error('stopped: Not implemented')
   }
 
@@ -2417,7 +2419,7 @@ export class PostScriptInterpreter {
   // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=597
   @builtin()
   @operands(ObjectType.Array)
-  private execStack(array: PostScriptObject<ObjectType.Array>) {
+  private execStack(_array: PostScriptObject<ObjectType.Array>) {
     throw new Error('execstack: Not implemented')
   }
 
@@ -2700,12 +2702,12 @@ export class PostScriptInterpreter {
   )
   private cvrs(
     {
-      value: num,
+      value: _num,
     }: PostScriptObject<
       ObjectType.Integer | ObjectType.Real | ObjectType.String
     >,
-    { value: radix }: PostScriptObject<ObjectType.Integer>,
-    { value: str }: PostScriptObject<ObjectType.String>
+    { value: _radix }: PostScriptObject<ObjectType.Integer>,
+    { value: _str }: PostScriptObject<ObjectType.String>
   ) {
     throw new Error('cvrs: Not implemented')
   }
@@ -2713,7 +2715,10 @@ export class PostScriptInterpreter {
   // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
   @builtin()
   @operands(ObjectType.Any, ObjectType.String)
-  private cvs(obj: PostScriptObject, str: PostScriptObject<ObjectType.String>) {
+  private cvs(
+    _obj: PostScriptObject,
+    _str: PostScriptObject<ObjectType.String>
+  ) {
     throw new Error('cvs: Not implemented')
   }
 

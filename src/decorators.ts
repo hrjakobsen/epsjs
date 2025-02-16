@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { BUILT_INS, OVERLOADS, PostScriptInterpreter } from './interpreter'
 import { ObjectType } from './scanner'
 
