@@ -105,7 +105,7 @@ export function floor(interpreter: PostScriptInterpreter) {
     ObjectType.Integer | ObjectType.Real
   )
   interpreter.pushLiteralNumber(
-    Math.ceil(v1),
+    Math.floor(v1),
     t1 as ObjectType.Integer | ObjectType.Real
   )
 }
@@ -141,10 +141,10 @@ export function sqrt(interpreter: PostScriptInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=549
 export function atan(interpreter: PostScriptInterpreter) {
-  const { value: v2 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const { value: den } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const { value: num } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
   interpreter.pushLiteralNumber(
-    radiansToDegrees(Math.atan(v1 / v2)),
+    (radiansToDegrees(Math.atan2(num, den)) + 360) % 360,
     ObjectType.Real
   )
 }
@@ -152,19 +152,13 @@ export function atan(interpreter: PostScriptInterpreter) {
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=564
 export function cos(interpreter: PostScriptInterpreter) {
   const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  interpreter.pushLiteralNumber(
-    radiansToDegrees(Math.cos(degreeToRadians(v1))),
-    ObjectType.Real
-  )
+  interpreter.pushLiteralNumber(Math.cos(degreeToRadians(v1)), ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
 export function sin(interpreter: PostScriptInterpreter) {
   const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  interpreter.pushLiteralNumber(
-    radiansToDegrees(Math.sin(degreeToRadians(v1))),
-    ObjectType.Real
-  )
+  interpreter.pushLiteralNumber(Math.sin(degreeToRadians(v1)), ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=600
@@ -177,7 +171,7 @@ export function exp(interpreter: PostScriptInterpreter) {
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
 export function ln(interpreter: PostScriptInterpreter) {
   const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  interpreter.pushLiteralNumber(Math.log2(v1), ObjectType.Real)
+  interpreter.pushLiteralNumber(Math.log(v1), ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=637
