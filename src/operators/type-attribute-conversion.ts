@@ -3,6 +3,7 @@ import {
   Access,
   Executability,
   ObjectType,
+  ObjectValue,
   parseNumber,
   PostScriptObject,
 } from '../scanner'
@@ -220,6 +221,32 @@ export function cvrs(_interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
-export function cvs(_interpreter: PostScriptInterpreter) {
-  throw new Error('cvs: Not implemented')
+export function cvs(interpreter: PostScriptInterpreter) {
+  const str = interpreter.pop(ObjectType.String)
+  const obj = interpreter.pop(ObjectType.Any)
+  const strValue = convertToString(obj)
+  const newStrLength = strValue.length
+  str.value.setSubString(0, strValue)
+  interpreter.pushLiteral(
+    str.value.subString(0, newStrLength),
+    ObjectType.String
+  )
+}
+
+function convertToString(obj: PostScriptObject): string {
+  switch (obj.type) {
+    case ObjectType.Boolean:
+      return obj.value ? 'true' : 'false'
+    case ObjectType.Integer:
+    case ObjectType.Real:
+      return (
+        obj.value as ObjectValue<ObjectType.Integer | ObjectType.Real>
+      ).toString()
+    case ObjectType.String:
+      return (obj.value as ObjectValue<ObjectType.String>).asString()
+    case ObjectType.Name:
+      return obj.value as ObjectValue<ObjectType.Name>
+    default:
+      return '--nostringval--'
+  }
 }

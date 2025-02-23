@@ -4,6 +4,12 @@ export class PostScriptString {
     this.data = Array(length).fill(0)
   }
 
+  public static fromData(data: number[], length: number) {
+    const string = new PostScriptString(length)
+    string.data = data
+    return string
+  }
+
   public set(index: number, value: number) {
     if (index > this.length - 1 || index < 0) {
       throw new Error('Invalid string index')
@@ -15,7 +21,7 @@ export class PostScriptString {
   }
 
   public asString() {
-    return String.fromCharCode(...this.data)
+    return String.fromCharCode(...this.data.slice(0, this.length))
   }
 
   public get(index: number) {
@@ -75,5 +81,16 @@ export class PostScriptString {
 
   toString() {
     return this.asString()
+  }
+
+  public setSubString(index: number, data: string) {
+    if (index + data.length > this.length) {
+      throw new Error(
+        `Attempted to set substring with length ${data.length} at index ${index} in string with length ${this.length}`
+      )
+    }
+    for (let i = 0; i < data.length; ++i) {
+      this.set(index + i, data.charCodeAt(i))
+    }
   }
 }
