@@ -1,6 +1,7 @@
 import { PostScriptArray } from './array'
 import { PostScriptDictionary } from './dictionary/dictionary'
 import { PostScriptReadableFile } from './file'
+import { PostScriptInterpreter } from './interpreter'
 import {
   BASE_10_INT,
   PostScriptLexer,
@@ -53,6 +54,8 @@ export class TokenError extends Error {
   }
 }
 
+export type OperatorFunction = (interpreter: PostScriptInterpreter) => void
+
 // TODO: There's probably a nicer way of doing this
 type ObjectValue<T extends ObjectType | unknown = unknown> =
   T extends ObjectType.Integer
@@ -70,7 +73,7 @@ type ObjectValue<T extends ObjectType | unknown = unknown> =
     : T extends ObjectType.Null
     ? null
     : T extends ObjectType.Operator
-    ? string
+    ? OperatorFunction
     : T extends ObjectType.Array
     ? PostScriptArray
     : T extends ObjectType.Dictionary
