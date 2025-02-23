@@ -219,8 +219,10 @@ export function cvr(interpreter: PostScriptInterpreter) {
 export function cvrs(interpreter: PostScriptInterpreter) {
   const str = interpreter.pop(ObjectType.String)
   const radix = interpreter.pop(ObjectType.Integer)
-  const num = interpreter.pop(ObjectType.Integer)
-  const strValue = num.value.toString(radix.value)
+  const num = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const truncatedValueIfNeeded =
+    radix.value === 10 ? num.value : Math.trunc(num.value)
+  const strValue = truncatedValueIfNeeded.toString(radix.value)
   const newStrLength = strValue.length
   str.value.setSubString(0, strValue)
   interpreter.pushLiteral(
