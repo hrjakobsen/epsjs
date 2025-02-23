@@ -1,6 +1,6 @@
 import { Ascii85DecodeFilter } from '../file'
 import { PostScriptInterpreter } from '../interpreter'
-import { Executability, ObjectType } from '../scanner'
+import { Executability, ObjectType, PostScriptObject } from '../scanner'
 import { createLiteral, prettyPrint } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=540
@@ -64,8 +64,15 @@ export function currentFile(interpreter: PostScriptInterpreter) {
   if (files.length === 0) {
     throw new Error('No current file')
   }
+  const currentFile = files[files.length - 1]
+  if (currentFile?.type !== ObjectType.File) {
+    throw new Error('No current file')
+  }
   interpreter.operandStack.push(
-    createLiteral(files[files.length - 1]!.value, ObjectType.File)
+    createLiteral(
+      (currentFile as PostScriptObject<ObjectType.File>).value,
+      ObjectType.File
+    )
   )
 }
 
