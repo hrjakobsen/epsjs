@@ -216,8 +216,17 @@ export function cvr(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=581
-export function cvrs(_interpreter: PostScriptInterpreter) {
-  throw new Error('cvrs: Not implemented')
+export function cvrs(interpreter: PostScriptInterpreter) {
+  const str = interpreter.pop(ObjectType.String)
+  const radix = interpreter.pop(ObjectType.Integer)
+  const num = interpreter.pop(ObjectType.Integer)
+  const strValue = num.value.toString(radix.value)
+  const newStrLength = strValue.length
+  str.value.setSubString(0, strValue)
+  interpreter.pushLiteral(
+    str.value.subString(0, newStrLength),
+    ObjectType.String
+  )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
