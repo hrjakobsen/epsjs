@@ -1,4 +1,10 @@
-import { Access, Executability, ObjectType, PostScriptObject } from './scanner'
+import {
+  Access,
+  Executability,
+  ObjectType,
+  ObjectValue,
+  PostScriptObject,
+} from './scanner'
 
 export function radiansToDegrees(rad: number) {
   return (rad * 180) / Math.PI
@@ -61,7 +67,10 @@ export function prettyPrint(obj: PostScriptObject<unknown>): string {
   return ''
 }
 
-export function createLiteral(value: any, type: ObjectType) {
+export function createLiteral<T extends ObjectType>(
+  value: ObjectValue<T>,
+  type: T
+): PostScriptObject<T> {
   return {
     type,
     value,
@@ -70,4 +79,10 @@ export function createLiteral(value: any, type: ObjectType) {
       executability: Executability.Literal,
     },
   }
+}
+
+export function createReadonlyLiteral(value: any, type: ObjectType) {
+  const literal = createLiteral(value, type)
+  literal.attributes.access = Access.ReadOnly
+  return literal
 }

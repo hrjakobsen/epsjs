@@ -20,6 +20,7 @@ import * as miscellaneousOperators from '../operators/miscellaneous'
 import { Access, Executability, ObjectType, OperatorFunction } from '../scanner'
 import { PostScriptDictionary } from './dictionary'
 import { PostScriptInterpreter } from '../interpreter'
+import { createLiteral } from '../utils'
 
 type StackPattern = ObjectType[]
 type OverloadResolution = [StackPattern, OperatorFunction]
@@ -92,6 +93,8 @@ const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['search', stringOperators.search],
   ['token', stringOperators.token],
   ['bind', miscellaneousOperators.bind],
+  ['realtime', miscellaneousOperators.realtime],
+  ['usertime', miscellaneousOperators.usertime],
   ['eq', relationalBooleanBitwiseOperators.eq],
   ['ne', relationalBooleanBitwiseOperators.ne],
   ['ge', relationalBooleanBitwiseOperators.ge],
@@ -340,6 +343,30 @@ export class SystemDictionary extends PostScriptDictionary {
     for (const [builtin, definition] of BUILT_INS.entries()) {
       this.addBuiltinOperator(builtin, definition)
     }
+    this.forceSet(
+      createLiteral('null', ObjectType.Name),
+      miscellaneousOperators.NULL_OBJECT
+    )
+    this.forceSet(
+      createLiteral('languagelevel', ObjectType.Name),
+      miscellaneousOperators.LANGUAGE_LEVEL_OBJECT
+    )
+    this.forceSet(
+      createLiteral('product', ObjectType.Name),
+      miscellaneousOperators.PRODUCT_NAME_OBJECT
+    )
+    this.forceSet(
+      createLiteral('revision', ObjectType.Name),
+      miscellaneousOperators.REVISION_OBJECT
+    )
+    this.forceSet(
+      createLiteral('version', ObjectType.Name),
+      miscellaneousOperators.VERSION_OBJECT
+    )
+    this.forceSet(
+      createLiteral('serialnumber', ObjectType.Name),
+      miscellaneousOperators.SERIAL_NUMBER_OBJECT
+    )
   }
 
   private addBuiltinOperator(name: string, definition: OperatorFunction) {

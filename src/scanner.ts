@@ -57,7 +57,7 @@ export class TokenError extends Error {
 export type OperatorFunction = (interpreter: PostScriptInterpreter) => void
 
 // TODO: There's probably a nicer way of doing this
-type ObjectValue<T extends ObjectType | unknown = unknown> =
+export type ObjectValue<T extends ObjectType | unknown = unknown> =
   T extends ObjectType.Integer
     ? number
     : T extends ObjectType.Real
