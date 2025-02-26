@@ -61,5 +61,17 @@ describe('PostscriptLexer', function () {
         },
       })
     })
+
+    it('Parses octal numbers with base', function () {
+      const lexer = new PostScriptLexer(new CharStream('8#123'))
+      expect(lexer.next).toEqual({
+        kind: TokenType.Number,
+        content: 0o123,
+        span: {
+          from: 0,
+          to: 5,
+        },
+      })
+    })
   })
 })
