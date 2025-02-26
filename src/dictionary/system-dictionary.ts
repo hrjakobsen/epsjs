@@ -105,8 +105,6 @@ const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['not', relationalBooleanBitwiseOperators.not],
   ['or', relationalBooleanBitwiseOperators.or],
   ['xor', relationalBooleanBitwiseOperators.xor],
-  ['true', relationalBooleanBitwiseOperators._true],
-  ['false', relationalBooleanBitwiseOperators._false],
   ['bitshift', relationalBooleanBitwiseOperators.bitshift],
   ['add', arithmeticMathOperators.add],
   ['div', arithmeticMathOperators.div],
@@ -368,6 +366,14 @@ export class SystemDictionary extends PostScriptDictionary {
     this.forceSet(
       createLiteral('serialnumber', ObjectType.Name),
       miscellaneousOperators.SERIAL_NUMBER_OBJECT
+    )
+    this.forceSet(
+      createLiteral('false', ObjectType.Name),
+      relationalBooleanBitwiseOperators.FALSE_OBJECT
+    )
+    this.forceSet(
+      createLiteral('true', ObjectType.Name),
+      relationalBooleanBitwiseOperators.TRUE_OBJECT
     )
   }
 

@@ -1,6 +1,6 @@
 import { PostScriptInterpreter } from '../interpreter'
-import { Access, Executability, ObjectType } from '../scanner'
-import { compareTypeCompatible } from '../utils'
+import { ObjectType } from '../scanner'
+import { compareTypeCompatible, createLiteral } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=594
 export function eq(interpreter: PostScriptInterpreter) {
@@ -151,31 +151,11 @@ export function xor(interpreter: PostScriptInterpreter) {
   }
 }
 
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=718
-// @builtin('true')
-export function _true(interpreter: PostScriptInterpreter) {
-  interpreter.operandStack.push({
-    type: ObjectType.Boolean,
-    value: true,
-    attributes: {
-      access: Access.Unlimited,
-      executability: Executability.Literal,
-    },
-  })
-}
-
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=601
-// @builtin('false')
-export function _false(interpreter: PostScriptInterpreter) {
-  interpreter.operandStack.push({
-    type: ObjectType.Boolean,
-    value: false,
-    attributes: {
-      access: Access.Unlimited,
-      executability: Executability.Literal,
-    },
-  })
-}
+export const FALSE_OBJECT = createLiteral(false, ObjectType.Boolean)
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=718
+export const TRUE_OBJECT = createLiteral(true, ObjectType.Boolean)
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=553
 export function bitshift(interpreter: PostScriptInterpreter) {
