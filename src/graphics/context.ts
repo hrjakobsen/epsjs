@@ -72,4 +72,5 @@ export abstract class GraphicsContext {
   abstract concat(matrix: TransformationMatrix): void
   abstract getTransformationMatrix(): TransformationMatrix
   abstract setTransformationMatrix(matrix: TransformationMatrix): void
+  abstract stringWidth(text: string): { width: number; height: number }
 }

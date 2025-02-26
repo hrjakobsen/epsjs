@@ -247,6 +247,14 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.canvasContext.setTransform(...matrix)
   }
 
+  override stringWidth(text: string): { width: number; height: number } {
+    const measure = this.canvasContext.measureText(text)
+    return {
+      width: measure.width,
+      height: measure.actualBoundingBoxAscent,
+    }
+  }
+
   constructor(
     private interpreter: PostScriptInterpreter,
     private canvasContext: CanvasRenderingContext2D

@@ -102,3 +102,35 @@ export function makeFont(interpreter: PostScriptInterpreter) {
   _scaleFontMatrix(copy, matrixFromPostScriptArray(matrix))
   interpreter.operandStack.push(createLiteral(copy, ObjectType.Dictionary))
 }
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=713
+export function stringWidth(interpreter: PostScriptInterpreter) {
+  const text = interpreter.pop(ObjectType.String)
+  const size = interpreter.printer.stringWidth(text.value.asString())
+  interpreter.pushLiteral(size.width, ObjectType.Real)
+  interpreter.pushLiteral(size.height, ObjectType.Real)
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=704
+export function show(interpreter: PostScriptInterpreter) {
+  const { value: string } = interpreter.pop(ObjectType.String)
+  interpreter.printer.fillText(
+    string.asString(),
+    interpreter.printer.getCurrentPoint()
+  )
+}
+
+export function ashow(interpreter: PostScriptInterpreter) {
+  const { value: dy } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const { value: dx } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const { value: string } = interpreter.pop(ObjectType.String)
+  const characters = string.asString().split('')
+  const currentPoint = interpreter.printer.getCurrentPoint()
+  let x = currentPoint.x
+  let y = currentPoint.y
+  for (const char of characters) {
+    interpreter.printer.fillText(char, { x, y })
+    x += interpreter.printer.stringWidth(char).width + dx
+    y += dy
+  }
+}

@@ -201,7 +201,6 @@ const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['readstring', fileOperators.readString],
   ['filter', fileOperators.filter],
   ['currentfile', fileOperators.currentFile],
-  ['show', fileOperators.show],
   ['type', typeAttributeConversionOperators.type],
   ['cvlit', typeAttributeConversionOperators.cvlit],
   ['cvx', typeAttributeConversionOperators.cvx],
@@ -224,6 +223,9 @@ const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['definefont', fontOperators.defineFont],
   ['selectfont', fontOperators.selectFont],
   ['makefont', fontOperators.makeFont],
+  ['stringwidth', fontOperators.stringWidth],
+  ['show', fontOperators.show],
+  ['ashow', fontOperators.ashow],
   // Overloads
   [
     'copy',

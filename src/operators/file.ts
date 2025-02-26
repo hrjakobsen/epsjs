@@ -106,12 +106,3 @@ export function currentFile(interpreter: PostScriptInterpreter) {
 // setobjectformat
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=574
 // currentobjectformat
-
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=704
-export function show(interpreter: PostScriptInterpreter) {
-  const { value: string } = interpreter.pop(ObjectType.String)
-  interpreter.printer.fillText(
-    string.asString(),
-    interpreter.printer.getCurrentPoint()
-  )
-}
