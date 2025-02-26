@@ -1,12 +1,20 @@
 import { PostScriptInterpreter } from '../interpreter'
 import { ObjectType } from '../scanner'
+import { PostScriptString } from '../string'
 import { compareTypeCompatible, createLiteral } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=594
 export function eq(interpreter: PostScriptInterpreter) {
   const { value: v2, type: t2 } = interpreter.pop(ObjectType.Any)
   const { value: v1, type: t1 } = interpreter.pop(ObjectType.Any)
-
+  if (t1 === ObjectType.String && t2 === ObjectType.String) {
+    interpreter.pushLiteral(
+      (v1 as PostScriptString).asString() ===
+        (v2 as PostScriptString).asString(),
+      ObjectType.Boolean
+    )
+    return
+  }
   interpreter.pushLiteral(
     compareTypeCompatible(t1, t2) && v1 === v2,
     ObjectType.Boolean
@@ -17,6 +25,14 @@ export function eq(interpreter: PostScriptInterpreter) {
 export function ne(interpreter: PostScriptInterpreter) {
   const { value: v2, type: t2 } = interpreter.pop(ObjectType.Any)
   const { value: v1, type: t1 } = interpreter.pop(ObjectType.Any)
+  if (t1 === ObjectType.String && t2 === ObjectType.String) {
+    interpreter.pushLiteral(
+      (v1 as PostScriptString).asString() !==
+        (v2 as PostScriptString).asString(),
+      ObjectType.Boolean
+    )
+    return
+  }
   interpreter.pushLiteral(
     compareTypeCompatible(t1, t2) && v1 !== v2,
     ObjectType.Boolean
@@ -145,7 +161,7 @@ export function xor(interpreter: PostScriptInterpreter) {
     throw new Error('xor requires same type of params')
   }
   if (t1 === ObjectType.Boolean) {
-    interpreter.pushLiteral(v1 || (v2 && (!v1 || !v2)), ObjectType.Boolean)
+    interpreter.pushLiteral((v1 && !v2) || (!v1 && v2), ObjectType.Boolean)
   } else {
     interpreter.pushLiteral((v1 as number) ^ (v2 as number), ObjectType.Boolean)
   }
@@ -162,7 +178,7 @@ export function bitshift(interpreter: PostScriptInterpreter) {
   const { value: shift } = interpreter.pop(ObjectType.Integer)
   const { value } = interpreter.pop(ObjectType.Integer)
   interpreter.pushLiteral(
-    shift ? value << shift : value >> shift,
+    shift > 0 ? value << shift : value >> -shift,
     ObjectType.Integer
   )
 }
