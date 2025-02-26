@@ -18,13 +18,17 @@ export function checkStackValues(
   ...expected: any[]
 ) {
   expect(interpreter.operandStack.length).toBe(expected.length)
-  for (let i = 0; i < expected.length; i++) {
+  for (let i = expected.length - 1; i >= 0; --i) {
     const expectedValue = expected[i]
     const { type: actualType, value: actualValue } = interpreter.pop(
       ObjectType.Any
     )
     if (actualType === ObjectType.String) {
       expect((actualValue as PostScriptString).asString()).toBe(expectedValue)
+      continue
+    }
+    if (actualType === ObjectType.Mark) {
+      expect('*mark').toBe(expectedValue)
       continue
     }
     expect(actualValue).toBe(expectedValue)

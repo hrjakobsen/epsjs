@@ -45,8 +45,8 @@ export function index(interpreter: PostScriptInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=664
 export function roll(interpreter: PostScriptInterpreter) {
-  const { value: numElements } = interpreter.pop(ObjectType.Integer)
   const { value: numRolls } = interpreter.pop(ObjectType.Integer)
+  const { value: numElements } = interpreter.pop(ObjectType.Integer)
   if (interpreter.operandStack.length < numElements) {
     throw new Error('roll: Not enough elements')
   }
