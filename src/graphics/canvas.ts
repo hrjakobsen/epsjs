@@ -4,20 +4,18 @@ import {
   matrixMultiply,
   TransformationMatrix,
 } from '../coordinate'
-import { PostScriptInterpreter } from '../interpreter'
+import { PSInterpreter } from '../interpreter'
 import { degreeToRadians } from '../utils'
 import { GraphicsContext, LineCap, LineJoin } from './context'
 import { BoundingBox } from '../scanner'
-import { PostScriptArray } from '../array'
-import { PostScriptDictionary } from '../dictionary/dictionary'
+import { PSArray } from '../array'
+import { PSDictionary } from '../dictionary/dictionary'
 
 export class CanvasBackedGraphicsContext extends GraphicsContext {
-  private fonts: PostScriptDictionary[] = [
-    PostScriptDictionary.newFont('Helvetica', 10),
-  ]
+  private fonts: PSDictionary[] = [PSDictionary.newFont('Helvetica', 10)]
   private transformationMatrix: TransformationMatrix
 
-  override setFont(font: PostScriptDictionary): void {
+  override setFont(font: PSDictionary): void {
     this.fonts[this.fonts.length - 1] = font
   }
 
@@ -149,9 +147,9 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     // Postscript has inverted y axis, so we temporarily flip the canvas to
     // draw the text
     const font = this.fonts[this.fonts.length - 1]!
-    const matrix = (
-      font.searchByName('FontMatrix')?.value as PostScriptArray
-    ).map((x) => x.value) as TransformationMatrix
+    const matrix = (font.searchByName('FontMatrix')?.value as PSArray).map(
+      (x) => x.value
+    ) as TransformationMatrix
     const fontName = font.searchByName('FontName')!.value as string
     const fontsize = matrix[3] * 1000
     this.canvasContext.font = `${fontsize}px ${fontName}`
@@ -256,7 +254,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
 
   constructor(
-    private interpreter: PostScriptInterpreter,
+    private interpreter: PSInterpreter,
     private canvasContext: CanvasRenderingContext2D
   ) {
     super()

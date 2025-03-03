@@ -3,7 +3,7 @@ import {
   Executability,
   ObjectType,
   ObjectValue,
-  PostScriptObject,
+  PSObject,
 } from './scanner'
 
 export function radiansToDegrees(rad: number) {
@@ -24,7 +24,7 @@ export function compareTypeCompatible(
   return type1 == type2
 }
 
-export function prettyPrint(obj: PostScriptObject<unknown>): string {
+export function prettyPrint(obj: PSObject<unknown>): string {
   switch (obj.type) {
     case ObjectType.FontID:
     case ObjectType.Mark:
@@ -32,13 +32,11 @@ export function prettyPrint(obj: PostScriptObject<unknown>): string {
     case ObjectType.Operator:
       return `<operator ${obj.value}>`
     case ObjectType.Array:
-      return `[ ${(obj as PostScriptObject<ObjectType.Array>).value
+      return `[ ${(obj as PSObject<ObjectType.Array>).value
         .map(prettyPrint)
         .join(', ')} ]`
     case ObjectType.Dictionary:
-      return `{ ${[
-        ...(obj as PostScriptObject<ObjectType.Dictionary>).value.entries(),
-      ]
+      return `{ ${[...(obj as PSObject<ObjectType.Dictionary>).value.entries()]
         .map((entry) => {
           const [name, value] = entry
           return `${name}: ${prettyPrint(value)}`
@@ -53,16 +51,14 @@ export function prettyPrint(obj: PostScriptObject<unknown>): string {
     case ObjectType.Save:
       return '<save>'
     case ObjectType.String:
-      return (obj as PostScriptObject<ObjectType.String>).value.asString()
+      return (obj as PSObject<ObjectType.String>).value.asString()
     case ObjectType.Null:
     case ObjectType.Real:
     case ObjectType.Name:
     case ObjectType.Integer:
       return String(obj.value)
     case ObjectType.Boolean:
-      return (obj as PostScriptObject<ObjectType.Boolean>).value
-        ? 'true'
-        : 'false'
+      return (obj as PSObject<ObjectType.Boolean>).value ? 'true' : 'false'
   }
   return ''
 }
@@ -70,7 +66,7 @@ export function prettyPrint(obj: PostScriptObject<unknown>): string {
 export function createLiteral<T extends ObjectType>(
   value: ObjectValue<T>,
   type: T
-): PostScriptObject<T> {
+): PSObject<T> {
   return {
     type,
     value,

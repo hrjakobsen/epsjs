@@ -1,16 +1,16 @@
-import { PostScriptInterpreter } from '../interpreter'
+import { PSInterpreter } from '../interpreter'
 import {
   Access,
   Executability,
   ObjectType,
   ObjectValue,
   parseNumber,
-  PostScriptObject,
+  PSObject,
 } from '../scanner'
 import { createLiteral } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=719
-export function type(interpreter: PostScriptInterpreter) {
+export function type(interpreter: PSInterpreter) {
   const { type } = interpreter.pop(ObjectType.Any)
   let name
   switch (type) {
@@ -73,21 +73,21 @@ export function type(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=580
-export function cvlit(interpreter: PostScriptInterpreter) {
+export function cvlit(interpreter: PSInterpreter) {
   const obj = interpreter.pop(ObjectType.Any)
   obj.attributes.executability = Executability.Literal
   interpreter.operandStack.push(obj)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
-export function cvx(interpreter: PostScriptInterpreter) {
+export function cvx(interpreter: PSInterpreter) {
   const obj = interpreter.pop(ObjectType.Any)
   obj.attributes.executability = Executability.Executable
   interpreter.operandStack.push(obj)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=735
-export function xcheck(interpreter: PostScriptInterpreter) {
+export function xcheck(interpreter: PSInterpreter) {
   const obj = interpreter.pop(ObjectType.Any)
   interpreter.operandStack.push(
     createLiteral(
@@ -98,7 +98,7 @@ export function xcheck(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=598
-export function executeonly(interpreter: PostScriptInterpreter) {
+export function executeonly(interpreter: PSInterpreter) {
   const obj = interpreter.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
@@ -110,7 +110,7 @@ export function executeonly(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=642
-export function noaccess(interpreter: PostScriptInterpreter) {
+export function noaccess(interpreter: PSInterpreter) {
   const obj = interpreter.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
@@ -123,7 +123,7 @@ export function noaccess(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=654
-export function readonly(interpreter: PostScriptInterpreter) {
+export function readonly(interpreter: PSInterpreter) {
   const obj = interpreter.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
@@ -136,7 +136,7 @@ export function readonly(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=652
-export function rcheck(interpreter: PostScriptInterpreter) {
+export function rcheck(interpreter: PSInterpreter) {
   const obj = interpreter.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
@@ -153,7 +153,7 @@ export function rcheck(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=732
-export function wcheck(interpreter: PostScriptInterpreter) {
+export function wcheck(interpreter: PSInterpreter) {
   const obj = interpreter.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
@@ -170,7 +170,7 @@ export function wcheck(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=580
-export function cvi(interpreter: PostScriptInterpreter) {
+export function cvi(interpreter: PSInterpreter) {
   const obj = interpreter.pop(
     ObjectType.String | ObjectType.Real | ObjectType.Integer
   )
@@ -179,7 +179,7 @@ export function cvi(interpreter: PostScriptInterpreter) {
   if (obj.type === ObjectType.String) {
     res = parseNumber(obj.value.toString()).value
   } else {
-    res = (obj as PostScriptObject<ObjectType.Integer | ObjectType.Real>).value
+    res = (obj as PSObject<ObjectType.Integer | ObjectType.Real>).value
   }
   interpreter.operandStack.push(
     createLiteral(Math.trunc(res), ObjectType.Integer)
@@ -187,7 +187,7 @@ export function cvi(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=580
-export function cvn(interpreter: PostScriptInterpreter) {
+export function cvn(interpreter: PSInterpreter) {
   const obj = interpreter.pop(ObjectType.String)
   // Convert to name
   interpreter.operandStack.push({
@@ -201,7 +201,7 @@ export function cvn(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=581
-export function cvr(interpreter: PostScriptInterpreter) {
+export function cvr(interpreter: PSInterpreter) {
   const obj = interpreter.pop(
     ObjectType.String | ObjectType.Real | ObjectType.Integer
   )
@@ -210,13 +210,13 @@ export function cvr(interpreter: PostScriptInterpreter) {
   if (obj.type === ObjectType.String) {
     res = parseNumber(obj.value.toString()).value
   } else {
-    res = (obj as PostScriptObject<ObjectType.Integer | ObjectType.Real>).value
+    res = (obj as PSObject<ObjectType.Integer | ObjectType.Real>).value
   }
   interpreter.operandStack.push(createLiteral(res, ObjectType.Real))
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=581
-export function cvrs(interpreter: PostScriptInterpreter) {
+export function cvrs(interpreter: PSInterpreter) {
   const str = interpreter.pop(ObjectType.String)
   const radix = interpreter.pop(ObjectType.Integer)
   const num = interpreter.pop(ObjectType.Integer | ObjectType.Real)
@@ -232,7 +232,7 @@ export function cvrs(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
-export function cvs(interpreter: PostScriptInterpreter) {
+export function cvs(interpreter: PSInterpreter) {
   const str = interpreter.pop(ObjectType.String)
   const obj = interpreter.pop(ObjectType.Any)
   const strValue = convertToString(obj)
@@ -244,7 +244,7 @@ export function cvs(interpreter: PostScriptInterpreter) {
   )
 }
 
-function convertToString(obj: PostScriptObject): string {
+function convertToString(obj: PSObject): string {
   switch (obj.type) {
     case ObjectType.Boolean:
       return obj.value ? 'true' : 'false'

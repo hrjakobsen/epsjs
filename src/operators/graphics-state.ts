@@ -1,20 +1,20 @@
-import { matrixFromPostScriptArray } from '../coordinate'
+import { matrixFromPSArray } from '../coordinate'
 import { LineCap, LineJoin } from '../graphics/context'
-import { PostScriptInterpreter } from '../interpreter'
+import { PSInterpreter } from '../interpreter'
 import { ObjectType } from '../scanner'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=617
-export function gsave(interpreter: PostScriptInterpreter) {
+export function gsave(interpreter: PSInterpreter) {
   interpreter.printer.save()
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=617
-export function grestore(interpreter: PostScriptInterpreter) {
+export function grestore(interpreter: PSInterpreter) {
   interpreter.printer.restore()
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=688
-export function setLineWidth(interpreter: PostScriptInterpreter) {
+export function setLineWidth(interpreter: PSInterpreter) {
   const { value: lineWidth } = interpreter.pop(
     ObjectType.Integer | ObjectType.Real
   )
@@ -22,12 +22,12 @@ export function setLineWidth(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573
-export function currentLineWidth(interpreter: PostScriptInterpreter) {
+export function currentLineWidth(interpreter: PSInterpreter) {
   interpreter.pushLiteral(interpreter.printer.getLineWidth(), ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=687
-export function setLineCap(interpreter: PostScriptInterpreter) {
+export function setLineCap(interpreter: PSInterpreter) {
   const { value: lineCap } = interpreter.pop(ObjectType.Integer)
   if (lineCap in LineCap) {
     interpreter.printer.setLineCap(lineCap)
@@ -37,12 +37,12 @@ export function setLineCap(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573
-export function currentLineCap(interpreter: PostScriptInterpreter) {
+export function currentLineCap(interpreter: PSInterpreter) {
   interpreter.pushLiteral(interpreter.printer.getLineCap(), ObjectType.Integer)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=687
-export function setLineJoin(interpreter: PostScriptInterpreter) {
+export function setLineJoin(interpreter: PSInterpreter) {
   const { value: lineJoin } = interpreter.pop(ObjectType.Integer)
   if (lineJoin in LineJoin) {
     interpreter.printer.setLineJoin(lineJoin)
@@ -52,12 +52,12 @@ export function setLineJoin(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573
-export function currentLineJoin(interpreter: PostScriptInterpreter) {
+export function currentLineJoin(interpreter: PSInterpreter) {
   interpreter.pushLiteral(interpreter.printer.getLineJoin(), ObjectType.Integer)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=689
-export function setMiterLimit(interpreter: PostScriptInterpreter) {
+export function setMiterLimit(interpreter: PSInterpreter) {
   const { value: miterLimit } = interpreter.pop(
     ObjectType.Integer | ObjectType.Real
   )
@@ -65,7 +65,7 @@ export function setMiterLimit(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=574
-export function currentMiterLimit(interpreter: PostScriptInterpreter) {
+export function currentMiterLimit(interpreter: PSInterpreter) {
   interpreter.pushLiteral(
     interpreter.printer.getMiterLimit(),
     ObjectType.Integer
@@ -75,7 +75,7 @@ export function currentMiterLimit(interpreter: PostScriptInterpreter) {
 // TODO: strokeadjust
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=679
-export function setColorSpace(interpreter: PostScriptInterpreter) {
+export function setColorSpace(interpreter: PSInterpreter) {
   interpreter.pop(ObjectType.Name)
   interpreter.pop(ObjectType.Array)
   // FIXME: Support more than rgb
@@ -84,7 +84,7 @@ export function setColorSpace(interpreter: PostScriptInterpreter) {
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=695
 // @builtin('setrgbcolor')
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=676
-export function setColor(interpreter: PostScriptInterpreter) {
+export function setColor(interpreter: PSInterpreter) {
   const { value: bInput } = interpreter.pop(
     ObjectType.Real | ObjectType.Integer
   )
@@ -105,7 +105,7 @@ export function setColor(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=685
-export function setGray(interpreter: PostScriptInterpreter) {
+export function setGray(interpreter: PSInterpreter) {
   const { value: gray } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   if (gray < 0 || gray > 1) {
     throw new Error('Invalid gray value')
@@ -114,14 +114,14 @@ export function setGray(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=561
-export function concat(interpreter: PostScriptInterpreter) {
+export function concat(interpreter: PSInterpreter) {
   const matrix = interpreter.pop(ObjectType.Array)
-  const transformationMatrix = matrixFromPostScriptArray(matrix)
+  const transformationMatrix = matrixFromPSArray(matrix)
   interpreter.printer.concat(transformationMatrix)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=680
-export function setDash(interpreter: PostScriptInterpreter) {
+export function setDash(interpreter: PSInterpreter) {
   const { value: offset } = interpreter.pop(
     ObjectType.Integer | ObjectType.Real
   )

@@ -52,7 +52,7 @@ export abstract class BufferedStreamer<
 
   advance(n = 1) {
     if (n < 1) {
-      throw new Error('PostScriptLexer: advance: n must be greater than 1')
+      throw new Error('PSLexer: advance: n must be greater than 1')
     }
     const removed = this.tokenBuffer.splice(0, n)
     this._pos += removed.length

@@ -18,17 +18,14 @@ import * as fontOperators from '../operators/glyph-font'
 import * as miscellaneousOperators from '../operators/miscellaneous'
 
 import { Access, Executability, ObjectType, OperatorFunction } from '../scanner'
-import { PostScriptDictionary } from './dictionary'
-import { PostScriptInterpreter } from '../interpreter'
+import { PSDictionary } from './dictionary'
+import { PSInterpreter } from '../interpreter'
 import { createLiteral } from '../utils'
 
 type StackPattern = ObjectType[]
 type OverloadResolution = [StackPattern, OperatorFunction]
 
-function stackMatches(
-  interpreter: PostScriptInterpreter,
-  pattern: StackPattern
-) {
+function stackMatches(interpreter: PSInterpreter, pattern: StackPattern) {
   if (interpreter.operandStack.length < pattern.length) {
     return false
   }
@@ -337,7 +334,7 @@ for (const name of BUILT_INS_LIST.map((x) => x[0])) {
 
 const BUILT_INS = new Map(BUILT_INS_LIST)
 
-export class SystemDictionary extends PostScriptDictionary {
+export class SystemDictionary extends PSDictionary {
   constructor() {
     super(true, BUILT_INS.size)
     for (const [builtin, definition] of BUILT_INS.entries()) {

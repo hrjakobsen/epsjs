@@ -2,11 +2,11 @@ import { EditorState } from '@codemirror/state'
 import { EditorView, ViewPlugin, keymap } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import { indentWithTab } from '@codemirror/commands'
-import { PostScriptInterpreter } from '../src'
+import { PSInterpreter } from '../src'
 import { TokenError } from '../src/scanner'
 
 const INITIAL_DOC = `10 280 moveto
-(<- Write PostScript over there) show
+(<- Write code over there) show
 
 /radius { 200 } def
 
@@ -43,9 +43,7 @@ function render() {
     // eslint-disable-next-line no-self-assign
     canvas.width = canvas.width
     const context = canvas.getContext('2d')!
-    const interpreter = PostScriptInterpreter.load(
-      view.state.doc.sliceString(0)
-    )
+    const interpreter = PSInterpreter.load(view.state.doc.sliceString(0))
     if (interpreter.metaData.boundingBox) {
       canvas.width =
         interpreter.metaData.boundingBox.upperRightX -

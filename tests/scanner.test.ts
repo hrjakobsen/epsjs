@@ -1,13 +1,8 @@
-import { CharStream, PostScriptLexer } from '../src/lexer'
-import {
-  Access,
-  Executability,
-  ObjectType,
-  PostScriptScanner,
-} from '../src/scanner'
+import { CharStream, PSLexer } from '../src/lexer'
+import { Access, Executability, ObjectType, PSScanner } from '../src/scanner'
 
-function createScanner(text: string): PostScriptScanner {
-  return new PostScriptScanner(new PostScriptLexer(new CharStream(text)))
+function createScanner(text: string): PSScanner {
+  return new PSScanner(new PSLexer(new CharStream(text)))
 }
 
 const LITTERAL_ATTRIBUTES = {
@@ -15,7 +10,7 @@ const LITTERAL_ATTRIBUTES = {
   executability: Executability.Literal,
 }
 
-describe('PostscriptScanner', function () {
+describe('PSScanner', function () {
   describe('numbers', function () {
     it('scans integers', function () {
       const scanner = createScanner('12')

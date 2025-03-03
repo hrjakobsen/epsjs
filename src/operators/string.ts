@@ -1,30 +1,30 @@
-import { PostScriptInterpreter } from '../interpreter'
+import { PSInterpreter } from '../interpreter'
 import { StringForAllLoopContext } from '../loop-context'
 import { ObjectType } from '../scanner'
-import { PostScriptString } from '../string'
+import { PSString } from '../string'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=713
-export function string(interpreter: PostScriptInterpreter) {
+export function string(interpreter: PSInterpreter) {
   const { value: length } = interpreter.pop(ObjectType.Integer)
   // TODO: Enforce max string length
-  interpreter.pushLiteral(new PostScriptString(length), ObjectType.String)
+  interpreter.pushLiteral(new PSString(length), ObjectType.String)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=635
-export function length(interpreter: PostScriptInterpreter) {
+export function length(interpreter: PSInterpreter) {
   const { value: string } = interpreter.pop(ObjectType.String)
   interpreter.pushLiteral(string.length, ObjectType.Integer)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
-export function get(interpreter: PostScriptInterpreter) {
+export function get(interpreter: PSInterpreter) {
   const { value: index } = interpreter.pop(ObjectType.Integer)
   const { value: string } = interpreter.pop(ObjectType.String)
   interpreter.pushLiteral(string.get(index), ObjectType.Integer)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
-export function put(interpreter: PostScriptInterpreter) {
+export function put(interpreter: PSInterpreter) {
   const { value: newValue } = interpreter.pop(ObjectType.Integer)
   const { value: index } = interpreter.pop(ObjectType.Integer)
   const { value: string } = interpreter.pop(ObjectType.String)
@@ -32,7 +32,7 @@ export function put(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=613
-export function getInterval(interpreter: PostScriptInterpreter) {
+export function getInterval(interpreter: PSInterpreter) {
   const { value: count } = interpreter.pop(ObjectType.Integer)
   const { value: index } = interpreter.pop(ObjectType.Integer)
   const { value: string } = interpreter.pop(ObjectType.String)
@@ -40,13 +40,13 @@ export function getInterval(interpreter: PostScriptInterpreter) {
     throw new Error(`Invalid substring with index ${index} and count ${count}`)
   }
   interpreter.pushLiteral(
-    PostScriptString.fromCharCode(...string.data.slice(index, index + count)),
+    PSString.fromCharCode(...string.data.slice(index, index + count)),
     ObjectType.String
   )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=650
-export function putInterval(interpreter: PostScriptInterpreter) {
+export function putInterval(interpreter: PSInterpreter) {
   const { value: source } = interpreter.pop(ObjectType.String)
   const { value: index } = interpreter.pop(ObjectType.Integer)
   const { value: target } = interpreter.pop(ObjectType.String)
@@ -64,7 +64,7 @@ export function putInterval(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=562
-export function copy(interpreter: PostScriptInterpreter) {
+export function copy(interpreter: PSInterpreter) {
   const { value: source } = interpreter.pop(ObjectType.String)
   const { value: target } = interpreter.pop(ObjectType.String)
   if (!(target.length < source.length)) {
@@ -74,14 +74,11 @@ export function copy(interpreter: PostScriptInterpreter) {
   }
 
   const removed = target.data.splice(0, source.length, ...source.data)
-  interpreter.pushLiteral(
-    PostScriptString.fromCharCode(...removed),
-    ObjectType.String
-  )
+  interpreter.pushLiteral(PSString.fromCharCode(...removed), ObjectType.String)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=611
-export function forall(interpreter: PostScriptInterpreter) {
+export function forall(interpreter: PSInterpreter) {
   const proc = interpreter.pop(ObjectType.Array)
   const string = interpreter.pop(ObjectType.String)
   interpreter.beginLoop(
@@ -95,7 +92,7 @@ export function forall(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=543
-export function anchorSearch(interpreter: PostScriptInterpreter) {
+export function anchorSearch(interpreter: PSInterpreter) {
   const { value: needle } = interpreter.pop(ObjectType.String)
   const haystack = interpreter.pop(ObjectType.String)
   const matches = haystack.value.anchorSearch(needle)
@@ -112,7 +109,7 @@ export function anchorSearch(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=669
-export function search(interpreter: PostScriptInterpreter) {
+export function search(interpreter: PSInterpreter) {
   const { value: needle } = interpreter.pop(ObjectType.String)
   const haystack = interpreter.pop(ObjectType.String)
   const matchIndex = haystack.value.search(needle)
@@ -131,6 +128,6 @@ export function search(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=716
-export function token(_interpreter: PostScriptInterpreter) {
+export function token(_interpreter: PSInterpreter) {
   throw new Error('token: Not implemented')
 }

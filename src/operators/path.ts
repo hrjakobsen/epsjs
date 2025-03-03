@@ -1,20 +1,20 @@
-import { PostScriptInterpreter } from '../interpreter'
+import { PSInterpreter } from '../interpreter'
 import { ObjectType } from '../scanner'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=642
-export function newPath(interpreter: PostScriptInterpreter) {
+export function newPath(interpreter: PSInterpreter) {
   interpreter.printer.newPath()
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=575
-export function currentPoint(interpreter: PostScriptInterpreter) {
+export function currentPoint(interpreter: PSInterpreter) {
   const currentPoint = interpreter.printer.getCurrentPoint()
   interpreter.pushLiteral(currentPoint.x, ObjectType.Real)
   interpreter.pushLiteral(currentPoint.y, ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=641
-export function moveTo(interpreter: PostScriptInterpreter) {
+export function moveTo(interpreter: PSInterpreter) {
   const y = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const x = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const nextCoordinate = {
@@ -25,7 +25,7 @@ export function moveTo(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=664
-export function rMoveTo(interpreter: PostScriptInterpreter) {
+export function rMoveTo(interpreter: PSInterpreter) {
   const y = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const x = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const currentPoint = interpreter.printer.getCurrentPoint()
@@ -37,14 +37,14 @@ export function rMoveTo(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
-export function lineTo(interpreter: PostScriptInterpreter) {
+export function lineTo(interpreter: PSInterpreter) {
   const y = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const x = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   interpreter.printer.lineTo({ x: x.value, y: y.value })
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=664
-export function rLineTo(interpreter: PostScriptInterpreter) {
+export function rLineTo(interpreter: PSInterpreter) {
   const y = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const x = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const currentPoint = interpreter.printer.getCurrentPoint()
@@ -56,7 +56,7 @@ export function rLineTo(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=544
-export function arc(interpreter: PostScriptInterpreter) {
+export function arc(interpreter: PSInterpreter) {
   const { value: angle2 } = interpreter.pop(
     ObjectType.Real | ObjectType.Integer
   )
@@ -75,7 +75,7 @@ export function arc(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=545
-export function arcn(interpreter: PostScriptInterpreter) {
+export function arcn(interpreter: PSInterpreter) {
   const { value: angle2 } = interpreter.pop(
     ObjectType.Real | ObjectType.Integer
   )
@@ -94,18 +94,18 @@ export function arcn(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=546
-export function arct(_interpreter: PostScriptInterpreter) {
+export function arct(_interpreter: PSInterpreter) {
   // TODO: ctx arct?
   throw new Error('arct: Not implemented')
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=548
-export function arcto(_interpreter: PostScriptInterpreter) {
+export function arcto(_interpreter: PSInterpreter) {
   throw new Error('arcto: Not implemented')
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=578
-export function curveto(interpreter: PostScriptInterpreter) {
+export function curveto(interpreter: PSInterpreter) {
   const { value: y3 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const { value: x3 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const { value: y2 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
@@ -120,7 +120,7 @@ export function curveto(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=652
-export function rcurveto(interpreter: PostScriptInterpreter) {
+export function rcurveto(interpreter: PSInterpreter) {
   const { value: y3 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const { value: x3 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const { value: y2 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
@@ -135,17 +135,17 @@ export function rcurveto(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=568
-export function closePath(interpreter: PostScriptInterpreter) {
+export function closePath(interpreter: PSInterpreter) {
   interpreter.printer.closePath()
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=556
-export function clip(interpreter: PostScriptInterpreter) {
+export function clip(interpreter: PSInterpreter) {
   interpreter.printer.clip()
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=655
-export function rectClip(interpreter: PostScriptInterpreter) {
+export function rectClip(interpreter: PSInterpreter) {
   const { value: height } = interpreter.pop(
     ObjectType.Integer | ObjectType.Real
   )

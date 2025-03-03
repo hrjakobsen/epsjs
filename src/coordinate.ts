@@ -1,4 +1,4 @@
-import { ObjectType, PostScriptObject } from './scanner'
+import { ObjectType, PSObject } from './scanner'
 
 export type Coordinate = {
   x: number
@@ -68,8 +68,8 @@ export function offsetCoordinate(c1: Coordinate, c2: Coordinate): Coordinate {
   }
 }
 
-export function matrixFromPostScriptArray(
-  array: PostScriptObject<ObjectType.Array>
+export function matrixFromPSArray(
+  array: PSObject<ObjectType.Array>
 ): TransformationMatrix {
   if (array.value.length !== 6) {
     throw new Error(

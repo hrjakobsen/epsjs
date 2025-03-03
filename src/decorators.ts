@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
-import { BUILT_INS, OVERLOADS, PostScriptInterpreter } from './interpreter'
+import { BUILT_INS, OVERLOADS, PSInterpreter } from './interpreter'
 import { ObjectType } from './scanner'
 
 export function builtin(name?: string) {
@@ -26,7 +26,7 @@ export function operands(...types: (ObjectType | -1)[]) {
   ) {
     const methodName = String(context.name)
     OVERLOADS.set(methodName, types)
-    return function replacementMethod(this: PostScriptInterpreter) {
+    return function replacementMethod(this: PSInterpreter) {
       const args = []
       for (let i = types.length - 1; i >= 0; --i) {
         const type = types[i]!

@@ -1,6 +1,6 @@
-import { PostScriptInterpreter } from '../src'
+import { PSInterpreter } from '../src'
 import { ObjectType } from '../src/scanner'
-import { PostScriptString } from '../src/string'
+import { PSString } from '../src/string'
 
 export function testProgram(programText: string) {
   const canvas = document.createElement('canvas')
@@ -8,13 +8,13 @@ export function testProgram(programText: string) {
   if (!ctx) {
     throw new Error('No 2d context')
   }
-  const interpreter = PostScriptInterpreter.load(programText)
+  const interpreter = PSInterpreter.load(programText)
   interpreter.run(ctx)
   return interpreter
 }
 
 export function checkStackValues(
-  interpreter: PostScriptInterpreter,
+  interpreter: PSInterpreter,
   ...expected: any[]
 ) {
   expect(interpreter.operandStack.length).toBe(expected.length)
@@ -24,7 +24,7 @@ export function checkStackValues(
       ObjectType.Any
     )
     if (actualType === ObjectType.String) {
-      expect((actualValue as PostScriptString).asString()).toBe(expectedValue)
+      expect((actualValue as PSString).asString()).toBe(expectedValue)
       continue
     }
     if (actualType === ObjectType.Mark) {

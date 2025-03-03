@@ -1,24 +1,24 @@
-import { PostScriptArray } from '../array'
+import { PSArray } from '../array'
 import {
-  matrixFromPostScriptArray,
+  matrixFromPSArray,
   matrixMultiply,
   scalingMatrix,
   TransformationMatrix,
 } from '../coordinate'
-import { PostScriptDictionary } from '../dictionary/dictionary'
-import { PostScriptInterpreter } from '../interpreter'
+import { PSDictionary } from '../dictionary/dictionary'
+import { PSInterpreter } from '../interpreter'
 import { ObjectType } from '../scanner'
 import { createLiteral } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=606
-export function findFont(interpreter: PostScriptInterpreter) {
+export function findFont(interpreter: PSInterpreter) {
   const key = interpreter.pop(ObjectType.Any)
   const font = interpreter.findFont(key)
   interpreter.pushLiteral(font, ObjectType.Dictionary)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=684
-export function setFont(interpreter: PostScriptInterpreter) {
+export function setFont(interpreter: PSInterpreter) {
   const { value: font } = interpreter.pop(ObjectType.Dictionary)
   if (!font.isFontDictionary()) {
     throw new Error('setFont: Not a font dictionary')
@@ -26,27 +26,21 @@ export function setFont(interpreter: PostScriptInterpreter) {
   interpreter.printer.setFont(font)
 }
 
-function _scaleFontMatrix(
-  font: PostScriptDictionary,
-  matrix: TransformationMatrix
-) {
+function _scaleFontMatrix(font: PSDictionary, matrix: TransformationMatrix) {
   if (!font.isFontDictionary()) {
     throw new Error('Not a font dictionary')
   }
-  const fontMatrix = (
-    font.searchByName('FontMatrix')!.value as PostScriptArray
-  ).map((x) => x.value as number) as TransformationMatrix
+  const fontMatrix = (font.searchByName('FontMatrix')!.value as PSArray).map(
+    (x) => x.value as number
+  ) as TransformationMatrix
   const newMatrix = matrixMultiply(matrix, fontMatrix)
   font.set(
     createLiteral('FontMatrix', ObjectType.Name),
-    createLiteral(
-      new PostScriptArray(newMatrix.map(createLiteral)),
-      ObjectType.Array
-    )
+    createLiteral(new PSArray(newMatrix.map(createLiteral)), ObjectType.Array)
   )
 }
 
-function _scaleFont(font: PostScriptDictionary, scale: number) {
+function _scaleFont(font: PSDictionary, scale: number) {
   if (!font.isFontDictionary()) {
     throw new Error('scalefont: Not a font dictionary')
   }
@@ -56,7 +50,7 @@ function _scaleFont(font: PostScriptDictionary, scale: number) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=668
-export function scaleFont(interpreter: PostScriptInterpreter) {
+export function scaleFont(interpreter: PSInterpreter) {
   const { value: scale } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
   const { value: font } = interpreter.pop(ObjectType.Dictionary)
   const copy = _scaleFont(font, scale)
@@ -64,7 +58,7 @@ export function scaleFont(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=583
-export function defineFont(interpreter: PostScriptInterpreter) {
+export function defineFont(interpreter: PSInterpreter) {
   const font = interpreter.pop(ObjectType.Dictionary)
   const key = interpreter.pop(ObjectType.Any)
   if (!font.value.isFontDictionary()) {
@@ -75,14 +69,14 @@ export function defineFont(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=670
-export function selectFont(interpreter: PostScriptInterpreter) {
+export function selectFont(interpreter: PSInterpreter) {
   const scaleOrMatrix = interpreter.pop(
     ObjectType.Integer | ObjectType.Real | ObjectType.Array
   )
   const key = interpreter.pop(ObjectType.Any)
   const font = interpreter.findFont(key).copy()
   if (scaleOrMatrix.type === ObjectType.Array) {
-    _scaleFontMatrix(font, matrixFromPostScriptArray(scaleOrMatrix))
+    _scaleFontMatrix(font, matrixFromPSArray(scaleOrMatrix))
     interpreter.printer.setFont(font)
   } else {
     const scale = scaleOrMatrix.value as number
@@ -92,19 +86,19 @@ export function selectFont(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=638
-export function makeFont(interpreter: PostScriptInterpreter) {
+export function makeFont(interpreter: PSInterpreter) {
   const matrix = interpreter.pop(ObjectType.Array)
   const font = interpreter.pop(ObjectType.Dictionary)
   if (!font.value.isFontDictionary()) {
     throw new Error('makefont: Not a font dictionary')
   }
   const copy = font.value.copy()
-  _scaleFontMatrix(copy, matrixFromPostScriptArray(matrix))
+  _scaleFontMatrix(copy, matrixFromPSArray(matrix))
   interpreter.operandStack.push(createLiteral(copy, ObjectType.Dictionary))
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=713
-export function stringWidth(interpreter: PostScriptInterpreter) {
+export function stringWidth(interpreter: PSInterpreter) {
   const text = interpreter.pop(ObjectType.String)
   const size = interpreter.printer.stringWidth(text.value.asString())
   interpreter.pushLiteral(size.width, ObjectType.Real)
@@ -112,7 +106,7 @@ export function stringWidth(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=704
-export function show(interpreter: PostScriptInterpreter) {
+export function show(interpreter: PSInterpreter) {
   const { value: string } = interpreter.pop(ObjectType.String)
   interpreter.printer.fillText(
     string.asString(),
@@ -120,7 +114,7 @@ export function show(interpreter: PostScriptInterpreter) {
   )
 }
 
-export function ashow(interpreter: PostScriptInterpreter) {
+export function ashow(interpreter: PSInterpreter) {
   const { value: dy } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
   const { value: dx } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
   const { value: string } = interpreter.pop(ObjectType.String)

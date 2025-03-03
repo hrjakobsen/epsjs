@@ -1,12 +1,12 @@
-import { Executability, ObjectType, PostScriptObject } from './scanner'
+import { Executability, ObjectType, PSObject } from './scanner'
 import { createLiteral } from './utils'
 
 export abstract class LoopContext {
   private executionStackStartIndex: number
 
   constructor(
-    protected executionStack: PostScriptObject[],
-    protected procedure: PostScriptObject<ObjectType.Array>
+    protected executionStack: PSObject[],
+    protected procedure: PSObject<ObjectType.Array>
   ) {
     if (
       procedure.type !== ObjectType.Array ||
@@ -55,12 +55,12 @@ export class ForLoopContext extends LoopContext {
   private limit: number
 
   constructor(
-    executionStack: PostScriptObject[],
-    procedure: PostScriptObject,
-    private operandStack: PostScriptObject[],
-    initial: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
-    increment: PostScriptObject<ObjectType.Integer | ObjectType.Real>,
-    limit: PostScriptObject<ObjectType.Integer | ObjectType.Real>
+    executionStack: PSObject[],
+    procedure: PSObject,
+    private operandStack: PSObject[],
+    initial: PSObject<ObjectType.Integer | ObjectType.Real>,
+    increment: PSObject<ObjectType.Integer | ObjectType.Real>,
+    limit: PSObject<ObjectType.Integer | ObjectType.Real>
   ) {
     super(executionStack, procedure)
     if (!(initial.type & (ObjectType.Real | ObjectType.Integer))) {
@@ -119,9 +119,9 @@ export class RepeatLoopContext extends LoopContext {
   private current = 0
 
   constructor(
-    executionStack: PostScriptObject[],
-    procedure: PostScriptObject,
-    iterations: PostScriptObject<ObjectType.Integer>
+    executionStack: PSObject[],
+    procedure: PSObject,
+    iterations: PSObject<ObjectType.Integer>
   ) {
     super(executionStack, procedure)
     if (iterations.type !== ObjectType.Integer) {
@@ -143,10 +143,10 @@ export class RepeatLoopContext extends LoopContext {
 export class ArrayForAllLoopContext extends LoopContext {
   private index = 0
   constructor(
-    executionStack: PostScriptObject[],
-    procedure: PostScriptObject,
-    private operandStack: PostScriptObject[],
-    private array: PostScriptObject<ObjectType.Array>
+    executionStack: PSObject[],
+    procedure: PSObject,
+    private operandStack: PSObject[],
+    private array: PSObject<ObjectType.Array>
   ) {
     super(executionStack, procedure)
     if (this.array.type !== ObjectType.Array) {
@@ -166,12 +166,12 @@ export class ArrayForAllLoopContext extends LoopContext {
 
 export class DictionaryForAllLoopContext extends LoopContext {
   private index = 0
-  private keys: PostScriptObject[]
+  private keys: PSObject[]
   constructor(
-    executionStack: PostScriptObject[],
-    procedure: PostScriptObject,
-    private operandStack: PostScriptObject[],
-    private dictionary: PostScriptObject<ObjectType.Dictionary>
+    executionStack: PSObject[],
+    procedure: PSObject,
+    private operandStack: PSObject[],
+    private dictionary: PSObject<ObjectType.Dictionary>
   ) {
     super(executionStack, procedure)
     this.keys = this.dictionary.value.keys()
@@ -199,10 +199,10 @@ export class DictionaryForAllLoopContext extends LoopContext {
 export class StringForAllLoopContext extends LoopContext {
   private index = 0
   constructor(
-    executionStack: PostScriptObject[],
-    procedure: PostScriptObject,
-    private operandStack: PostScriptObject[],
-    private string: PostScriptObject<ObjectType.String>
+    executionStack: PSObject[],
+    procedure: PSObject,
+    private operandStack: PSObject[],
+    private string: PSObject<ObjectType.String>
   ) {
     super(executionStack, procedure)
   }

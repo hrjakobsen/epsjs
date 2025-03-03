@@ -1,36 +1,36 @@
 import { Ascii85DecodeFilter } from '../file'
-import { PostScriptInterpreter } from '../interpreter'
-import { Executability, ObjectType, PostScriptObject } from '../scanner'
+import { PSInterpreter } from '../interpreter'
+import { Executability, ObjectType, PSObject } from '../scanner'
 import { createLiteral, prettyPrint } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=540
-export function debugPrint(interpreter: PostScriptInterpreter) {
+export function debugPrint(interpreter: PSInterpreter) {
   const obj = interpreter.pop(ObjectType.Any)
   // eslint-disable-next-line no-console
   console.log(prettyPrint(obj))
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=540
-export function debugPrintObject(interpreter: PostScriptInterpreter) {
+export function debugPrintObject(interpreter: PSInterpreter) {
   const obj = interpreter.pop(ObjectType.Any)
   // eslint-disable-next-line no-console
   console.log(obj)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
-export function stack(interpreter: PostScriptInterpreter) {
+export function stack(interpreter: PSInterpreter) {
   // eslint-disable-next-line no-console
   console.log(interpreter.operandStack.map(prettyPrint))
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
-export function pstack(interpreter: PostScriptInterpreter) {
+export function pstack(interpreter: PSInterpreter) {
   // eslint-disable-next-line no-console
   console.log(interpreter.operandStack)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=655
-export function readString(interpreter: PostScriptInterpreter) {
+export function readString(interpreter: PSInterpreter) {
   const { value: target } = interpreter.pop(ObjectType.String)
   const { value: file } = interpreter.pop(ObjectType.File)
 
@@ -42,7 +42,7 @@ export function readString(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=603
-export function filter(interpreter: PostScriptInterpreter) {
+export function filter(interpreter: PSInterpreter) {
   const name = interpreter.pop(ObjectType.Name)
   const { value: inputFile } = interpreter.pop(ObjectType.File)
   if (name.attributes.executability !== Executability.Literal) {
@@ -57,7 +57,7 @@ export function filter(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=570
-export function currentFile(interpreter: PostScriptInterpreter) {
+export function currentFile(interpreter: PSInterpreter) {
   const files = interpreter.executionStack.filter(
     (x) => x.type === ObjectType.File
   )
@@ -70,7 +70,7 @@ export function currentFile(interpreter: PostScriptInterpreter) {
   }
   interpreter.operandStack.push(
     createLiteral(
-      (currentFile as PostScriptObject<ObjectType.File>).value,
+      (currentFile as PSObject<ObjectType.File>).value,
       ObjectType.File
     )
   )

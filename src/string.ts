@@ -1,11 +1,11 @@
-export class PostScriptString {
+export class PSString {
   public data: number[]
   constructor(public readonly length: number) {
     this.data = Array(length).fill(0)
   }
 
   public static fromData(data: number[], length: number) {
-    const string = new PostScriptString(length)
+    const string = new PSString(length)
     string.data = data
     return string
   }
@@ -33,7 +33,7 @@ export class PostScriptString {
     return this.data[index]!
   }
 
-  public anchorSearch(other: PostScriptString): boolean {
+  public anchorSearch(other: PSString): boolean {
     if (other.length > this.length) {
       return false
     }
@@ -45,7 +45,7 @@ export class PostScriptString {
     return true
   }
 
-  public search(other: PostScriptString, index = 0): number | false {
+  public search(other: PSString, index = 0): number | false {
     const matchIndex = this.asString().indexOf(other.asString(), index)
     if (matchIndex < 0) {
       return false
@@ -53,28 +53,25 @@ export class PostScriptString {
     return matchIndex
   }
 
-  public subString(
-    index: number,
-    count: number = this.length
-  ): PostScriptString {
+  public subString(index: number, count: number = this.length): PSString {
     if (index < 0 || index > this.length) {
       throw new Error(
         `Substring error. Index ${index} out of range of string with length ${this.length}`
       )
     }
-    return PostScriptString.fromCharCode(
+    return PSString.fromCharCode(
       ...this.data.slice(index, Math.min(index + count, this.length))
     )
   }
 
   public static fromCharCode(...chars: number[]) {
-    const string = new PostScriptString(chars.length)
+    const string = new PSString(chars.length)
     string.data = chars
     return string
   }
 
   public static fromString(str: string) {
-    const string = new PostScriptString(str.length)
+    const string = new PSString(str.length)
     string.data = str.split('').map((char) => char.charCodeAt(0))
     return string
   }

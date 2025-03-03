@@ -1,26 +1,26 @@
-import { PostScriptInterpreter } from '../interpreter'
+import { PSInterpreter } from '../interpreter'
 import { Access, Executability, ObjectType } from '../scanner'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=647
-export function pop(interpreter: PostScriptInterpreter) {
+export function pop(interpreter: PSInterpreter) {
   interpreter.pop(ObjectType.Any)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=595
-export function exch(interpreter: PostScriptInterpreter) {
+export function exch(interpreter: PSInterpreter) {
   const top = interpreter.pop(ObjectType.Any)
   const next = interpreter.pop(ObjectType.Any)
   interpreter.operandStack.push(top, next)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=589
-export function dup(interpreter: PostScriptInterpreter) {
+export function dup(interpreter: PSInterpreter) {
   const obj = interpreter.pop(ObjectType.Any)
   interpreter.operandStack.push(obj, obj)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=563
-export function copy(interpreter: PostScriptInterpreter) {
+export function copy(interpreter: PSInterpreter) {
   const { value: numberOfElements } = interpreter.pop(ObjectType.Integer)
 
   if (interpreter.operandStack.length < numberOfElements) {
@@ -33,7 +33,7 @@ export function copy(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=624
-export function index(interpreter: PostScriptInterpreter) {
+export function index(interpreter: PSInterpreter) {
   const { value: offset } = interpreter.pop(ObjectType.Integer)
   if (interpreter.operandStack.length <= offset) {
     throw new Error('Index too high')
@@ -44,7 +44,7 @@ export function index(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=664
-export function roll(interpreter: PostScriptInterpreter) {
+export function roll(interpreter: PSInterpreter) {
   const { value: numRolls } = interpreter.pop(ObjectType.Integer)
   const { value: numElements } = interpreter.pop(ObjectType.Integer)
   if (interpreter.operandStack.length < numElements) {
@@ -66,17 +66,17 @@ export function roll(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555
-export function clear(interpreter: PostScriptInterpreter) {
+export function clear(interpreter: PSInterpreter) {
   interpreter.operandStack = []
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=564
-export function count(interpreter: PostScriptInterpreter) {
+export function count(interpreter: PSInterpreter) {
   interpreter.pushLiteralNumber(interpreter.operandStack.length)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=639
-export function mark(interpreter: PostScriptInterpreter) {
+export function mark(interpreter: PSInterpreter) {
   interpreter.operandStack.push({
     type: ObjectType.Mark,
     attributes: {
@@ -88,7 +88,7 @@ export function mark(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555
-export function clearToMark(interpreter: PostScriptInterpreter) {
+export function clearToMark(interpreter: PSInterpreter) {
   const markIndex = interpreter.findIndexOfMark()
   if (markIndex === undefined) {
     throw new Error('No mark defined')
@@ -97,7 +97,7 @@ export function clearToMark(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=564
-export function countToMark(interpreter: PostScriptInterpreter) {
+export function countToMark(interpreter: PSInterpreter) {
   const markIndex = interpreter.findIndexOfMark()
   if (markIndex === undefined) {
     throw new Error('No mark defined')

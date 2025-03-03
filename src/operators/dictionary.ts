@@ -1,29 +1,29 @@
-import { PostScriptDictionary } from '../dictionary/dictionary'
-import { PostScriptInterpreter } from '../interpreter'
+import { PSDictionary } from '../dictionary/dictionary'
+import { PSInterpreter } from '../interpreter'
 import { DictionaryForAllLoopContext } from '../loop-context'
 import { Access, Executability, ObjectType } from '../scanner'
 
 const MAX_DICT_CAPACITY = 1024
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=586
-export function dict(interpreter: PostScriptInterpreter) {
+export function dict(interpreter: PSInterpreter) {
   const { value: capacity } = interpreter.pop(ObjectType.Integer)
   if (capacity > MAX_DICT_CAPACITY) {
     throw new Error(
       `${capacity} is higher than the max capacity of ${MAX_DICT_CAPACITY}`
     )
   }
-  const dictionary = new PostScriptDictionary(false, capacity)
+  const dictionary = new PSDictionary(false, capacity)
   interpreter.pushLiteral(dictionary, ObjectType.Dictionary)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=539
-export function startDict(interpreter: PostScriptInterpreter) {
+export function startDict(interpreter: PSInterpreter) {
   interpreter.pushLiteral(undefined, ObjectType.Mark)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=539
-export function endDict(interpreter: PostScriptInterpreter) {
+export function endDict(interpreter: PSInterpreter) {
   const mark = interpreter.findIndexOfMark()
   if (mark === undefined) {
     throw new Error('>>: Missing mark on stack')
@@ -33,7 +33,7 @@ export function endDict(interpreter: PostScriptInterpreter) {
   if (elements.length % 2 !== 0) {
     throw new Error('Dictionary entries must be key-value pairs')
   }
-  const dictionary = new PostScriptDictionary(false, elements.length / 2)
+  const dictionary = new PSDictionary(false, elements.length / 2)
   for (let i = 0; i < elements.length; i += 2) {
     dictionary.set(elements[i]!, elements[i + 1]!)
   }
@@ -41,13 +41,13 @@ export function endDict(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=635
-export function length(interpreter: PostScriptInterpreter) {
+export function length(interpreter: PSInterpreter) {
   const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
   interpreter.pushLiteral(dictionary.size, ObjectType.Integer)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=640
-export function maxLength(interpreter: PostScriptInterpreter) {
+export function maxLength(interpreter: PSInterpreter) {
   const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
   // Language level 1: return capacity
   interpreter.pushLiteral(dictionary.capacity, ObjectType.Integer)
@@ -55,13 +55,13 @@ export function maxLength(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=550
-export function begin(interpreter: PostScriptInterpreter) {
+export function begin(interpreter: PSInterpreter) {
   const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
   interpreter.dictionaryStack.push(dictionary)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=591
-export function end(interpreter: PostScriptInterpreter) {
+export function end(interpreter: PSInterpreter) {
   if (interpreter.dictionaryStack.length === 0) {
     throw new Error('end: Popping empty dictionary stack')
   }
@@ -69,14 +69,14 @@ export function end(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
-export function def(interpreter: PostScriptInterpreter) {
+export function def(interpreter: PSInterpreter) {
   const procedure = interpreter.pop(ObjectType.Any)
   const name = interpreter.pop(ObjectType.Any)
   interpreter.dictionary.set(name, procedure)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
-export function load(interpreter: PostScriptInterpreter) {
+export function load(interpreter: PSInterpreter) {
   const name = interpreter.pop(ObjectType.Any)
   const element = interpreter.dictionary.get(name)
   if (element === undefined) {
@@ -86,21 +86,21 @@ export function load(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=712
-export function store(interpreter: PostScriptInterpreter) {
+export function store(interpreter: PSInterpreter) {
   const value = interpreter.pop(ObjectType.Any)
   const key = interpreter.pop(ObjectType.Any)
   interpreter.dictionary.set(key, value)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
-export function get(interpreter: PostScriptInterpreter) {
+export function get(interpreter: PSInterpreter) {
   const key = interpreter.pop(ObjectType.Any)
   const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
   interpreter.operandStack.push(dictionary.get(key)!)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
-export function put(interpreter: PostScriptInterpreter) {
+export function put(interpreter: PSInterpreter) {
   const value = interpreter.pop(ObjectType.Any)
   const key = interpreter.pop(ObjectType.Any)
   const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
@@ -108,21 +108,21 @@ export function put(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=722
-export function undef(interpreter: PostScriptInterpreter) {
+export function undef(interpreter: PSInterpreter) {
   const key = interpreter.pop(ObjectType.Any)
   const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
   dictionary.remove(key)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=633
-export function known(interpreter: PostScriptInterpreter) {
+export function known(interpreter: PSInterpreter) {
   const key = interpreter.pop(ObjectType.Any)
   const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
   interpreter.pushLiteral(dictionary.has(key), ObjectType.Boolean)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=732
-export function where(interpreter: PostScriptInterpreter) {
+export function where(interpreter: PSInterpreter) {
   const key = interpreter.pop(ObjectType.Any)
   for (let i = interpreter.dictionaryStack.length - 1; i >= 0; --i) {
     const currentDictionary = interpreter.dictionaryStack[i]!
@@ -138,7 +138,7 @@ export function where(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=611
-export function forall(interpreter: PostScriptInterpreter) {
+export function forall(interpreter: PSInterpreter) {
   const proc = interpreter.pop(ObjectType.Array)
   const dictionary = interpreter.pop(ObjectType.Dictionary)
   interpreter.beginLoop(
@@ -152,27 +152,27 @@ export function forall(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=569
-export function currentDict(interpreter: PostScriptInterpreter) {
+export function currentDict(interpreter: PSInterpreter) {
   interpreter.pushLiteral(interpreter.dictionary, ObjectType.Dictionary)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=595
-export function errorDict(_interpreter: PostScriptInterpreter) {
+export function errorDict(_interpreter: PSInterpreter) {
   throw new Error('errordict: Not implemented')
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541
-export function error(_interpreter: PostScriptInterpreter) {
+export function error(_interpreter: PSInterpreter) {
   throw new Error('errordict: Not implemented')
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=716
-export function systemDict(_interpreter: PostScriptInterpreter) {
+export function systemDict(_interpreter: PSInterpreter) {
   throw new Error('systemdict: Not implemented')
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=727
-export function userDict(_interpreter: PostScriptInterpreter) {
+export function userDict(_interpreter: PSInterpreter) {
   throw new Error('userdict: Not implemented')
 }
 
@@ -182,12 +182,12 @@ export function globalDict() {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=710
-export function statusDict(_interpreter: PostScriptInterpreter) {
+export function statusDict(_interpreter: PSInterpreter) {
   throw new Error('statusdict: Not implemented')
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=565
-export function countDictStack(interpreter: PostScriptInterpreter) {
+export function countDictStack(interpreter: PSInterpreter) {
   interpreter.pushLiteral(
     interpreter.dictionaryStack.length,
     ObjectType.Integer
@@ -195,7 +195,7 @@ export function countDictStack(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=587
-export function dictStack(interpreter: PostScriptInterpreter) {
+export function dictStack(interpreter: PSInterpreter) {
   const { value: array } = interpreter.pop(ObjectType.Array)
   if (array.length < interpreter.dictionaryStack.length) {
     // TODO: rangecheck error
@@ -217,7 +217,7 @@ export function dictStack(interpreter: PostScriptInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555
-export function cleardictstack(interpreter: PostScriptInterpreter) {
+export function cleardictstack(interpreter: PSInterpreter) {
   // TODO: Can we do interpreter less magically?
   interpreter.dictionaryStack.slice(2)
 }

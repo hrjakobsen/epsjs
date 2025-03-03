@@ -61,7 +61,7 @@ export class CharStream extends InputStream<number> {
   }
 }
 
-export class PostScriptLexer extends BufferedStreamer<Token> {
+export class PSLexer extends BufferedStreamer<Token> {
   public constructor(private dataStream: InputStream<number>) {
     super()
   }

@@ -5,32 +5,27 @@ import {
   TILDE_CHARCODE,
   Z_CHARCODE,
 } from './ascii85'
-import {
-  CARRIAGE_RETURN,
-  CharStream,
-  LINE_FEED,
-  PostScriptLexer,
-} from './lexer'
-import { PostScriptObject, PostScriptScanner } from './scanner'
+import { CARRIAGE_RETURN, CharStream, LINE_FEED, PSLexer } from './lexer'
+import { PSObject, PSScanner } from './scanner'
 import { InputStream } from './stream'
-import { PostScriptString } from './string'
+import { PSString } from './string'
 
 type ReadResult = {
-  substring: PostScriptString
+  substring: PSString
   success: boolean
 }
 
-export interface PostScriptReadableFile {
+export interface PSReadableFile {
   isAtEndOfFile(): boolean
   read(): number | undefined
   peek(): number | undefined
-  readString(string: PostScriptString): ReadResult
-  readLine(string: PostScriptString): ReadResult
-  readHexString(string: PostScriptString): ReadResult
-  token(): PostScriptObject | undefined
+  readString(string: PSString): ReadResult
+  readLine(string: PSString): ReadResult
+  readHexString(string: PSString): ReadResult
+  token(): PSObject | undefined
 }
 
-abstract class PeekableFile implements PostScriptReadableFile {
+abstract class PeekableFile implements PSReadableFile {
   private bufferedCharCode: number | undefined
 
   isAtEndOfFile(): boolean {
@@ -55,7 +50,7 @@ abstract class PeekableFile implements PostScriptReadableFile {
     return this.bufferedCharCode
   }
 
-  readString(string: PostScriptString): ReadResult {
+  readString(string: PSString): ReadResult {
     for (let i = 0; i < string.length; ++i) {
       const next = this.read()
       if (next === undefined) {
@@ -69,7 +64,7 @@ abstract class PeekableFile implements PostScriptReadableFile {
     return { success: true, substring: string.subString(0) }
   }
 
-  readLine(string: PostScriptString): ReadResult {
+  readLine(string: PSString): ReadResult {
     for (let i = 0; i < string.length; ++i) {
       const next = this.read()
       if (next === undefined) {
@@ -99,7 +94,7 @@ abstract class PeekableFile implements PostScriptReadableFile {
     throw new Error('rangecheckerror')
   }
 
-  readHexString(string: PostScriptString): ReadResult {
+  readHexString(string: PSString): ReadResult {
     const findHex = (): number | undefined => {
       while (this.peek() !== undefined) {
         if (isHex(this.peek()!)) {
@@ -130,15 +125,15 @@ abstract class PeekableFile implements PostScriptReadableFile {
     }
   }
 
-  abstract token(): PostScriptObject<unknown> | undefined
+  abstract token(): PSObject<unknown> | undefined
 }
 
 export class CharStreamBackedFile extends PeekableFile {
-  private scanner: PostScriptScanner
+  private scanner: PSScanner
 
   constructor(private charStream: InputStream<number>) {
     super()
-    this.scanner = new PostScriptScanner(new PostScriptLexer(this.charStream))
+    this.scanner = new PSScanner(new PSLexer(this.charStream))
   }
 
   readCharacter(): number | undefined {
@@ -149,7 +144,7 @@ export class CharStreamBackedFile extends PeekableFile {
     return next
   }
 
-  token(): PostScriptObject | undefined {
+  token(): PSObject | undefined {
     const next = this.scanner.next
     this.scanner.advance(1)
     return next
@@ -161,11 +156,11 @@ export class CharStreamBackedFile extends PeekableFile {
 }
 
 abstract class DecodingFilter extends PeekableFile {
-  constructor(protected backingFile: PostScriptReadableFile) {
+  constructor(protected backingFile: PSReadableFile) {
     super()
   }
 
-  token(): PostScriptObject<unknown> | undefined {
+  token(): PSObject<unknown> | undefined {
     throw new Error('Method not implemented.')
   }
 }

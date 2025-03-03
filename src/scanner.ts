@@ -1,16 +1,10 @@
-import { PostScriptArray } from './array'
-import { PostScriptDictionary } from './dictionary/dictionary'
-import { PostScriptReadableFile } from './file'
-import { PostScriptInterpreter } from './interpreter'
-import {
-  BASE_10_INT,
-  PostScriptLexer,
-  RADIX_NUMBER,
-  Token,
-  TokenType,
-} from './lexer'
+import { PSArray } from './array'
+import { PSDictionary } from './dictionary/dictionary'
+import { PSReadableFile } from './file'
+import { PSInterpreter } from './interpreter'
+import { BASE_10_INT, PSLexer, RADIX_NUMBER, Token, TokenType } from './lexer'
 import { BufferedStreamer } from './stream'
-import { PostScriptString } from './string'
+import { PSString } from './string'
 
 export enum ObjectType {
   Any = -1, // NOTE: Internal
@@ -54,7 +48,7 @@ export class TokenError extends Error {
   }
 }
 
-export type OperatorFunction = (interpreter: PostScriptInterpreter) => void
+export type OperatorFunction = (interpreter: PSInterpreter) => void
 
 // TODO: There's probably a nicer way of doing this
 export type ObjectValue<T extends ObjectType | unknown = unknown> =
@@ -75,11 +69,11 @@ export type ObjectValue<T extends ObjectType | unknown = unknown> =
     : T extends ObjectType.Operator
     ? OperatorFunction
     : T extends ObjectType.Array
-    ? PostScriptArray
+    ? PSArray
     : T extends ObjectType.Dictionary
-    ? PostScriptDictionary
+    ? PSDictionary
     : T extends ObjectType.File
-    ? PostScriptReadableFile
+    ? PSReadableFile
     : T extends ObjectType.GState
     ? never
     : T extends ObjectType.PackedArray
@@ -87,10 +81,10 @@ export type ObjectValue<T extends ObjectType | unknown = unknown> =
     : T extends ObjectType.Save
     ? never
     : T extends ObjectType.String
-    ? PostScriptString
+    ? PSString
     : unknown
 
-export type PostScriptObject<T extends ObjectType | unknown = unknown> = {
+export type PSObject<T extends ObjectType | unknown = unknown> = {
   type: ObjectType
   attributes: Attributes
   value: ObjectValue<T>
@@ -107,8 +101,8 @@ export type EPSMetaData = {
   boundingBox?: BoundingBox
 }
 
-export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
-  constructor(private _lexer: PostScriptLexer) {
+export class PSScanner extends BufferedStreamer<PSObject> {
+  constructor(private _lexer: PSLexer) {
     super()
   }
 
@@ -136,7 +130,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
     return metaData
   }
 
-  protected override generateToken(): PostScriptObject<unknown> | undefined {
+  protected override generateToken(): PSObject<unknown> | undefined {
     if (this._lexer.next === undefined) {
       return undefined
     }
@@ -171,7 +165,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
     }
   }
 
-  scanNumber(): PostScriptObject {
+  scanNumber(): PSObject {
     const numberString = this._lexer.next!.content
     const parsedNumber = parseNumber(numberString)
 
@@ -186,7 +180,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
     }
   }
 
-  scanName(access: Access, executability: Executability): PostScriptObject {
+  scanName(access: Access, executability: Executability): PSObject {
     const name = this._lexer.next!.content
     this._lexer.advance()
     return {
@@ -199,7 +193,7 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
     }
   }
 
-  scanString(): PostScriptObject {
+  scanString(): PSObject {
     const content = this._lexer.next!.content
     this._lexer.advance()
     return {
@@ -208,19 +202,19 @@ export class PostScriptScanner extends BufferedStreamer<PostScriptObject> {
         access: Access.Unlimited,
         executability: Executability.Literal,
       },
-      value: PostScriptString.fromString(content),
+      value: PSString.fromString(content),
     }
   }
 
-  scanProcedure(): PostScriptObject {
+  scanProcedure(): PSObject {
     this._lexer.advance(1)
-    const procedure: PostScriptObject<ObjectType.Array> = {
+    const procedure: PSObject<ObjectType.Array> = {
       type: ObjectType.Array,
       attributes: {
         access: Access.Unlimited,
         executability: Executability.Executable,
       },
-      value: new PostScriptArray([]),
+      value: new PSArray([]),
     }
     while (
       this._lexer.next &&

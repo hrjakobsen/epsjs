@@ -1,4 +1,4 @@
-import { PostScriptDictionary } from './dictionary/dictionary'
+import { PSDictionary } from './dictionary/dictionary'
 import { SystemDictionary } from './dictionary/system-dictionary'
 import { CharStreamBackedFile } from './file'
 import { LoopContext } from './loop-context'
@@ -7,12 +7,12 @@ import {
   EPSMetaData,
   Executability,
   ObjectType,
-  PostScriptObject,
-  PostScriptScanner,
+  PSObject,
+  PSScanner,
 } from './scanner'
-import { PostScriptString } from './string'
+import { PSString } from './string'
 import { createLiteral } from './utils'
-import { CharStream, PostScriptLexer } from './lexer'
+import { CharStream, PSLexer } from './lexer'
 import { GraphicsContext } from './graphics/context'
 import { CanvasBackedGraphicsContext } from './graphics/canvas'
 
@@ -22,7 +22,7 @@ const MAX_LOOP_STACK_SIZE = 1024
 export const BUILT_INS = new Map<string, string[]>()
 export const OVERLOADS = new Map<string, (ObjectType | -1)[]>()
 
-export class PostScriptInterpreter {
+export class PSInterpreter {
   private _printer?: GraphicsContext
   private constructor(
     file: CharStreamBackedFile,
@@ -37,16 +37,16 @@ export class PostScriptInterpreter {
       type: ObjectType.File,
     })
   }
-  public fonts = new PostScriptDictionary(false, 1024)
+  public fonts = new PSDictionary(false, 1024)
 
-  public dictionaryStack: PostScriptDictionary[] = [
+  public dictionaryStack: PSDictionary[] = [
     new SystemDictionary(),
-    new PostScriptDictionary(false, 1024),
+    new PSDictionary(false, 1024),
   ]
-  public operandStack: PostScriptObject[] = []
+  public operandStack: PSObject[] = []
   public executionStack: (
-    | PostScriptObject<ObjectType.Array>
-    | PostScriptObject<ObjectType.File>
+    | PSObject<ObjectType.Array>
+    | PSObject<ObjectType.File>
   )[] = []
   public loopStack: LoopContext[] = []
 
@@ -85,7 +85,7 @@ export class PostScriptInterpreter {
     while (this.executionStack.length) {
       const top = this.executionStack[this.executionStack.length - 1]!
       if (top.type === ObjectType.Array) {
-        const procedure = (top as PostScriptObject<ObjectType.Array>).value
+        const procedure = (top as PSObject<ObjectType.Array>).value
         const nextInstruction = procedure.get(procedure.procedureIndex)
         procedure.procedureIndex++
         if (nextInstruction === undefined) {
@@ -94,7 +94,7 @@ export class PostScriptInterpreter {
         }
         return nextInstruction
       } else {
-        const file = (top as PostScriptObject<ObjectType.File>).value
+        const file = (top as PSObject<ObjectType.File>).value
         const nextInstruction = file.token()
         if (nextInstruction === undefined) {
           this.executionStack.pop()
@@ -153,18 +153,16 @@ export class PostScriptInterpreter {
       // Look up name and invoke procedure
       const definition = this.symbolLookup(item)!
       if (definition.type === ObjectType.Operator) {
-        ;(definition as PostScriptObject<ObjectType.Operator>).value(this)
+        ;(definition as PSObject<ObjectType.Operator>).value(this)
         return
       } else if (
         definition.type === ObjectType.Array &&
         definition.attributes.executability === Executability.Executable
       ) {
         // Push procedure to executionStack
-        const procedureBody: PostScriptObject<ObjectType.Array> = {
+        const procedureBody: PSObject<ObjectType.Array> = {
           ...definition,
-          value: (
-            definition as PostScriptObject<ObjectType.Array>
-          ).value.copy(),
+          value: (definition as PSObject<ObjectType.Array>).value.copy(),
         }
         this.executionStack.push(procedureBody)
         return
@@ -180,7 +178,7 @@ export class PostScriptInterpreter {
     )
   }
 
-  symbolLookup(key: PostScriptObject): PostScriptObject {
+  symbolLookup(key: PSObject): PSObject {
     for (let i = this.dictionaryStack.length - 1; i >= 0; --i) {
       if (this.dictionaryStack[i]!.get(key)) {
         return this.dictionaryStack[i]!.get(key)!
@@ -192,13 +190,13 @@ export class PostScriptInterpreter {
   public static load(program: string) {
     let metadata = {}
     try {
-      metadata = new PostScriptScanner(
-        new PostScriptLexer(new CharStream(program))
+      metadata = new PSScanner(
+        new PSLexer(new CharStream(program))
       ).getMetaData()
     } catch (error) {
       console.warn('error collecting metadata', { error })
     }
-    const interpreter = new PostScriptInterpreter(
+    const interpreter = new PSInterpreter(
       CharStreamBackedFile.fromString(program),
       metadata
     )
@@ -229,7 +227,7 @@ export class PostScriptInterpreter {
     return undefined
   }
 
-  public pop<T extends ObjectType>(typ: T): PostScriptObject<T> {
+  public pop<T extends ObjectType>(typ: T): PSObject<T> {
     const top = this.operandStack.pop()
     if (!top) {
       throw new Error('Empty stack')
@@ -240,20 +238,20 @@ export class PostScriptInterpreter {
     return top
   }
 
-  public findFont(key: PostScriptObject<ObjectType.Any>) {
+  public findFont(key: PSObject<ObjectType.Any>) {
     if (this.fonts.has(key)) {
-      return this.fonts.get(key)!.value as PostScriptDictionary
+      return this.fonts.get(key)!.value as PSDictionary
     }
     if (key.type !== ObjectType.Name && key.type !== ObjectType.String) {
       throw new Error('findfont: invalid key type')
     }
-    let fontName = key.value as string | PostScriptString
+    let fontName = key.value as string | PSString
     if (typeof fontName !== 'string') {
       fontName = fontName.asString()
     }
     if (!document.fonts.check(`12px ${fontName}`)) {
       throw new Error(`Font ${fontName} not found`)
     }
-    return PostScriptDictionary.newFont(fontName)
+    return PSDictionary.newFont(fontName)
   }
 }

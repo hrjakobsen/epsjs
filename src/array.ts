@@ -1,22 +1,22 @@
-import { PostScriptObject } from './scanner'
+import { PSObject } from './scanner'
 
-export class PostScriptArray {
+export class PSArray {
   public procedureIndex = 0
-  constructor(private data: PostScriptObject[]) {}
+  constructor(private data: PSObject[]) {}
 
   public get(index: number) {
     return this.data[index]
   }
 
-  public set(index: number, obj: PostScriptObject) {
+  public set(index: number, obj: PSObject) {
     this.data[index] = obj
   }
 
   public copy() {
-    return new PostScriptArray([...this.data])
+    return new PSArray([...this.data])
   }
 
-  public push(value: PostScriptObject) {
+  public push(value: PSObject) {
     this.data.push(value)
   }
 
@@ -25,27 +25,25 @@ export class PostScriptArray {
   }
 
   public slice(start?: number, end?: number) {
-    return new PostScriptArray(this.data.slice(start, end))
+    return new PSArray(this.data.slice(start, end))
   }
 
-  public get items(): readonly PostScriptObject[] {
+  public get items(): readonly PSObject[] {
     return this.data
   }
 
   public splice(
     start: number,
     count: number | undefined,
-    replacewith: PostScriptArray
+    replacewith: PSArray
   ) {
     if (count === undefined) {
-      return new PostScriptArray(this.data.splice(start, count))
+      return new PSArray(this.data.splice(start, count))
     }
-    return new PostScriptArray(
-      this.data.splice(start, count, ...replacewith.data)
-    )
+    return new PSArray(this.data.splice(start, count, ...replacewith.data))
   }
 
-  public map<T>(mapper: (obj: PostScriptObject) => T): T[] {
+  public map<T>(mapper: (obj: PSObject) => T): T[] {
     return this.data.map(mapper)
   }
 
