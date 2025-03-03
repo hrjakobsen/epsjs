@@ -182,21 +182,17 @@ export function log(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=651
 export function rand(interpreter: PSInterpreter) {
-  interpreter.pushLiteralNumber(
-    Math.floor(Math.random() * (Math.pow(2, 31) - 1))
-  )
+  interpreter.pushLiteralNumber(interpreter.random.nextInt())
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
 export function srand(interpreter: PSInterpreter) {
   const { value } = interpreter.pop(ObjectType.Integer)
-  console.warn(
-    `Trying to set random seed ${value}. Seeding the RNG is not supported`
-  )
+  interpreter.random.seed(value)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=666
 export function rrand(interpreter: PSInterpreter) {
-  console.warn(`Trying to read random seed. Seeding the RNG is not supported`)
-  interpreter.pushLiteralNumber(-1)
+  const seed = interpreter.random.getSeed()
+  interpreter.pushLiteralNumber(seed, ObjectType.Integer)
 }

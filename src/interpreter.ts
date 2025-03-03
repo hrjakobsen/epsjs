@@ -15,6 +15,7 @@ import { createLiteral } from './utils'
 import { CharStream, PSLexer } from './lexer'
 import { GraphicsContext } from './graphics/context'
 import { CanvasBackedGraphicsContext } from './graphics/canvas'
+import { PseudoRandomNumberGenerator } from './random'
 
 const MAX_STEPS = 100_000
 const MAX_LOOP_STACK_SIZE = 1024
@@ -24,10 +25,12 @@ export const OVERLOADS = new Map<string, (ObjectType | -1)[]>()
 
 export class PSInterpreter {
   private _printer?: GraphicsContext
+  public random: PseudoRandomNumberGenerator
   private constructor(
     file: CharStreamBackedFile,
     public readonly metaData: EPSMetaData
   ) {
+    this.random = new PseudoRandomNumberGenerator()
     this.executionStack.push({
       attributes: {
         access: Access.Unlimited,
