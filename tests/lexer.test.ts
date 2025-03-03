@@ -1,7 +1,7 @@
 import { CharStream, PostScriptLexer, TokenType } from '../src/lexer'
 
 describe('PostscriptLexer', function () {
-  it('Parses identifiers', function () {
+  it('lexes identifiers', function () {
     const lexer = new PostScriptLexer(new CharStream('/Courrier'))
     expect(lexer.next).toEqual({
       kind: TokenType.LiteralName,
@@ -13,7 +13,7 @@ describe('PostscriptLexer', function () {
     })
   })
 
-  it('Parses strings', function () {
+  it('lexes strings', function () {
     const lexer = new PostScriptLexer(new CharStream('(test af hest) sdf'))
     expect(lexer.next).toEqual({
       kind: TokenType.String,
@@ -25,7 +25,7 @@ describe('PostscriptLexer', function () {
     })
   })
 
-  it('Parses comments', function () {
+  it('lexes comments', function () {
     const lexer = new PostScriptLexer(new CharStream('%test of comments\ntest'))
     expect(lexer.next).toEqual({
       kind: TokenType.Comment,
@@ -38,7 +38,31 @@ describe('PostscriptLexer', function () {
   })
 
   describe('numbers', function () {
-    it('Parses decimal numbers', function () {
+    it('lexes e notation', function () {
+      const lexer = new PostScriptLexer(new CharStream('12.2e3'))
+      expect(lexer.next).toEqual({
+        kind: TokenType.Number,
+        content: '12.2e3',
+        span: {
+          from: 0,
+          to: 6,
+        },
+      })
+    })
+
+    it('lexes E notation', function () {
+      const lexer = new PostScriptLexer(new CharStream('12.2E3'))
+      expect(lexer.next).toEqual({
+        kind: TokenType.Number,
+        content: '12.2E3',
+        span: {
+          from: 0,
+          to: 6,
+        },
+      })
+    })
+
+    it('lexes decimal numbers', function () {
       const lexer = new PostScriptLexer(new CharStream('12.23'))
       expect(lexer.next).toEqual({
         kind: TokenType.Number,
@@ -50,7 +74,7 @@ describe('PostscriptLexer', function () {
       })
     })
 
-    it('Parses integers', function () {
+    it('lexes integers', function () {
       const lexer = new PostScriptLexer(new CharStream('1223'))
       expect(lexer.next).toEqual({
         kind: TokenType.Number,
@@ -62,11 +86,23 @@ describe('PostscriptLexer', function () {
       })
     })
 
-    it('Parses octal numbers with base', function () {
+    it('lexes octal numbers with base', function () {
       const lexer = new PostScriptLexer(new CharStream('8#123'))
       expect(lexer.next).toEqual({
         kind: TokenType.Number,
-        content: 0o123,
+        content: '8#123',
+        span: {
+          from: 0,
+          to: 5,
+        },
+      })
+    })
+
+    it('lexes ternary numbers with base', function () {
+      const lexer = new PostScriptLexer(new CharStream('3#122'))
+      expect(lexer.next).toEqual({
+        kind: TokenType.Number,
+        content: '3#122',
         span: {
           from: 0,
           to: 5,

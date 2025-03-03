@@ -246,6 +246,7 @@ export function parseNumber(numberString: string): {
     const parts = numberString.split('#')
     const base = parseInt(parts[0]!)
     value = parseInt(parts[1]!, base)
+    type = ObjectType.Integer
   } else if (numberString.match(BASE_10_INT)) {
     value = parseInt(numberString)
     type = ObjectType.Integer

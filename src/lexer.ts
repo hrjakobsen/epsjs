@@ -425,7 +425,7 @@ function conjunction(...predicate: ((codepoint?: number) => boolean)[]) {
 
 export const BASE_10_NUMBER = /^[+-]?((\d+(\.\d*)?)|(\.\d+))([eE]-?\d+)?$/
 export const BASE_10_INT = /^[+-]?\d+$/
-export const RADIX_NUMBER = /^\d+#[0-9a-zA-Z]$/
+export const RADIX_NUMBER = /^\d+#[0-9a-zA-Z]+$/
 
 function isNumber(contentChars: number[]) {
   const content = String.fromCharCode(...contentChars)
