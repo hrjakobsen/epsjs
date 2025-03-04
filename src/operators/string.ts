@@ -54,7 +54,7 @@ export function putInterval(interpreter: PSInterpreter) {
     throw new Error('putinterval: index cannot be negative')
   }
 
-  if (!(target.length < source.length + index)) {
+  if (target.length < source.length + index) {
     throw new Error(
       `putinterval: Cannot fit string of length ${source.length} into string of length ${target.length} starting at index ${index}`
     )

@@ -1,0 +1,64 @@
+%%BoundingBox: 0 0 200 200
+/iterations 1500 def
+/radius 100 def
+/diameter { radius 2 mul } def
+/randFloat {
+ rand 2147483647 div
+} def
+
+/drawRandPoint {
+  newpath
+  randFloat diameter mul
+  randFloat diameter mul
+  2 copy distanceFromCenter radius lt { 0 255 0 setrgbcolor 1 } { 255 0 0 setrgbcolor 0 } ifelse 3 1 roll
+  1 0 360 arc
+  closepath
+  fill
+} def
+
+/distanceFromCenter {
+  radius sub dup mul
+  exch
+  radius sub dup mul
+  add
+  sqrt
+} def
+
+% draw perimeter of circle
+0 0 0 setrgbcolor
+(Helvetica) findfont 14 scalefont setfont
+radius radius radius 0 360 arc stroke
+
+0
+1 1 iterations {
+  pop % pop loop index
+  drawRandPoint % this leaves a 1 on the stack if the number fell inside the circle
+  add % add to the accumulator
+} for % top of stack is number of points inside circle
+% pi = pointsInCircle * 4 / totalPoints
+iterations div 4 mul
+
+% convert the pi approximation to a string
+20 string cvs
+% create string to contain full "pi = approx"
+24 string
+% keep a reference that we can use to keep constructing the final string
+dup
+% location where we'll start placing the approximation
+4
+% shuffle move things into place for the putinterval
+4 -1 roll putinterval
+dup 0 (π = ) putinterval
+% reference we'll use for stringwidth
+dup
+
+0 0 0 setrgbcolor
+
+% initial x coordinate
+radius
+% get the width of the approximation string
+exch stringwidth pop
+% subtract half of string width to place string in center
+2 div sub
+% y coordinate
+radius moveto show

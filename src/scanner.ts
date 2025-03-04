@@ -220,6 +220,10 @@ export class PSScanner extends BufferedStreamer<PSObject> {
       this._lexer.next &&
       this._lexer.next?.kind !== TokenType.ProcedureClose
     ) {
+      if (this._lexer.next?.kind === TokenType.Comment) {
+        this._lexer.advance()
+        continue
+      }
       procedure.value.push(this.generateToken()!)
     }
     if (this._lexer.next?.kind !== TokenType.ProcedureClose) {

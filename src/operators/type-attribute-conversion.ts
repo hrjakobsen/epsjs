@@ -252,7 +252,7 @@ function convertToString(obj: PSObject): string {
     case ObjectType.Real:
       return (
         obj.value as ObjectValue<ObjectType.Integer | ObjectType.Real>
-      ).toString()
+      ).toPrecision(5)
     case ObjectType.String:
       return (obj.value as ObjectValue<ObjectType.String>).asString()
     case ObjectType.Name:
