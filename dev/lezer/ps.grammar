@@ -1,0 +1,43 @@
+@top Script {  Object* }
+
+Object {
+  Operator | Number | Block | Name | String | Array | Dictionary
+}
+
+Block {
+  '{' Object* '}'
+}
+
+Array {
+  '[' Object* ']'
+}
+
+String {
+  HexString | AsciiString
+}
+
+Dictionary {
+  '<<' Object* '>>'
+}
+
+
+@tokens {
+  LineComment { "%" ![\n]* }
+  Operator { $[a-zA-Z]+ }
+  Name { "/" $[a-zA-Z]+ }
+  Number { '-'? int frac? exp?  }
+  int  { '0' | $[1-9] @digit* }
+  frac { '.' @digit+ }
+  exp  { $[eE] $[+\-]? @digit+ }
+
+  AsciiString { '(' char* ')' }
+  HexString { '<' $[0-9a-fA-F]* '>' }
+  char { $[\u{20}\u{21}\u{23}-\u{5b}\u{5d}-\u{10ffff}] | "\\" esc }
+  esc  { $["\\\/bfnrt]}
+
+  whitespace { $[ \n\r\t] }
+}
+
+@skip { whitespace | LineComment }
+
+@detectDelim

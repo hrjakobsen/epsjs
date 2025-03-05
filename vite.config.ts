@@ -1,6 +1,7 @@
 import { resolve } from 'path'
 import { defineConfig } from 'vite'
 import dts from 'vite-plugin-dts'
+import { lezer } from '@lezer/generator/rollup'
 
 export default defineConfig({
   build: {
@@ -12,7 +13,7 @@ export default defineConfig({
       fileName: 'epsjs',
     },
   },
-  plugins: [dts({ rollupTypes: true })],
+  plugins: [dts({ rollupTypes: true }), lezer()],
   esbuild: {
     target: 'es2022',
   },

@@ -4,6 +4,7 @@ import { basicSetup } from 'codemirror'
 import { indentWithTab } from '@codemirror/commands'
 import { PSInterpreter } from '../src'
 import { TokenError } from '../src/scanner'
+import { ps } from './lezer/ps-language'
 
 const INITIAL_DOC = `10 280 moveto
 (<- Write code over there) show
@@ -31,6 +32,7 @@ export const view = new EditorView({
         },
       })),
       keymap.of([indentWithTab]),
+      ps(),
     ],
   }),
   parent: document.getElementById('text')!,
