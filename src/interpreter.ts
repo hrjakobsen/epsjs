@@ -20,9 +20,6 @@ import { PseudoRandomNumberGenerator } from './random'
 const MAX_STEPS = 100_000
 const MAX_LOOP_STACK_SIZE = 1024
 
-export const BUILT_INS = new Map<string, string[]>()
-export const OVERLOADS = new Map<string, (ObjectType | -1)[]>()
-
 export class PSInterpreter {
   private _printer?: GraphicsContext
   public random: PseudoRandomNumberGenerator

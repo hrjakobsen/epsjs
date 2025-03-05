@@ -52,7 +52,7 @@ function resolveOverload(resolutions: OverloadResolution[]): OperatorFunction {
   }
 }
 
-const BUILT_INS_LIST: [string, OperatorFunction][] = [
+export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['pop', stackOperators.pop],
   ['exch', stackOperators.exch],
   ['dup', stackOperators.dup],

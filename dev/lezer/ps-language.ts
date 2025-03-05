@@ -1,6 +1,8 @@
 import { LanguageSupport, LRLanguage } from '@codemirror/language'
 import { parser } from './ps.grammar'
 import { styleTags, tags } from '@lezer/highlight'
+import { completeFromList } from '@codemirror/autocomplete'
+import { BUILT_INS_LIST } from '../../src/dictionary/system-dictionary'
 
 export const PSLanguage = LRLanguage.define({
   name: 'ps',
@@ -17,7 +19,10 @@ export const PSLanguage = LRLanguage.define({
   }),
   languageData: {
     commentTokens: { line: '%' },
+    autocomplete: completeFromList(
+      BUILT_INS_LIST.map(([operator]) => operator)
+    ),
   },
 })
 
-export const ps = () => [new LanguageSupport(PSLanguage)]
+export const ps = () => [new LanguageSupport(PSLanguage, [])]
