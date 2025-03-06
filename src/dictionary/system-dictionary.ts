@@ -220,6 +220,7 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['stringwidth', fontOperators.stringWidth],
   ['show', fontOperators.show],
   ['ashow', fontOperators.ashow],
+  ['kshow', fontOperators.kshow],
   // Overloads
   [
     'copy',

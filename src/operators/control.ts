@@ -16,7 +16,7 @@ export function _if(interpreter: PSInterpreter) {
   const procedure = interpreter.pop(ObjectType.Array)
   const { value: bool } = interpreter.pop(ObjectType.Boolean)
 
-  if (procedure.attributes.executability === Executability.Literal) {
+  if (procedure.attributes.executability !== Executability.Executable) {
     throw new Error('Second argument to if is not a procedure')
   }
   if (bool) {
@@ -33,8 +33,8 @@ export function ifelse(interpreter: PSInterpreter) {
   const procedureTrue = interpreter.pop(ObjectType.Array)
   const { value: bool } = interpreter.pop(ObjectType.Boolean)
   if (
-    procedureTrue.attributes.executability === Executability.Literal ||
-    procedureFalse.attributes.executability === Executability.Literal
+    procedureTrue.attributes.executability !== Executability.Executable ||
+    procedureFalse.attributes.executability !== Executability.Executable
   ) {
     throw new Error('Second argument to if is not a procedure')
   }

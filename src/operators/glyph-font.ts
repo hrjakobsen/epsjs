@@ -7,7 +7,8 @@ import {
 } from '../coordinate'
 import { PSDictionary } from '../dictionary/dictionary'
 import { PSInterpreter } from '../interpreter'
-import { ObjectType } from '../scanner'
+import { StringKShowLoopContext } from '../loop-context'
+import { Executability, ObjectType } from '../scanner'
 import { createLiteral } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=606
@@ -113,6 +114,7 @@ export function show(interpreter: PSInterpreter) {
   interpreter.printer.fillText(content, currentPoint)
 }
 
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=548
 export function ashow(interpreter: PSInterpreter) {
   const { value: dy } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
   const { value: dx } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
@@ -127,4 +129,23 @@ export function ashow(interpreter: PSInterpreter) {
       y: updatedGraphicsPoint.y + dy,
     })
   }
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=633
+export function kshow(interpreter: PSInterpreter) {
+  const string = interpreter.pop(ObjectType.String)
+  const procedure = interpreter.pop(ObjectType.Array)
+
+  if (procedure.attributes.executability !== Executability.Executable) {
+    throw new Error('Second argument to if is not a procedure')
+  }
+
+  interpreter.beginLoop(
+    new StringKShowLoopContext(
+      interpreter.executionStack,
+      procedure,
+      interpreter.printer,
+      string
+    )
+  )
 }

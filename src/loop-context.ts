@@ -1,3 +1,4 @@
+import { GraphicsContext } from './graphics/context'
 import { Executability, ObjectType, PSObject } from './scanner'
 import { createLiteral } from './utils'
 
@@ -215,6 +216,30 @@ export class StringForAllLoopContext extends LoopContext {
     this.operandStack.push(
       createLiteral(this.string.value.get(this.index), ObjectType.Integer)
     )
+    ++this.index
+  }
+}
+
+export class StringKShowLoopContext extends LoopContext {
+  private index = 0
+  constructor(
+    executionStack: PSObject[],
+    procedure: PSObject,
+    private printer: GraphicsContext,
+    private string: PSObject<ObjectType.String>
+  ) {
+    super(executionStack, procedure)
+  }
+
+  public override finished(): boolean {
+    return this.index >= this.string.value.length
+  }
+
+  public override execute(): void {
+    const char = this.string.value.get(this.index)
+    const currentPoint = this.printer.getCurrentPoint()
+    this.printer.fillText(String.fromCharCode(char), currentPoint)
+    this.executeProcedure()
     ++this.index
   }
 }
