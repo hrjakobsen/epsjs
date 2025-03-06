@@ -6,6 +6,7 @@ import {
   rotationMatrix,
   scalingMatrix,
   TransformationMatrix,
+  transformCoordinate,
   translationMatrix,
 } from '../coordinate'
 import { PSInterpreter } from '../interpreter'
@@ -170,4 +171,52 @@ export function invertMatrix(interpreter: PSInterpreter) {
     targetArray.value.set(i, createLiteral(inverted[i]!, ObjectType.Real))
   }
   interpreter.operandStack.push(targetArray)
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=717
+export function transform(interpreter: PSInterpreter) {
+  let x: number
+  let y: number
+  let matrix: TransformationMatrix
+  const matrixOrNumber = interpreter.pop(
+    ObjectType.Real | ObjectType.Integer | ObjectType.Array
+  )
+  if (matrixOrNumber.type === ObjectType.Array) {
+    matrix = matrixFromPSArray(matrixOrNumber)
+    y = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    x = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+  } else {
+    matrix = interpreter.printer.getTransformationMatrix()
+    y = matrixOrNumber.value
+    x = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+  }
+  const { x: xPrime, y: yPrime } = transformCoordinate({ x, y }, matrix)
+  interpreter.pushLiteralNumber(xPrime)
+  interpreter.pushLiteralNumber(yPrime)
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=633
+export function itransform(interpreter: PSInterpreter) {
+  let xPrime: number
+  let yPrime: number
+  let matrix: TransformationMatrix
+  const matrixOrNumber = interpreter.pop(
+    ObjectType.Real | ObjectType.Integer | ObjectType.Array
+  )
+  if (matrixOrNumber.type === ObjectType.Array) {
+    matrix = matrixFromPSArray(matrixOrNumber)
+    yPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    xPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+  } else {
+    matrix = interpreter.printer.getTransformationMatrix()
+    yPrime = matrixOrNumber.value
+    xPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+  }
+  const inverseTransform = invertTransformationMatrix(matrix)
+  const { x, y } = transformCoordinate(
+    { x: xPrime, y: yPrime },
+    inverseTransform
+  )
+  interpreter.pushLiteralNumber(x)
+  interpreter.pushLiteralNumber(y)
 }
