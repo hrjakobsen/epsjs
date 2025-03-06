@@ -7,8 +7,9 @@ import {
 import { Executability, ObjectType } from '../scanner'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=596
-export function exec(_interpreter: PSInterpreter) {
-  throw new Error('exec: Not implemented')
+export function exec(interpreter: PSInterpreter) {
+  const obj = interpreter.pop(ObjectType.Any)
+  interpreter.executionStack.push(obj)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=620

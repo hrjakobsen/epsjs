@@ -29,6 +29,10 @@ export class PSInterpreter {
     public readonly metaData: EPSMetaData
   ) {
     this.random = new PseudoRandomNumberGenerator()
+    this.pushFileToExecutionStack(file)
+  }
+
+  private pushFileToExecutionStack(file: CharStreamBackedFile) {
     this.executionStack.push({
       attributes: {
         access: Access.Unlimited,
@@ -45,10 +49,7 @@ export class PSInterpreter {
     new PSDictionary(false, 1024),
   ]
   public operandStack: PSObject[] = []
-  public executionStack: (
-    | PSObject<ObjectType.Array>
-    | PSObject<ObjectType.File>
-  )[] = []
+  public executionStack: PSObject[] = []
   public loopStack: LoopContext[] = []
 
   public beginLoop(loop: LoopContext) {
@@ -94,7 +95,7 @@ export class PSInterpreter {
           continue
         }
         return nextInstruction
-      } else {
+      } else if (top.type === ObjectType.File) {
         const file = (top as PSObject<ObjectType.File>).value
         const nextInstruction = file.token()
         if (nextInstruction === undefined) {
@@ -102,6 +103,18 @@ export class PSInterpreter {
           continue
         }
         return nextInstruction
+      } else if (
+        top.type === ObjectType.String &&
+        top.attributes.executability === Executability.Executable
+      ) {
+        const data = (top as PSObject<ObjectType.String>).value.asString()
+        const file = CharStreamBackedFile.fromString(data)
+        this.executionStack.pop()
+        this.pushFileToExecutionStack(file)
+        continue
+      } else {
+        this.executionStack.pop()
+        return top
       }
     }
     return undefined
