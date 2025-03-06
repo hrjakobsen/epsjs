@@ -150,6 +150,7 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['concat', graphicsStateOperators.concat],
   ['setdash', graphicsStateOperators.setDash],
   ['matrix', coordinateSystemMatrixOperators.matrix],
+  ['invertmatrix', coordinateSystemMatrixOperators.invertMatrix],
   ['currentmatrix', coordinateSystemMatrixOperators.currentMatrix],
   ['setmatrix', coordinateSystemMatrixOperators.setMatrix],
   ['translate', coordinateSystemMatrixOperators.translate],

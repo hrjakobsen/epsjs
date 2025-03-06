@@ -1,5 +1,6 @@
 import { PSArray } from '../array'
 import {
+  invertTransformationMatrix,
   matrixFromPSArray,
   matrixMultiply,
   rotationMatrix,
@@ -153,4 +154,20 @@ export function rotate(interpreter: PSInterpreter) {
     )
     interpreter.printer.concat(rotation)
   }
+}
+
+export function invertMatrix(interpreter: PSInterpreter) {
+  const targetArray = interpreter.pop(ObjectType.Array)
+  if (targetArray.value.length !== 6) {
+    throw new Error(
+      `invertmatrix: Invalid matrix length ${targetArray.value.length}`
+    )
+  }
+  const sourceArray = interpreter.pop(ObjectType.Array)
+  const sourceMatrix = matrixFromPSArray(sourceArray)
+  const inverted = invertTransformationMatrix(sourceMatrix)
+  for (let i = 0; i < 6; i++) {
+    targetArray.value.set(i, createLiteral(inverted[i]!, ObjectType.Real))
+  }
+  interpreter.operandStack.push(targetArray)
 }

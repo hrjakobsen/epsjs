@@ -21,6 +21,20 @@ export type TransformationMatrix = [
   number
 ]
 
+type Matrix3x3 = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number
+]
+
+type Matrix2x2 = [number, number, number, number]
+
 /**
  * Multiplies to 3x3 matrices each represented by an array with length 6
  * (Transformation matrices)
@@ -48,6 +62,116 @@ export function matrixMultiply(
   const c32 = a[4] * b[1] + a[5] * b[3] + b[5]
 
   return [c11, c12, c21, c22, c31, c32]
+}
+
+function transformationTo3x3(transform: TransformationMatrix): Matrix3x3 {
+  return [
+    transform[0],
+    transform[1],
+    0,
+    transform[2],
+    transform[3],
+    0,
+    transform[4],
+    transform[5],
+    1,
+  ]
+}
+
+function transpose3x3(matrix: Matrix3x3): Matrix3x3 {
+  const [a, b, c, d, e, f, g, h, i] = matrix
+  return [a, d, g, b, e, h, c, f, i]
+}
+
+function matrix3x3ToTransformation(matrix: Matrix3x3): TransformationMatrix {
+  if (matrix[2] !== 0 || matrix[5] !== 0 || matrix[8] !== 1) {
+    throw new Error('Invalid transformation matrix')
+  }
+  return [matrix[0], matrix[1], matrix[3], matrix[4], matrix[6], matrix[7]]
+}
+
+function determinant3x3(matrix: Matrix3x3): number {
+  // a b c
+  // d e f
+  // g h i
+  const [a, b, c, d, e, f, g, h, i] = transpose3x3(matrix)
+
+  // removing row 1 col1
+  const r1c1_2x2: Matrix2x2 = [e, f, h, i]
+  const r1c1_det = determinant2x2(r1c1_2x2)
+  const r1c1_r = a * r1c1_det * 1
+
+  // removing row 1 col2
+  const r1c2_2x2: Matrix2x2 = [d, f, g, i]
+  const r1c2_det = determinant2x2(r1c2_2x2)
+  const r1c2_r = b * r1c2_det * -1
+
+  // removing row 1 col3
+  const r1c3_2x2: Matrix2x2 = [d, e, g, h]
+  const r1c3_det = determinant2x2(r1c3_2x2)
+  const r1c3_r = c * r1c3_det * 1
+
+  return r1c1_r + r1c2_r + r1c3_r
+}
+
+function determinant2x2(matrix: Matrix2x2): number {
+  const [a, b, c, d] = matrix
+  return a * d - b * c
+}
+
+function scale3x3Matrix(matrix: Matrix3x3, scalar: number): Matrix3x3 {
+  const [a, b, c, d, e, f, g, h, i] = matrix
+  return [
+    a * scalar,
+    b * scalar,
+    c * scalar,
+    d * scalar,
+    e * scalar,
+    f * scalar,
+    g * scalar,
+    h * scalar,
+    i * scalar,
+  ]
+}
+
+export function invertTransformationMatrix(
+  transform: TransformationMatrix
+): TransformationMatrix {
+  const matrix = transformationTo3x3(transform)
+  const determinant = determinant3x3(matrix)
+  if (determinant === 0) {
+    throw new Error('Matrix is not invertible')
+  }
+
+  // find determinant of 2x2 submatrices
+  // a b c
+  // d e f
+  // g h i
+  const [a, b, c, d, e, f, g, h, i] = matrix
+  const a_det = determinant2x2([e, f, h, i])
+  const b_det = determinant2x2([d, f, g, i])
+  const c_det = determinant2x2([d, e, g, h])
+  const d_det = determinant2x2([b, c, h, i])
+  const e_det = determinant2x2([a, c, g, i])
+  const f_det = determinant2x2([a, b, g, h])
+  const g_det = determinant2x2([b, c, e, f])
+  const h_det = determinant2x2([a, c, d, f])
+  const i_det = determinant2x2([a, b, d, e])
+
+  const adjugate: Matrix3x3 = [
+    a_det,
+    -b_det,
+    c_det,
+    -d_det,
+    e_det,
+    -f_det,
+    g_det,
+    -h_det,
+    i_det,
+  ]
+
+  const inverse = scale3x3Matrix(adjugate, 1 / determinant)
+  return matrix3x3ToTransformation(inverse)
 }
 
 export function transformCoordinate(
