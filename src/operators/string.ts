@@ -1,6 +1,7 @@
 import { PSInterpreter } from '../interpreter'
+import { CharStream, PSLexer } from '../lexer'
 import { StringForAllLoopContext } from '../loop-context'
-import { ObjectType } from '../scanner'
+import { ObjectType, PSScanner } from '../scanner'
 import { PSString } from '../string'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=713
@@ -128,6 +129,18 @@ export function search(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=716
-export function token(_interpreter: PSInterpreter) {
-  throw new Error('token: Not implemented')
+export function token(interpreter: PSInterpreter) {
+  const string = interpreter.pop(ObjectType.String)
+  const jsString = string.value.asString()
+  const lexer = new PSLexer(new CharStream(jsString))
+  const scanner = new PSScanner(lexer)
+  const token = scanner.next
+  if (token) {
+    const post = string.value.subString(scanner.sourceOffset())
+    interpreter.pushLiteral(post, ObjectType.String)
+    interpreter.operandStack.push(token)
+    interpreter.pushLiteral(true, ObjectType.Boolean)
+  } else {
+    interpreter.pushLiteral(false, ObjectType.Boolean)
+  }
 }

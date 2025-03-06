@@ -88,7 +88,6 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['string', stringOperators.string],
   ['anchorsearch', stringOperators.anchorSearch],
   ['search', stringOperators.search],
-  ['token', stringOperators.token],
   ['bind', miscellaneousOperators.bind],
   ['realtime', miscellaneousOperators.realtime],
   ['usertime', miscellaneousOperators.usertime],
@@ -317,6 +316,13 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
     resolveOverload([
       [[ObjectType.Array], arrayOperators.aLoad],
       [[ObjectType.PackedArray], packedArrayOperators.aLoad],
+    ]),
+  ],
+  [
+    'token',
+    resolveOverload([
+      [[ObjectType.String], stringOperators.token],
+      // TODO: Support file variant?
     ]),
   ],
 ]

@@ -6,6 +6,7 @@ import {
   Access,
   EPSMetaData,
   Executability,
+  getObjectTypeName,
   ObjectType,
   PSObject,
   PSScanner,
@@ -233,7 +234,11 @@ export class PSInterpreter {
       throw new Error('Empty stack')
     }
     if (!(top.type & typ)) {
-      throw new Error(`Expected ${typ}, got ${top.type}`)
+      throw new Error(
+        `Expected "${getObjectTypeName(typ)}", got "${getObjectTypeName(
+          top.type
+        )}"`
+      )
     }
     return top
   }

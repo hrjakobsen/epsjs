@@ -349,6 +349,10 @@ export class PSLexer extends BufferedStreamer<Token> {
       },
     }
   }
+
+  sourceOffset(): number {
+    return this.dataStream.pos
+  }
 }
 
 function isOneOf(...char: string[]) {

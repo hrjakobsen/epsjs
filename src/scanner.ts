@@ -25,6 +25,37 @@ export enum ObjectType {
   String = 16384,
 }
 
+export function getObjectTypeName(type: ObjectType): string {
+  if (type === ObjectType.Any) {
+    return 'any'
+  }
+  const typeMapping: [number, string][] = [
+    [ObjectType.Boolean, 'boolean'],
+    [ObjectType.FontID, 'fontID'],
+    [ObjectType.Integer, 'integer'],
+    [ObjectType.Mark, 'mark'],
+    [ObjectType.Name, 'name'],
+    [ObjectType.Null, 'null'],
+    [ObjectType.Operator, 'operator'],
+    [ObjectType.Real, 'real'],
+    [ObjectType.Array, 'array'],
+    [ObjectType.Dictionary, 'dictionary'],
+    [ObjectType.File, 'file'],
+    [ObjectType.GState, 'gstate'],
+    [ObjectType.PackedArray, 'packedarray'],
+    [ObjectType.Save, 'save'],
+    [ObjectType.String, 'string'],
+  ]
+
+  const types = []
+  for (const [typ, value] of typeMapping) {
+    if (type & typ) {
+      types.push(value)
+    }
+  }
+  return types.join(' | ')
+}
+
 export enum Executability {
   Literal,
   Executable,
@@ -231,6 +262,10 @@ export class PSScanner extends BufferedStreamer<PSObject> {
     }
     this._lexer.advance(1)
     return procedure
+  }
+
+  sourceOffset(): number {
+    return this._lexer.sourceOffset()
   }
 }
 
