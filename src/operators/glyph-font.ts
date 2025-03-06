@@ -108,10 +108,9 @@ export function stringWidth(interpreter: PSInterpreter) {
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=704
 export function show(interpreter: PSInterpreter) {
   const { value: string } = interpreter.pop(ObjectType.String)
-  interpreter.printer.fillText(
-    string.asString(),
-    interpreter.printer.getCurrentPoint()
-  )
+  const currentPoint = interpreter.printer.getCurrentPoint()
+  const content = string.asString()
+  interpreter.printer.fillText(content, currentPoint)
 }
 
 export function ashow(interpreter: PSInterpreter) {
@@ -119,12 +118,13 @@ export function ashow(interpreter: PSInterpreter) {
   const { value: dx } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
   const { value: string } = interpreter.pop(ObjectType.String)
   const characters = string.asString().split('')
-  const currentPoint = interpreter.printer.getCurrentPoint()
-  let x = currentPoint.x
-  let y = currentPoint.y
   for (const char of characters) {
-    interpreter.printer.fillText(char, { x, y })
-    x += interpreter.printer.stringWidth(char).width + dx
-    y += dy
+    const currentPoint = interpreter.printer.getCurrentPoint()
+    interpreter.printer.fillText(char, currentPoint)
+    const updatedGraphicsPoint = interpreter.printer.getCurrentPoint()
+    interpreter.printer.moveTo({
+      x: updatedGraphicsPoint.x + dx,
+      y: updatedGraphicsPoint.y + dy,
+    })
   }
 }

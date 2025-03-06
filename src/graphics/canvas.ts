@@ -18,6 +18,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
 
   override setFont(font: PSDictionary): void {
     this.fonts[this.fonts.length - 1] = font
+    this.applyTopFont()
   }
 
   override clip(): void {
@@ -147,17 +148,13 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   override fillText(text: string, coordinate: Coordinate): void {
     // Postscript has inverted y axis, so we temporarily flip the canvas to
     // draw the text
-    const font = this.fonts[this.fonts.length - 1]!
-    const matrix = (font.searchByName('FontMatrix')?.value as PSArray).map(
-      (x) => x.value
-    ) as TransformationMatrix
-    const fontName = font.searchByName('FontName')!.value as PSString
-    const fontsize = matrix[3] * 1000
-    this.canvasContext.font = `${fontsize}px ${fontName.asString()}`
+    const currentPoint = this.getCurrentPoint()
+    const stringWidth = this.canvasContext.measureText(text).width
     this.canvasContext.save()
     this.canvasContext.scale(1, -1) // Flip to draw the text
     this.canvasContext.fillText(text, coordinate.x, -coordinate.y)
     this.canvasContext.restore()
+    this.moveTo({ x: currentPoint.x + stringWidth, y: currentPoint.y })
   }
   override arc(
     coordinate: Coordinate,
@@ -252,6 +249,16 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
       width: measure.width,
       height: measure.actualBoundingBoxAscent,
     }
+  }
+
+  applyTopFont() {
+    const font = this.fonts[this.fonts.length - 1]!
+    const matrix = (font.searchByName('FontMatrix')?.value as PSArray).map(
+      (x) => x.value
+    ) as TransformationMatrix
+    const fontName = font.searchByName('FontName')!.value as PSString
+    const fontsize = matrix[3] * 1000
+    this.canvasContext.font = `${fontsize}px ${fontName.asString()}`
   }
 
   constructor(
