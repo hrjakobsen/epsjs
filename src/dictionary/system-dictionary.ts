@@ -198,6 +198,7 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['readstring', fileOperators.readString],
   ['filter', fileOperators.filter],
   ['currentfile', fileOperators.currentFile],
+  ['run', fileOperators.run],
   ['type', typeAttributeConversionOperators.type],
   ['cvlit', typeAttributeConversionOperators.cvlit],
   ['cvx', typeAttributeConversionOperators.cvx],
@@ -346,33 +347,13 @@ const BUILT_INS = new Map(BUILT_INS_LIST)
 
 export class SystemDictionary extends PSDictionary {
   constructor() {
-    super(true, BUILT_INS.size)
+    super(1024)
     for (const [builtin, definition] of BUILT_INS.entries()) {
       this.addBuiltinOperator(builtin, definition)
     }
     this.forceSet(
       createLiteral('null', ObjectType.Name),
       miscellaneousOperators.NULL_OBJECT
-    )
-    this.forceSet(
-      createLiteral('languagelevel', ObjectType.Name),
-      miscellaneousOperators.LANGUAGE_LEVEL_OBJECT
-    )
-    this.forceSet(
-      createLiteral('product', ObjectType.Name),
-      miscellaneousOperators.PRODUCT_NAME_OBJECT
-    )
-    this.forceSet(
-      createLiteral('revision', ObjectType.Name),
-      miscellaneousOperators.REVISION_OBJECT
-    )
-    this.forceSet(
-      createLiteral('version', ObjectType.Name),
-      miscellaneousOperators.VERSION_OBJECT
-    )
-    this.forceSet(
-      createLiteral('serialnumber', ObjectType.Name),
-      miscellaneousOperators.SERIAL_NUMBER_OBJECT
     )
     this.forceSet(
       createLiteral('false', ObjectType.Name),

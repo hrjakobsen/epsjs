@@ -10,7 +10,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "typecheck": "tsc --noemit"
   },
   "keywords": [
     "eps",

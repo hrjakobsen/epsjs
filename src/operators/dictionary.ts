@@ -1,4 +1,5 @@
 import { PSDictionary } from '../dictionary/dictionary'
+import { SystemDictionary } from '../dictionary/system-dictionary'
 import { PSInterpreter } from '../interpreter'
 import { DictionaryForAllLoopContext } from '../loop-context'
 import { Access, Executability, ObjectType } from '../scanner'
@@ -13,7 +14,7 @@ export function dict(interpreter: PSInterpreter) {
       `${capacity} is higher than the max capacity of ${MAX_DICT_CAPACITY}`
     )
   }
-  const dictionary = new PSDictionary(false, capacity)
+  const dictionary = new PSDictionary(capacity)
   interpreter.pushLiteral(dictionary, ObjectType.Dictionary)
 }
 
@@ -33,7 +34,7 @@ export function endDict(interpreter: PSInterpreter) {
   if (elements.length % 2 !== 0) {
     throw new Error('Dictionary entries must be key-value pairs')
   }
-  const dictionary = new PSDictionary(false, elements.length / 2)
+  const dictionary = new PSDictionary(elements.length / 2)
   for (let i = 0; i < elements.length; i += 2) {
     dictionary.set(elements[i]!, elements[i + 1]!)
   }
@@ -56,7 +57,7 @@ export function maxLength(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=550
 export function begin(interpreter: PSInterpreter) {
-  const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
+  const dictionary = interpreter.pop(ObjectType.Dictionary)
   interpreter.dictionaryStack.push(dictionary)
 }
 
@@ -72,13 +73,16 @@ export function end(interpreter: PSInterpreter) {
 export function def(interpreter: PSInterpreter) {
   const procedure = interpreter.pop(ObjectType.Any)
   const name = interpreter.pop(ObjectType.Any)
-  interpreter.dictionary.set(name, procedure)
+  if (interpreter.dictionary.attributes.access !== Access.Unlimited) {
+    throw new Error('Attempting to write to readonly dictionary')
+  }
+  interpreter.dictionary.value.set(name, procedure)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
 export function load(interpreter: PSInterpreter) {
   const name = interpreter.pop(ObjectType.Any)
-  const element = interpreter.dictionary.get(name)
+  const element = interpreter.dictionary.value.get(name)
   if (element === undefined) {
     throw new Error('Unknown get in dictionary load')
   }
@@ -89,7 +93,10 @@ export function load(interpreter: PSInterpreter) {
 export function store(interpreter: PSInterpreter) {
   const value = interpreter.pop(ObjectType.Any)
   const key = interpreter.pop(ObjectType.Any)
-  interpreter.dictionary.set(key, value)
+  if (interpreter.dictionary.attributes.access !== Access.Unlimited) {
+    throw new Error('Attempting to write to readonly dictionary')
+  }
+  interpreter.dictionary.value.set(key, value)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
@@ -103,15 +110,21 @@ export function get(interpreter: PSInterpreter) {
 export function put(interpreter: PSInterpreter) {
   const value = interpreter.pop(ObjectType.Any)
   const key = interpreter.pop(ObjectType.Any)
-  const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
-  dictionary.set(key, value)
+  const dictionary = interpreter.pop(ObjectType.Dictionary)
+  if (dictionary.attributes.access !== Access.Unlimited) {
+    throw new Error('Attempting to write to readonly dictionary')
+  }
+  dictionary.value.set(key, value)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=722
 export function undef(interpreter: PSInterpreter) {
   const key = interpreter.pop(ObjectType.Any)
-  const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
-  dictionary.remove(key)
+  const dictionary = interpreter.pop(ObjectType.Dictionary)
+  if (dictionary.attributes.access !== Access.Unlimited) {
+    throw new Error('Attempting to write to readonly dictionary')
+  }
+  dictionary.value.remove(key)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=633
@@ -126,10 +139,8 @@ export function where(interpreter: PSInterpreter) {
   const key = interpreter.pop(ObjectType.Any)
   for (let i = interpreter.dictionaryStack.length - 1; i >= 0; --i) {
     const currentDictionary = interpreter.dictionaryStack[i]!
-    if (currentDictionary.has(key)) {
-      // TODO: Should we have a single object for a dictionary, in case
-      // someone dups and changes access?
-      interpreter.pushLiteral(currentDictionary, ObjectType.Dictionary)
+    if (currentDictionary.value.has(key)) {
+      interpreter.operandStack.push(currentDictionary)
       interpreter.pushLiteral(true, ObjectType.Boolean)
       return
     }
@@ -167,13 +178,21 @@ export function error(_interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=716
-export function systemDict(_interpreter: PSInterpreter) {
-  throw new Error('systemdict: Not implemented')
+export function systemDict(interpreter: PSInterpreter) {
+  const dict = interpreter.dictionaryStack[0]
+  if (!dict || !(dict.value instanceof SystemDictionary)) {
+    throw new Error('Expected to get SystemDictionary got ' + typeof dict)
+  }
+  interpreter.operandStack.push(dict)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=727
-export function userDict(_interpreter: PSInterpreter) {
-  throw new Error('userdict: Not implemented')
+export function userDict(interpreter: PSInterpreter) {
+  const dict = interpreter.dictionaryStack[1]
+  if (!dict) {
+    throw new Error('Unable to find user dictionary')
+  }
+  interpreter.operandStack.push(dict)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=615

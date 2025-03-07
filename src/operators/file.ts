@@ -76,6 +76,16 @@ export function currentFile(interpreter: PSInterpreter) {
   )
 }
 
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=667
+export function run(interpreter: PSInterpreter) {
+  const path = interpreter.pop(ObjectType.String).value.asString()
+  if (!interpreter.fs.exists(path)) {
+    throw new Error(`${path} does not exist`)
+  }
+  const file = interpreter.fs.getFile(path)
+  interpreter.pushFileToExecutionStack(file)
+}
+
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=601
 // 'file'
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=734
@@ -88,8 +98,7 @@ export function currentFile(interpreter: PSInterpreter) {
 // flushfile
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=659
 // resetfile
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=667
-// run
+
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=586
 // deletefile
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=658

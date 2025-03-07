@@ -17,6 +17,8 @@ import { CharStream, PSLexer } from './lexer'
 import { GraphicsContext } from './graphics/context'
 import { CanvasBackedGraphicsContext } from './graphics/canvas'
 import { PseudoRandomNumberGenerator } from './random'
+import { start } from './operators/control'
+import { FileSystem } from './fs/file-system'
 
 const MAX_STEPS = 100_000
 const MAX_LOOP_STACK_SIZE = 1024
@@ -32,7 +34,7 @@ export class PSInterpreter {
     this.pushFileToExecutionStack(file)
   }
 
-  private pushFileToExecutionStack(file: CharStreamBackedFile) {
+  public pushFileToExecutionStack(file: CharStreamBackedFile) {
     this.executionStack.push({
       attributes: {
         access: Access.Unlimited,
@@ -42,11 +44,27 @@ export class PSInterpreter {
       type: ObjectType.File,
     })
   }
-  public fonts = new PSDictionary(false, 1024)
+  public fonts = new PSDictionary(1024)
 
-  public dictionaryStack: PSDictionary[] = [
-    new SystemDictionary(),
-    new PSDictionary(false, 1024),
+  public fs: FileSystem = FileSystem.stdFs()
+
+  public dictionaryStack: PSObject<ObjectType.Dictionary>[] = [
+    {
+      attributes: {
+        access: Access.Unlimited,
+        executability: Executability.Literal,
+      },
+      type: ObjectType.Dictionary,
+      value: new SystemDictionary(),
+    },
+    {
+      attributes: {
+        access: Access.Unlimited,
+        executability: Executability.Literal,
+      },
+      type: ObjectType.Dictionary,
+      value: new PSDictionary(1024),
+    },
   ]
   public operandStack: PSObject[] = []
   public executionStack: PSObject[] = []
@@ -78,6 +96,7 @@ export class PSInterpreter {
 
   public run(ctx: CanvasRenderingContext2D) {
     this._printer = new CanvasBackedGraphicsContext(this, ctx)
+    start(this)
     while (!this.done()) {
       this.fetchAndExecute()
     }
@@ -194,8 +213,8 @@ export class PSInterpreter {
 
   symbolLookup(key: PSObject): PSObject {
     for (let i = this.dictionaryStack.length - 1; i >= 0; --i) {
-      if (this.dictionaryStack[i]!.get(key)) {
-        return this.dictionaryStack[i]!.get(key)!
+      if (this.dictionaryStack[i]!.value.get(key)) {
+        return this.dictionaryStack[i]!.value.get(key)!
       }
     }
     throw new Error('Undefined symbol: ' + key.value)

@@ -10,16 +10,10 @@ export class PSDictionary {
   // HACK
   private keysMap = new Map<any, PSObject>()
 
-  constructor(
-    public readonly readOnly: boolean,
-    public readonly capacity: number
-  ) {}
+  constructor(public readonly capacity: number) {}
 
   public set(key: PSObject, value: PSObject) {
-    if (this.readOnly) {
-      throw new Error('Attempting to write to readonly dictionary')
-    }
-    if (this.map.size >= this.capacity && this.map.has(key)) {
+    if (this.map.size >= this.capacity && !this.map.has(key)) {
       throw new Error('No more capacity in dictionary')
     }
     this.forceSet(key, value)
@@ -72,7 +66,7 @@ export class PSDictionary {
   }
 
   public copy() {
-    const newDict = new PSDictionary(this.readOnly, this.capacity)
+    const newDict = new PSDictionary(this.capacity)
     const newDictEntries = Array.from(this.map.entries())
     const newDictKeys = Array.from(this.keysMap.entries())
     newDict.map = new Map(newDictEntries)
@@ -81,7 +75,7 @@ export class PSDictionary {
   }
 
   public static newFont(fontName: string, scale = 1) {
-    const fontDict = new PSDictionary(false, MIN_FONT_CAPACITY)
+    const fontDict = new PSDictionary(MIN_FONT_CAPACITY)
     fontDict.forceSet(
       createLiteral('FontType', ObjectType.Name),
       createLiteral(42, ObjectType.Integer)
