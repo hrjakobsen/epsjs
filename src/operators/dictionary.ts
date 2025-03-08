@@ -167,11 +167,6 @@ export function currentDict(interpreter: PSInterpreter) {
   interpreter.pushLiteral(interpreter.dictionary, ObjectType.Dictionary)
 }
 
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=595
-export function errorDict(_interpreter: PSInterpreter) {
-  throw new Error('errordict: Not implemented')
-}
-
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541
 export function error(_interpreter: PSInterpreter) {
   throw new Error('errordict: Not implemented')

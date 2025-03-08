@@ -134,6 +134,7 @@ export function token(interpreter: PSInterpreter) {
   const jsString = string.value.asString()
   const lexer = new PSLexer(new CharStream(jsString))
   const scanner = new PSScanner(lexer)
+  scanner.interpreter = interpreter
   const token = scanner.next
   if (token) {
     const post = string.value.subString(scanner.sourceOffset())

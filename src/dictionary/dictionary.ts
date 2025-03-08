@@ -1,7 +1,7 @@
 import { PSArray } from '../array'
 import { ObjectType, PSObject } from '../scanner'
 import { PSString } from '../string'
-import { createLiteral } from '../utils'
+import { createLiteral, prettyPrint } from '../utils'
 
 const MIN_FONT_CAPACITY = 3
 
@@ -96,5 +96,14 @@ export class PSDictionary {
       )
     )
     return fontDict
+  }
+
+  toDebugString(): string {
+    return `{ ${[...this.entries()]
+      .map((entry) => {
+        const [name, value] = entry
+        return `${name}: ${prettyPrint(value)}`
+      })
+      .join('\n')} }`
   }
 }

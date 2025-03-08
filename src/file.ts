@@ -5,6 +5,7 @@ import {
   TILDE_CHARCODE,
   Z_CHARCODE,
 } from './ascii85'
+import { PSInterpreter } from './interpreter'
 import { CARRIAGE_RETURN, CharStream, LINE_FEED, PSLexer } from './lexer'
 import { PSObject, PSScanner } from './scanner'
 import { InputStream } from './stream'
@@ -148,6 +149,11 @@ export class CharStreamBackedFile extends PeekableFile {
     const next = this.scanner.next
     this.scanner.advance(1)
     return next
+  }
+
+  withInterpreter(interpreter: PSInterpreter) {
+    this.scanner.interpreter = interpreter
+    return this
   }
 
   public static fromString(contents: string): CharStreamBackedFile {

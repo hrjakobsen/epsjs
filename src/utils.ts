@@ -36,12 +36,7 @@ export function prettyPrint(obj: PSObject<unknown>): string {
         .map(prettyPrint)
         .join(', ')} ]`
     case ObjectType.Dictionary:
-      return `{ ${[...(obj as PSObject<ObjectType.Dictionary>).value.entries()]
-        .map((entry) => {
-          const [name, value] = entry
-          return `${name}: ${prettyPrint(value)}`
-        })
-        .join('\n')} }`
+      return (obj as PSObject<ObjectType.Dictionary>).value.toDebugString()
     case ObjectType.File:
       return '<file>'
     case ObjectType.GState:

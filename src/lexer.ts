@@ -109,13 +109,21 @@ export class PSLexer extends BufferedStreamer<Token> {
   parseNameOrNumber(nextChar: number) {
     const start = this.dataStream.pos
     const literal = isSlash(nextChar)
+    let immediate = false
     if (literal) {
       this.dataStream.advance()
+      if (isSlash(this.dataStream.next)) {
+        immediate = true
+        this.dataStream.advance(1)
+      }
     }
+
     const name = this.dataStream.collectWhile(isRegularCharacter)
 
     return {
-      kind: literal
+      kind: immediate
+        ? TokenType.ImmediatelyEvaluatedName
+        : literal
         ? TokenType.LiteralName
         : isNumber(name)
         ? TokenType.Number

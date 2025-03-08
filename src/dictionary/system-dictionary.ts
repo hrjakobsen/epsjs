@@ -17,7 +17,13 @@ import * as deviceSetupOutputOperators from '../operators/device-setup-output'
 import * as fontOperators from '../operators/glyph-font'
 import * as miscellaneousOperators from '../operators/miscellaneous'
 
-import { Access, Executability, ObjectType, OperatorFunction } from '../scanner'
+import {
+  Access,
+  Executability,
+  ObjectType,
+  OperatorFunction,
+  PSObject,
+} from '../scanner'
 import { PSDictionary } from './dictionary'
 import { PSInterpreter } from '../interpreter'
 import { createLiteral } from '../utils'
@@ -76,9 +82,7 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['known', dictionaryOperators.known],
   ['where', dictionaryOperators.where],
   ['currentdict', dictionaryOperators.currentDict],
-  ['errordict', dictionaryOperators.errorDict],
   ['$error', dictionaryOperators.error],
-  ['systemdict', dictionaryOperators.systemDict],
   ['userdict', dictionaryOperators.userDict],
   ['globaldict', dictionaryOperators.globalDict],
   ['statusdict', dictionaryOperators.statusDict],
@@ -365,6 +369,19 @@ export class SystemDictionary extends PSDictionary {
     )
   }
 
+  public asPSDictionary(): PSObject<ObjectType.Dictionary> {
+    const psDict = {
+      attributes: {
+        access: Access.Unlimited,
+        executability: Executability.Literal,
+      },
+      type: ObjectType.Dictionary,
+      value: this,
+    }
+    this.forceSet(createLiteral('systemdict', ObjectType.Name), psDict)
+    return psDict
+  }
+
   private addBuiltinOperator(name: string, definition: OperatorFunction) {
     this.forceSet(
       {
@@ -384,5 +401,9 @@ export class SystemDictionary extends PSDictionary {
         value: definition,
       }
     )
+  }
+
+  override toDebugString(): string {
+    return '--systemdict--'
   }
 }

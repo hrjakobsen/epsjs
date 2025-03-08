@@ -133,6 +133,7 @@ export type EPSMetaData = {
 }
 
 export class PSScanner extends BufferedStreamer<PSObject> {
+  public interpreter?: PSInterpreter
   constructor(private _lexer: PSLexer) {
     super()
   }
@@ -175,7 +176,7 @@ export class PSScanner extends BufferedStreamer<PSObject> {
       case TokenType.LiteralName:
         return this.scanName(Access.Unlimited, Executability.Literal)
       case TokenType.ImmediatelyEvaluatedName:
-        throw new TokenError(token, 'Not implemented')
+        return this.immediatelyEvaluateName()
       case TokenType.Comment:
         // Skip the comment token
         this._lexer.advance()
@@ -266,6 +267,28 @@ export class PSScanner extends BufferedStreamer<PSObject> {
 
   sourceOffset(): number {
     return this._lexer.sourceOffset()
+  }
+
+  immediatelyEvaluateName() {
+    const token = this._lexer.next!
+    if (!this.interpreter) {
+      throw new Error('No interpreter present while scanning')
+    }
+    const obj = this.interpreter.symbolLookup({
+      type: ObjectType.Name,
+      value: token.content,
+      attributes: {
+        access: Access.Unlimited,
+        executability: Executability.Literal,
+      },
+    })
+    this._lexer.advance(1)
+    if (!obj) {
+      throw new Error(
+        'Unable to lookup immediately evaluated name ' + token.content
+      )
+    }
+    return obj
   }
 }
 

@@ -30,6 +30,8 @@ export class PSInterpreter {
     file: CharStreamBackedFile,
     public readonly metaData: EPSMetaData
   ) {
+    file.withInterpreter(this)
+    this.fs = FileSystem.stdFs(this)
     this.random = new PseudoRandomNumberGenerator()
     this.pushFileToExecutionStack(file)
   }
@@ -46,17 +48,10 @@ export class PSInterpreter {
   }
   public fonts = new PSDictionary(1024)
 
-  public fs: FileSystem = FileSystem.stdFs()
+  public fs: FileSystem
 
   public dictionaryStack: PSObject<ObjectType.Dictionary>[] = [
-    {
-      attributes: {
-        access: Access.Unlimited,
-        executability: Executability.Literal,
-      },
-      type: ObjectType.Dictionary,
-      value: new SystemDictionary(),
-    },
+    new SystemDictionary().asPSDictionary(),
     {
       attributes: {
         access: Access.Unlimited,
@@ -127,7 +122,7 @@ export class PSInterpreter {
         top.attributes.executability === Executability.Executable
       ) {
         const data = (top as PSObject<ObjectType.String>).value.asString()
-        const file = CharStreamBackedFile.fromString(data)
+        const file = CharStreamBackedFile.fromString(data).withInterpreter(this)
         this.executionStack.pop()
         this.pushFileToExecutionStack(file)
         continue
@@ -207,7 +202,11 @@ export class PSInterpreter {
       }
     }
     throw new Error(
-      `Unhandled execution of object: type: ${item.type}, executability: ${item.attributes.executability}, access: ${item.attributes.access}`
+      `Unhandled execution of object: type: ${getObjectTypeName(
+        item.type
+      )}, executability: ${item.attributes.executability}, access: ${
+        item.attributes.access
+      }`
     )
   }
 
