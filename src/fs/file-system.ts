@@ -31,6 +31,7 @@ export class FileSystem {
     const fs = new FileSystem(interpreter)
     fs.addFileFromString('init.ps', initPs)
     fs.addFileFromString('misc.ps', miscPs)
+    fs.addFileFromString('error.ps', errorPs)
     return fs
   }
 }

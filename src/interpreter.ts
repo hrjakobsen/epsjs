@@ -30,10 +30,9 @@ export class PSInterpreter {
     file: CharStreamBackedFile,
     public readonly metaData: EPSMetaData
   ) {
-    file.withInterpreter(this)
     this.fs = FileSystem.stdFs(this)
     this.random = new PseudoRandomNumberGenerator()
-    this.pushFileToExecutionStack(file)
+    this.pushFileToExecutionStack(file.withInterpreter(this))
   }
 
   public pushFileToExecutionStack(file: CharStreamBackedFile) {
