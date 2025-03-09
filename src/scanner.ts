@@ -78,8 +78,11 @@ export class TokenError extends Error {
     super(message)
   }
 }
-
 export type OperatorFunction = (interpreter: PSInterpreter) => void
+export type Operator = {
+  name: string
+  func: OperatorFunction
+}
 
 // TODO: There's probably a nicer way of doing this
 export type ObjectValue<T extends ObjectType | unknown = unknown> =
@@ -98,7 +101,7 @@ export type ObjectValue<T extends ObjectType | unknown = unknown> =
     : T extends ObjectType.Null
     ? null
     : T extends ObjectType.Operator
-    ? OperatorFunction
+    ? Operator
     : T extends ObjectType.Array
     ? PSArray
     : T extends ObjectType.Dictionary

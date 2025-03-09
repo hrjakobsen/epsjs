@@ -244,7 +244,7 @@ export function cvs(interpreter: PSInterpreter) {
   )
 }
 
-function convertToString(obj: PSObject): string {
+export function convertToString(obj: PSObject): string {
   switch (obj.type) {
     case ObjectType.Boolean:
       return obj.value ? 'true' : 'false'
@@ -256,6 +256,8 @@ function convertToString(obj: PSObject): string {
       return (obj.value as ObjectValue<ObjectType.String>).asString()
     case ObjectType.Name:
       return obj.value as ObjectValue<ObjectType.Name>
+    case ObjectType.Operator:
+      return (obj.value as ObjectValue<ObjectType.Operator>).name
     default:
       return '--nostringval--'
   }

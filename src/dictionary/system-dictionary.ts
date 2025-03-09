@@ -398,7 +398,7 @@ export class SystemDictionary extends PSDictionary {
           executability: Executability.Executable,
         },
         type: ObjectType.Operator,
-        value: definition,
+        value: { name, func: definition },
       }
     )
   }

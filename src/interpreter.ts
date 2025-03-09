@@ -175,7 +175,7 @@ export class PSInterpreter {
       // Look up name and invoke procedure
       const definition = this.symbolLookup(item)!
       if (definition.type === ObjectType.Operator) {
-        ;(definition as PSObject<ObjectType.Operator>).value(this)
+        ;(definition as PSObject<ObjectType.Operator>).value.func(this)
         return
       } else if (
         definition.type === ObjectType.Array &&

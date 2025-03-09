@@ -27,10 +27,11 @@ export function compareTypeCompatible(
 export function prettyPrint(obj: PSObject<unknown>): string {
   switch (obj.type) {
     case ObjectType.FontID:
+      return '-font-'
     case ObjectType.Mark:
-      return '<mark>'
+      return '-mark-'
     case ObjectType.Operator:
-      return `<operator ${obj.value}>`
+      return `--{obj.value}--`
     case ObjectType.Array:
       return `[ ${(obj as PSObject<ObjectType.Array>).value
         .map(prettyPrint)
@@ -38,20 +39,22 @@ export function prettyPrint(obj: PSObject<unknown>): string {
     case ObjectType.Dictionary:
       return (obj as PSObject<ObjectType.Dictionary>).value.toDebugString()
     case ObjectType.File:
-      return '<file>'
+      return '-file-'
     case ObjectType.GState:
-      return '<graphics state>'
+      return '-gstate-'
     case ObjectType.PackedArray:
-      return '<packed array>'
+      return '-packedarray-'
     case ObjectType.Save:
-      return '<save>'
+      return '-save-'
     case ObjectType.String:
-      return (obj as PSObject<ObjectType.String>).value.asString()
+      return '(' + (obj as PSObject<ObjectType.String>).value.asString() + ')'
     case ObjectType.Null:
+      return 'null'
     case ObjectType.Real:
-    case ObjectType.Name:
     case ObjectType.Integer:
       return String(obj.value)
+    case ObjectType.Name:
+      return '/' + String(obj.value)
     case ObjectType.Boolean:
       return (obj as PSObject<ObjectType.Boolean>).value ? 'true' : 'false'
   }
