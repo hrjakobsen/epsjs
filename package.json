@@ -23,12 +23,16 @@
   "license": "MIT",
   "jest": {
     "transform": {
-      "^.+\\.(ts|tsx)$": "ts-jest"
+      "^.+\\.(ts|tsx)$": "ts-jest",
+      "^.+\\.ps$": "@glen/jest-raw-loader"
     },
     "testEnvironment": "jsdom",
     "setupFiles": [
       "jest-canvas-mock"
-    ]
+    ],
+    "moduleNameMapper": {
+      "(.*)\\?raw$": "$1"
+    }
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
@@ -40,6 +44,7 @@
     "@lezer/lr": "^1.4.2",
     "eslint": "^9.20.1",
     "jest": "^29.7.0",
+    "@glen/jest-raw-loader": "^2.0.0",
     "ts-jest": "^29.2.5",
     "jest-environment-jsdom": "^29.7.0",
     "jest-canvas-mock": "^2.5.2",
