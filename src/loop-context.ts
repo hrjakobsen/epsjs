@@ -1,12 +1,11 @@
 import { GraphicsContext } from './graphics/context'
+import { PSInterpreter } from './interpreter'
 import { Executability, ObjectType, PSObject } from './scanner'
 import { createLiteral } from './utils'
 
 export abstract class LoopContext {
-  private executionStackStartIndex: number
-
   constructor(
-    protected executionStack: PSObject[],
+    protected interpreter: PSInterpreter,
     protected procedure: PSObject<ObjectType.Array>
   ) {
     if (
@@ -15,37 +14,19 @@ export abstract class LoopContext {
     ) {
       throw new Error('Invalid loop procedure body')
     }
-    this.executionStackStartIndex = executionStack.length
   }
 
   public abstract finished(): boolean
 
   public exit() {
-    this.executionStack.splice(this.executionStackStartIndex + 1)
-  }
-
-  private isDepletedOnStack() {
-    return (
-      this.executionStack.length === this.executionStackStartIndex + 1 &&
-      this.procedure.value.procedureIndex >= this.procedure.value.length
-    )
-  }
-
-  public isReadyToExecute() {
-    return (
-      this.executionStack.length === this.executionStackStartIndex ||
-      this.isDepletedOnStack()
-    )
+    const selfIndex = this.interpreter.executionStack.indexOf(this)
+    this.interpreter.executionStack.splice(selfIndex)
   }
 
   public abstract execute(): void
 
   protected executeProcedure() {
-    if (this.isDepletedOnStack()) {
-      this.executionStack.pop()
-    }
-    this.procedure.value.procedureIndex = 0
-    this.executionStack.push(this.procedure)
+    this.procedure.value.execute(this.interpreter)
   }
 }
 
@@ -56,14 +37,14 @@ export class ForLoopContext extends LoopContext {
   private limit: number
 
   constructor(
-    executionStack: PSObject[],
+    interpreter: PSInterpreter,
     procedure: PSObject,
     private operandStack: PSObject[],
     initial: PSObject<ObjectType.Integer | ObjectType.Real>,
     increment: PSObject<ObjectType.Integer | ObjectType.Real>,
     limit: PSObject<ObjectType.Integer | ObjectType.Real>
   ) {
-    super(executionStack, procedure)
+    super(interpreter, procedure)
     if (!(initial.type & (ObjectType.Real | ObjectType.Integer))) {
       throw new Error('Loop invalid initial type')
     }
@@ -120,11 +101,11 @@ export class RepeatLoopContext extends LoopContext {
   private current = 0
 
   constructor(
-    executionStack: PSObject[],
+    interpreter: PSInterpreter,
     procedure: PSObject,
     iterations: PSObject<ObjectType.Integer>
   ) {
-    super(executionStack, procedure)
+    super(interpreter, procedure)
     if (iterations.type !== ObjectType.Integer) {
       throw new Error('Repeat invalid iterations type')
     }
@@ -144,12 +125,12 @@ export class RepeatLoopContext extends LoopContext {
 export class ArrayForAllLoopContext extends LoopContext {
   private index = 0
   constructor(
-    executionStack: PSObject[],
+    interpreter: PSInterpreter,
     procedure: PSObject,
     private operandStack: PSObject[],
     private array: PSObject<ObjectType.Array>
   ) {
-    super(executionStack, procedure)
+    super(interpreter, procedure)
     if (this.array.type !== ObjectType.Array) {
       throw new Error('Type error in array forall')
     }
@@ -169,12 +150,12 @@ export class DictionaryForAllLoopContext extends LoopContext {
   private index = 0
   private keys: PSObject[]
   constructor(
-    executionStack: PSObject[],
+    interpreter: PSInterpreter,
     procedure: PSObject,
     private operandStack: PSObject[],
     private dictionary: PSObject<ObjectType.Dictionary>
   ) {
-    super(executionStack, procedure)
+    super(interpreter, procedure)
     this.keys = this.dictionary.value.keys()
   }
 
@@ -200,12 +181,12 @@ export class DictionaryForAllLoopContext extends LoopContext {
 export class StringForAllLoopContext extends LoopContext {
   private index = 0
   constructor(
-    executionStack: PSObject[],
+    interpreter: PSInterpreter,
     procedure: PSObject,
     private operandStack: PSObject[],
     private string: PSObject<ObjectType.String>
   ) {
-    super(executionStack, procedure)
+    super(interpreter, procedure)
   }
   public finished(): boolean {
     return this.index >= this.string.value.length
@@ -223,12 +204,12 @@ export class StringForAllLoopContext extends LoopContext {
 export class StringKShowLoopContext extends LoopContext {
   private index = 0
   constructor(
-    executionStack: PSObject[],
+    interpreter: PSInterpreter,
     procedure: PSObject,
     private printer: GraphicsContext,
     private string: PSObject<ObjectType.String>
   ) {
-    super(executionStack, procedure)
+    super(interpreter, procedure)
   }
 
   public override finished(): boolean {

@@ -13,7 +13,7 @@ export class PSDictionary {
   constructor(public readonly capacity: number) {}
 
   public set(key: PSObject, value: PSObject) {
-    if (this.map.size >= this.capacity && !this.map.has(key)) {
+    if (this.map.size >= this.capacity && !this.has(key)) {
       throw new Error('No more capacity in dictionary')
     }
     this.forceSet(key, value)

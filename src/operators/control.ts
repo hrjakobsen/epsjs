@@ -4,12 +4,19 @@ import {
   InfiteLoopContext,
   RepeatLoopContext,
 } from '../loop-context'
-import { Executability, ObjectType } from '../scanner'
+import { Executability, ObjectType, PSObject } from '../scanner'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=596
 export function exec(interpreter: PSInterpreter) {
   const obj = interpreter.pop(ObjectType.Any)
-  interpreter.executionStack.push(obj)
+  if (
+    obj.type === ObjectType.Array &&
+    obj.attributes.executability === Executability.Executable
+  ) {
+    ;(obj as unknown as PSObject<ObjectType.Array>).value.execute(interpreter)
+  } else {
+    interpreter.executionStack.push(obj)
+  }
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=620
@@ -21,10 +28,7 @@ export function _if(interpreter: PSInterpreter) {
     throw new Error('Second argument to if is not a procedure')
   }
   if (bool) {
-    interpreter.executionStack.push({
-      ...procedure,
-      value: procedure.value.copy(),
-    })
+    procedure.value.execute(interpreter)
   }
 }
 
@@ -40,15 +44,9 @@ export function ifelse(interpreter: PSInterpreter) {
     throw new Error('Second argument to if is not a procedure')
   }
   if (bool) {
-    interpreter.executionStack.push({
-      ...procedureTrue,
-      value: procedureTrue.value.copy(),
-    })
+    procedureTrue.value.execute(interpreter)
   } else {
-    interpreter.executionStack.push({
-      ...procedureFalse,
-      value: procedureFalse.value.copy(),
-    })
+    procedureFalse.value.execute(interpreter)
   }
 }
 
@@ -61,7 +59,7 @@ export function _for(interpreter: PSInterpreter) {
 
   interpreter.beginLoop(
     new ForLoopContext(
-      interpreter.executionStack,
+      interpreter,
       proc,
       interpreter.operandStack,
       initial,
@@ -75,15 +73,13 @@ export function _for(interpreter: PSInterpreter) {
 export function repeat(interpreter: PSInterpreter) {
   const proc = interpreter.pop(ObjectType.Array)
   const iterations = interpreter.pop(ObjectType.Integer)
-  interpreter.beginLoop(
-    new RepeatLoopContext(interpreter.executionStack, proc, iterations)
-  )
+  interpreter.beginLoop(new RepeatLoopContext(interpreter, proc, iterations))
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=637
 export function loop(interpreter: PSInterpreter) {
   const proc = interpreter.pop(ObjectType.Array)
-  interpreter.beginLoop(new InfiteLoopContext(interpreter.executionStack, proc))
+  interpreter.beginLoop(new InfiteLoopContext(interpreter, proc))
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=599
@@ -92,7 +88,6 @@ export function exit(interpreter: PSInterpreter) {
     throw new Error('exit: No current loop')
   }
   interpreter.activeLoop.exit()
-  interpreter.loopStack.pop()
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=711

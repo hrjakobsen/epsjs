@@ -84,7 +84,7 @@ export function forall(interpreter: PSInterpreter) {
   const string = interpreter.pop(ObjectType.String)
   interpreter.beginLoop(
     new StringForAllLoopContext(
-      interpreter.executionStack,
+      interpreter,
       proc,
       interpreter.operandStack,
       string

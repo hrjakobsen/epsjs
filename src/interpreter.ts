@@ -21,7 +21,7 @@ import { start } from './operators/control'
 import { FileSystem } from './fs/file-system'
 
 const MAX_STEPS = 100_000
-const MAX_LOOP_STACK_SIZE = 1024
+const MAX_EXECUTION_STACK_SIZE = 1024
 
 export class PSInterpreter {
   private _printer?: GraphicsContext
@@ -61,14 +61,13 @@ export class PSInterpreter {
     },
   ]
   public operandStack: PSObject[] = []
-  public executionStack: PSObject[] = []
-  public loopStack: LoopContext[] = []
+  public executionStack: (PSObject | LoopContext)[] = []
 
   public beginLoop(loop: LoopContext) {
-    if (this.loopStack.length >= MAX_LOOP_STACK_SIZE) {
+    if (this.executionStack.length >= MAX_EXECUTION_STACK_SIZE) {
       throw new Error('Too many nested loops')
     }
-    this.loopStack.push(loop)
+    this.executionStack.push(loop)
   }
 
   public get printer() {
@@ -96,19 +95,13 @@ export class PSInterpreter {
     }
   }
 
-  private next() {
+  private next(): (typeof this.executionStack)[number] | undefined {
     while (this.executionStack.length) {
       const top = this.executionStack[this.executionStack.length - 1]!
-      if (top.type === ObjectType.Array) {
-        const procedure = (top as PSObject<ObjectType.Array>).value
-        const nextInstruction = procedure.get(procedure.procedureIndex)
-        procedure.procedureIndex++
-        if (nextInstruction === undefined) {
-          this.executionStack.pop()
-          continue
-        }
-        return nextInstruction
-      } else if (top.type === ObjectType.File) {
+      if (top instanceof LoopContext) {
+        return top
+      }
+      if (top.type === ObjectType.File) {
         const file = (top as PSObject<ObjectType.File>).value
         const nextInstruction = file.token()
         if (nextInstruction === undefined) {
@@ -133,8 +126,14 @@ export class PSInterpreter {
     return undefined
   }
 
-  public get activeLoop() {
-    return this.loopStack[this.loopStack.length - 1]
+  public get activeLoop(): LoopContext {
+    for (let i = this.executionStack.length - 1; i >= 0; --i) {
+      const item = this.executionStack[i]
+      if (item instanceof LoopContext) {
+        return item
+      }
+    }
+    throw new Error('No active loop')
   }
 
   private done() {
@@ -142,29 +141,25 @@ export class PSInterpreter {
       throw new Error('Too many steps executed')
     }
 
-    return (
-      this.stopped ||
-      (this.loopStack.length === 0 && this.executionStack.length === 0)
-    )
+    return this.stopped || this.executionStack.length === 0
   }
 
   private fetchAndExecute(): void {
-    if (this.activeLoop) {
-      if (this.activeLoop.isReadyToExecute() && this.activeLoop.finished()) {
-        this.activeLoop.exit()
-        this.loopStack.pop()
-        return
-      }
-      if (this.activeLoop.isReadyToExecute()) {
-        this.activeLoop.execute()
-        return
-      }
-    }
-    const item = this.next()
-    if (!item) {
+    const itemOrLoopContext = this.next()
+    if (!itemOrLoopContext) {
       this.stopped = true
       return
     }
+    if (itemOrLoopContext instanceof LoopContext) {
+      const loopCtx = itemOrLoopContext
+      if (loopCtx.finished()) {
+        loopCtx.exit()
+      } else {
+        loopCtx.execute()
+      }
+      return
+    }
+    const item = itemOrLoopContext
     if (
       item.attributes.executability === Executability.Literal ||
       (item.type === ObjectType.Array &&
@@ -186,12 +181,7 @@ export class PSInterpreter {
         definition.type === ObjectType.Array &&
         definition.attributes.executability === Executability.Executable
       ) {
-        // Push procedure to executionStack
-        const procedureBody: PSObject<ObjectType.Array> = {
-          ...definition,
-          value: (definition as PSObject<ObjectType.Array>).value.copy(),
-        }
-        this.executionStack.push(procedureBody)
+        ;(definition as PSObject<ObjectType.Array>).value.execute(this)
         return
       } else if (
         definition.attributes.executability === Executability.Literal

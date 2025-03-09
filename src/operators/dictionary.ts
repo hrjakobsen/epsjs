@@ -154,7 +154,7 @@ export function forall(interpreter: PSInterpreter) {
   const dictionary = interpreter.pop(ObjectType.Dictionary)
   interpreter.beginLoop(
     new DictionaryForAllLoopContext(
-      interpreter.executionStack,
+      interpreter,
       proc,
       interpreter.operandStack,
       dictionary

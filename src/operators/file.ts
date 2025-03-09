@@ -1,5 +1,6 @@
 import { Ascii85DecodeFilter } from '../file'
 import { PSInterpreter } from '../interpreter'
+import { LoopContext } from '../loop-context'
 import { Executability, ObjectType, PSObject } from '../scanner'
 import { createLiteral, prettyPrint } from '../utils'
 
@@ -59,8 +60,8 @@ export function filter(interpreter: PSInterpreter) {
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=570
 export function currentFile(interpreter: PSInterpreter) {
   const files = interpreter.executionStack.filter(
-    (x) => x.type === ObjectType.File
-  )
+    (x) => !(x instanceof LoopContext) && x.type === ObjectType.File
+  ) as PSObject[]
   if (files.length === 0) {
     throw new Error('No current file')
   }

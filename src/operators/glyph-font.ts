@@ -142,7 +142,7 @@ export function kshow(interpreter: PSInterpreter) {
 
   interpreter.beginLoop(
     new StringKShowLoopContext(
-      interpreter.executionStack,
+      interpreter,
       procedure,
       interpreter.printer,
       string

@@ -249,10 +249,9 @@ function convertToString(obj: PSObject): string {
     case ObjectType.Boolean:
       return obj.value ? 'true' : 'false'
     case ObjectType.Integer:
+      return (obj.value as ObjectValue<ObjectType.Integer>).toString()
     case ObjectType.Real:
-      return (
-        obj.value as ObjectValue<ObjectType.Integer | ObjectType.Real>
-      ).toPrecision(5)
+      return (obj.value as ObjectValue<ObjectType.Integer>).toPrecision(5)
     case ObjectType.String:
       return (obj.value as ObjectValue<ObjectType.String>).asString()
     case ObjectType.Name:

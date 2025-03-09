@@ -144,7 +144,7 @@ export function forall(interpreter: PSInterpreter) {
   const array = interpreter.pop(ObjectType.Array)
   interpreter.beginLoop(
     new ArrayForAllLoopContext(
-      interpreter.executionStack,
+      interpreter,
       proc,
       interpreter.operandStack,
       array
