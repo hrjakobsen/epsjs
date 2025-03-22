@@ -82,9 +82,7 @@ export function setColorSpace(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=695
-// @builtin('setrgbcolor')
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=676
-export function setColor(interpreter: PSInterpreter) {
+export function setRgbColor(interpreter: PSInterpreter) {
   const { value: bInput } = interpreter.pop(
     ObjectType.Real | ObjectType.Integer
   )
@@ -94,23 +92,82 @@ export function setColor(interpreter: PSInterpreter) {
   const { value: rInput } = interpreter.pop(
     ObjectType.Real | ObjectType.Integer
   )
-  //FIXME: Support other colour definitions
-  const fitToRgbRange = (number: number) =>
-    Math.round(Math.min(Math.max(0, number), 1) * 255)
+  const r = clamp(0, 1, rInput)
+  const g = clamp(0, 1, gInput)
+  const b = clamp(0, 1, bInput)
+  interpreter.printer.setRgbColor({ r, g, b })
+}
 
-  const r = fitToRgbRange(rInput)
-  const g = fitToRgbRange(gInput)
-  const b = fitToRgbRange(bInput)
-  interpreter.printer.setRgbColor(r, g, b)
+export function currentRgbColor(interpreter: PSInterpreter) {
+  const { r, g, b } = interpreter.printer.currentRgbColor()
+  interpreter.pushLiteralNumber(r, ObjectType.Real)
+  interpreter.pushLiteralNumber(g, ObjectType.Real)
+  interpreter.pushLiteralNumber(b, ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=685
 export function setGray(interpreter: PSInterpreter) {
-  const { value: gray } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
-  if (gray < 0 || gray > 1) {
-    throw new Error('Invalid gray value')
+  const { value: grayInput } = interpreter.pop(
+    ObjectType.Real | ObjectType.Integer
+  )
+  const gray = clamp(0, 1, grayInput)
+  interpreter.printer.setRgbColor({ r: gray, g: gray, b: gray })
+}
+
+function clamp(min: number, max: number, value: number) {
+  return Math.max(Math.min(max, value), min)
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=686
+export function setHsbColor(interpreter: PSInterpreter) {
+  const { value: brightnessRaw } = interpreter.pop(
+    ObjectType.Real | ObjectType.Integer
+  )
+  const { value: saturationRaw } = interpreter.pop(
+    ObjectType.Real | ObjectType.Integer
+  )
+  const { value: hueRaw } = interpreter.pop(
+    ObjectType.Real | ObjectType.Integer
+  )
+  const hue = clamp(0, 1, hueRaw) * 360
+  const saturation = clamp(0, 1, saturationRaw)
+  const value = clamp(0, 1, brightnessRaw)
+
+  // https://en.wikipedia.org/wiki/HSL_and_HSV#HSV_to_RGB_alternative
+  const f = (n: number) => {
+    const k = (n + hue / 60) % 6
+    return value - saturation * clamp(0, 1, Math.min(k, 4 - k))
   }
-  interpreter.printer.setRgbColor(gray * 255, gray * 255, gray * 255)
+
+  const r = f(5)
+  const g = f(3)
+  const b = f(1)
+
+  interpreter.printer.setRgbColor({ r, g, b })
+}
+
+export function currentHsbColor(interpreter: PSInterpreter) {
+  const { r, g, b } = interpreter.printer.currentRgbColor()
+
+  // convert rgb to hsb
+  // https://en.wikipedia.org/wiki/HSL_and_HSV#From_RGB
+  const xMax = Math.max(r, g, b)
+  const xMin = Math.min(r, g, b)
+  const range = xMax - xMin
+  const value = xMax
+
+  const hue =
+    range === 0
+      ? 0
+      : value === r
+      ? 60 * (((g - b) / range) % 6)
+      : value === g
+      ? 60 * ((b - r) / range + 2)
+      : 60 * ((r - g) / range + 4)
+  const saturation = value === 0 ? 0 : range / value
+  interpreter.pushLiteralNumber(hue / 360, ObjectType.Real)
+  interpreter.pushLiteralNumber(saturation, ObjectType.Real)
+  interpreter.pushLiteralNumber(value, ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=561

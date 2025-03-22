@@ -26,6 +26,12 @@ export enum Direction {
   CounterClockwise,
 }
 
+export type RGBColor = {
+  r: number
+  g: number
+  b: number
+}
+
 export abstract class GraphicsContext {
   abstract setFont(font: PSDictionary): void
   abstract clip(): void
@@ -42,7 +48,8 @@ export abstract class GraphicsContext {
   abstract getLineJoin(): LineJoin
   abstract setMiterLimit(miterLimit: number): void
   abstract getMiterLimit(): number
-  abstract setRgbColor(r: number, g: number, b: number): void
+  abstract setRgbColor(color: RGBColor): void
+  abstract currentRgbColor(): RGBColor
   abstract moveTo(coordinate: Coordinate): void
   abstract lineTo(coordinate: Coordinate): void
   abstract arc(

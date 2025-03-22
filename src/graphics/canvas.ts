@@ -6,7 +6,7 @@ import {
 } from '../coordinate'
 import { PSInterpreter } from '../interpreter'
 import { degreeToRadians } from '../utils'
-import { GraphicsContext, LineCap, LineJoin } from './context'
+import { GraphicsContext, LineCap, LineJoin, RGBColor } from './context'
 import { BoundingBox } from '../scanner'
 import { PSArray } from '../array'
 import { PSDictionary } from '../dictionary/dictionary'
@@ -15,6 +15,7 @@ import { PSString } from '../string'
 export class CanvasBackedGraphicsContext extends GraphicsContext {
   private fonts: PSDictionary[] = [PSDictionary.newFont('Helvetica', 10)]
   private transformationMatrix: TransformationMatrix
+  private currentColor: RGBColor = { r: 0, g: 0, b: 0 }
 
   override setFont(font: PSDictionary): void {
     this.fonts[this.fonts.length - 1] = font
@@ -188,12 +189,18 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.canvasContext.beginPath()
     this.setCurrentPoint(undefined)
   }
-  override setRgbColor(r: number, g: number, b: number): void {
-    const newColor: number = (r << 16) + (g << 8) + b
+  override setRgbColor(color: RGBColor): void {
+    const { r, g, b } = color
+    const newColor: number = ((r * 255) << 16) + ((g * 255) << 8) + b * 255
+    this.currentColor = color
     this.canvasContext.strokeStyle = `#${newColor
       .toString(16)
       .padStart(6, '0')}`
     this.canvasContext.fillStyle = `#${newColor.toString(16).padStart(6, '0')}`
+  }
+
+  override currentRgbColor(): RGBColor {
+    return this.currentColor
   }
 
   override setMiterLimit(miterLimit: number): void {
