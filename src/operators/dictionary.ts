@@ -1,5 +1,4 @@
 import { PSDictionary } from '../dictionary/dictionary'
-import { SystemDictionary } from '../dictionary/system-dictionary'
 import { PSInterpreter } from '../interpreter'
 import { DictionaryForAllLoopContext } from '../loop-context'
 import { Access, Executability, ObjectType } from '../scanner'
@@ -170,15 +169,6 @@ export function currentDict(interpreter: PSInterpreter) {
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541
 export function error(_interpreter: PSInterpreter) {
   throw new Error('errordict: Not implemented')
-}
-
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=716
-export function systemDict(interpreter: PSInterpreter) {
-  const dict = interpreter.dictionaryStack[0]
-  if (!dict || !(dict.value instanceof SystemDictionary)) {
-    throw new Error('Expected to get SystemDictionary got ' + typeof dict)
-  }
-  interpreter.operandStack.push(dict)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=727
