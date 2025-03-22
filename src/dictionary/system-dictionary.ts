@@ -164,6 +164,7 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['transform', coordinateSystemMatrixOperators.transform],
   ['setmatrix', coordinateSystemMatrixOperators.setMatrix],
   ['translate', coordinateSystemMatrixOperators.translate],
+  ['concatmatrix', coordinateSystemMatrixOperators.concatMatrix],
   ['scale', coordinateSystemMatrixOperators.scale],
   ['rotate', coordinateSystemMatrixOperators.rotate],
   ['newpath', pathOperators.newPath],

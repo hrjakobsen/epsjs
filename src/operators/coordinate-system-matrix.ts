@@ -237,3 +237,22 @@ export function itransform(interpreter: PSInterpreter) {
   interpreter.pushLiteralNumber(x)
   interpreter.pushLiteralNumber(y)
 }
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=561
+export function concatMatrix(interpreter: PSInterpreter) {
+  const matrix3Obj = interpreter.pop(ObjectType.Array)
+  const matrix2Obj = interpreter.pop(ObjectType.Array)
+  const matrix1Obj = interpreter.pop(ObjectType.Array)
+  if (matrix3Obj.value.length !== 6) {
+    throw new Error(
+      `currentmatrix: Invalid matrix length ${matrix3Obj.value.length}`
+    )
+  }
+  const matrix2 = matrixFromPSArray(matrix2Obj)
+  const matrix1 = matrixFromPSArray(matrix1Obj)
+  const matrixResult = matrixMultiply(matrix1, matrix2)
+  for (let i = 0; i < matrixResult.length; ++i) {
+    matrix3Obj.value.set(i, createLiteral(matrixResult[i]!, ObjectType.Real))
+  }
+  interpreter.operandStack.push(matrix3Obj)
+}
