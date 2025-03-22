@@ -191,12 +191,14 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
   override setRgbColor(color: RGBColor): void {
     const { r, g, b } = color
-    const newColor: number = ((r * 255) << 16) + ((g * 255) << 8) + b * 255
+    const newColor: number =
+      (Math.floor(r * 255) << 16) +
+      (Math.floor(g * 255) << 8) +
+      Math.floor(b * 255)
+    const hexColor = `#${newColor.toString(16).padStart(6, '0')}`
     this.currentColor = color
-    this.canvasContext.strokeStyle = `#${newColor
-      .toString(16)
-      .padStart(6, '0')}`
-    this.canvasContext.fillStyle = `#${newColor.toString(16).padStart(6, '0')}`
+    this.canvasContext.strokeStyle = hexColor
+    this.canvasContext.fillStyle = hexColor
   }
 
   override currentRgbColor(): RGBColor {

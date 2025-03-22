@@ -142,7 +142,7 @@ export function setHsbColor(interpreter: PSInterpreter) {
 
   // https://en.wikipedia.org/wiki/HSL_and_HSV#HSV_to_RGB_alternative
   const f = (n: number) => {
-    const k = (n + hue / 60) % 6
+    const k = mod(n + hue / 60, 6)
     return value - saturation * clamp(0, 1, Math.min(k, 4 - k))
   }
 
@@ -167,7 +167,7 @@ export function currentHsbColor(interpreter: PSInterpreter) {
     range === 0
       ? 0
       : value === r
-      ? 60 * (((g - b) / range) % 6)
+      ? 60 * mod((g - b) / range, 6)
       : value === g
       ? 60 * ((b - r) / range + 2)
       : 60 * ((r - g) / range + 4)
@@ -200,4 +200,8 @@ export function setDash(interpreter: PSInterpreter) {
     array.map((x) => x.value as number),
     offset
   )
+}
+
+function mod(n: number, m: number) {
+  return ((n % m) + m) % m
 }
