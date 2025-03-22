@@ -270,6 +270,10 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.canvasContext.font = `${fontsize}px ${fontName.asString()}`
   }
 
+  override getDefaultTransformationMatrix(): TransformationMatrix {
+    return IDENTITY_MATRIX
+  }
+
   constructor(
     private interpreter: PSInterpreter,
     private canvasContext: CanvasRenderingContext2D

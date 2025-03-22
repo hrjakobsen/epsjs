@@ -39,6 +39,22 @@ export function currentMatrix(interpreter: PSInterpreter) {
   interpreter.operandStack.push(matrix)
 }
 
+export function defaultMatrix(interpreter: PSInterpreter) {
+  const matrix = interpreter.pop(ObjectType.Array)
+  if (matrix.value.length !== 6) {
+    throw new Error(
+      `defaultDeviceMatrix: Invalid matrix length ${matrix.value.length}`
+    )
+  }
+  const defaultDeviceMatrix =
+    interpreter.printer.getDefaultTransformationMatrix()
+
+  for (let i = 0; i < defaultDeviceMatrix.length; ++i) {
+    matrix.value.set(i, createLiteral(defaultDeviceMatrix[i]!, ObjectType.Real))
+  }
+  interpreter.operandStack.push(matrix)
+}
+
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=689
 export function setMatrix(interpreter: PSInterpreter) {
   const matrix = interpreter.pop(ObjectType.Array)

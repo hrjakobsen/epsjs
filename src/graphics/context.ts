@@ -80,4 +80,5 @@ export abstract class GraphicsContext {
   abstract getTransformationMatrix(): TransformationMatrix
   abstract setTransformationMatrix(matrix: TransformationMatrix): void
   abstract stringWidth(text: string): { width: number; height: number }
+  abstract getDefaultTransformationMatrix(): TransformationMatrix
 }
