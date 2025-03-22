@@ -39,6 +39,7 @@ export function currentMatrix(interpreter: PSInterpreter) {
   interpreter.operandStack.push(matrix)
 }
 
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=583
 export function defaultMatrix(interpreter: PSInterpreter) {
   const matrix = interpreter.pop(ObjectType.Array)
   if (matrix.value.length !== 6) {
