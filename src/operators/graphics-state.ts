@@ -114,6 +114,13 @@ export function setGray(interpreter: PSInterpreter) {
   interpreter.printer.setRgbColor({ r: gray, g: gray, b: gray })
 }
 
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=571
+export function currentGray(interpreter: PSInterpreter) {
+  const { r, g, b } = interpreter.printer.currentRgbColor()
+  const gray = 0.3 * r + 0.59 * g + 0.11 * b
+  interpreter.pushLiteralNumber(gray, ObjectType.Real)
+}
+
 function clamp(min: number, max: number, value: number) {
   return Math.max(Math.min(max, value), min)
 }

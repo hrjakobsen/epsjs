@@ -151,6 +151,7 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['setrgbcolor', graphicsStateOperators.setRgbColor],
   ['currentrgbcolor', graphicsStateOperators.currentRgbColor],
   ['setgray', graphicsStateOperators.setGray],
+  ['currentgray', graphicsStateOperators.currentGray],
   ['sethsbcolor', graphicsStateOperators.setHsbColor],
   ['currenthsbcolor', graphicsStateOperators.currentHsbColor],
   ['concat', graphicsStateOperators.concat],
