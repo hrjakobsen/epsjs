@@ -1,9 +1,4 @@
-import {
-  Coordinate,
-  IDENTITY_MATRIX,
-  matrixMultiply,
-  TransformationMatrix,
-} from '../coordinate'
+import { Coordinate, matrixMultiply, TransformationMatrix } from '../coordinate'
 import { PSInterpreter } from '../interpreter'
 import { degreeToRadians } from '../utils'
 import { GraphicsContext, LineCap, LineJoin, RGBColor } from './context'
@@ -16,6 +11,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   private fonts: PSDictionary[] = [PSDictionary.newFont('Helvetica', 10)]
   private transformationMatrix: TransformationMatrix
   private currentColor: RGBColor = { r: 0, g: 0, b: 0 }
+  private defaultTransformationMatrix: TransformationMatrix
 
   override setFont(font: PSDictionary): void {
     this.fonts[this.fonts.length - 1] = font
@@ -152,8 +148,9 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     const currentPoint = this.getCurrentPoint()
     const stringWidth = this.canvasContext.measureText(text).width
     this.canvasContext.save()
+    this.canvasContext.translate(coordinate.x, coordinate.y)
     this.canvasContext.scale(1, -1) // Flip to draw the text
-    this.canvasContext.fillText(text, coordinate.x, -coordinate.y)
+    this.canvasContext.fillText(text, 0, 0)
     this.canvasContext.restore()
     this.moveTo({ x: currentPoint.x + stringWidth, y: currentPoint.y })
   }
@@ -271,7 +268,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
 
   override getDefaultTransformationMatrix(): TransformationMatrix {
-    return IDENTITY_MATRIX
+    return this.defaultTransformationMatrix
   }
 
   constructor(
@@ -279,13 +276,12 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     private canvasContext: CanvasRenderingContext2D
   ) {
     super()
-    this.transformationMatrix = IDENTITY_MATRIX
-    this.canvasContext.setTransform(
-      ...getTransformationMatrix(
-        this.canvasContext.canvas.height,
-        interpreter.metaData.boundingBox
-      )
+    this.defaultTransformationMatrix = getTransformationMatrix(
+      this.canvasContext.canvas.height,
+      interpreter.metaData.boundingBox
     )
+    this.transformationMatrix = this.defaultTransformationMatrix
+    this.canvasContext.setTransform(...this.defaultTransformationMatrix)
   }
 }
 
