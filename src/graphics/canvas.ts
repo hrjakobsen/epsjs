@@ -21,9 +21,9 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.canvasContext.clip()
   }
 
-  override setDash(array: number[], _offset: number): void {
-    // TODO: Handle offset
+  override setDash(array: number[], offset: number): void {
     this.canvasContext.setLineDash(array)
+    this.canvasContext.lineDashOffset = offset
   }
 
   private currentPoints: (Coordinate | undefined)[] = [undefined]
