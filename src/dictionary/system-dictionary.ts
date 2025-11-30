@@ -156,6 +156,7 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['currenthsbcolor', graphicsStateOperators.currentHsbColor],
   ['concat', graphicsStateOperators.concat],
   ['setdash', graphicsStateOperators.setDash],
+  ['currentdash', graphicsStateOperators.currentDash],
   ['matrix', coordinateSystemMatrixOperators.matrix],
   ['invertmatrix', coordinateSystemMatrixOperators.invertMatrix],
   ['currentmatrix', coordinateSystemMatrixOperators.currentMatrix],

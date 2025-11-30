@@ -36,6 +36,7 @@ export abstract class GraphicsContext {
   abstract setFont(font: PSDictionary): void
   abstract clip(): void
   abstract setDash(array: number[], offset: number): void
+  abstract getDash(): { array: number[]; offset: number }
   abstract getCurrentPoint(): Coordinate
   abstract newPath(): void
   abstract save(): void

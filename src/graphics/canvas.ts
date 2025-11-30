@@ -26,6 +26,13 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.canvasContext.lineDashOffset = offset
   }
 
+  override getDash(): { array: number[]; offset: number } {
+    return {
+      array: this.canvasContext.getLineDash(),
+      offset: this.canvasContext.lineDashOffset,
+    }
+  }
+
   private currentPoints: (Coordinate | undefined)[] = [undefined]
   override getCurrentPoint(): Coordinate {
     const point = this.currentPoints[this.currentPoints.length - 1]

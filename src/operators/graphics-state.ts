@@ -1,7 +1,9 @@
+import { PSArray } from '../array'
 import { matrixFromPSArray } from '../coordinate'
 import { LineCap, LineJoin } from '../graphics/context'
 import { PSInterpreter } from '../interpreter'
 import { ObjectType } from '../scanner'
+import { createLiteral } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=617
 export function gsave(interpreter: PSInterpreter) {
@@ -200,6 +202,16 @@ export function setDash(interpreter: PSInterpreter) {
     array.map((x) => x.value as number),
     offset
   )
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=680
+export function currentDash(interpreter: PSInterpreter) {
+  const current = interpreter.printer.getDash()
+  interpreter.pushLiteral(
+    new PSArray(current.array.map((x) => createLiteral(x, ObjectType.Real))),
+    ObjectType.Array
+  )
+  interpreter.pushLiteralNumber(current.offset, ObjectType.Real)
 }
 
 function mod(n: number, m: number) {
