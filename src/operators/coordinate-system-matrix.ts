@@ -238,6 +238,29 @@ export function itransform(interpreter: PSInterpreter) {
   interpreter.pushLiteralNumber(y)
 }
 
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=588
+export function dtransform(interpreter: PSInterpreter) {
+  let x: number
+  let y: number
+  let matrix: TransformationMatrix
+  const matrixOrNumber = interpreter.pop(
+    ObjectType.Real | ObjectType.Integer | ObjectType.Array
+  )
+  if (matrixOrNumber.type === ObjectType.Array) {
+    matrix = matrixFromPSArray(matrixOrNumber)
+    y = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    x = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+  } else {
+    matrix = interpreter.printer.getTransformationMatrix()
+    y = matrixOrNumber.value
+    x = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+  }
+  matrix = [matrix[0], matrix[1], matrix[2], matrix[3], 0, 0]
+  const { x: xPrime, y: yPrime } = transformCoordinate({ x, y }, matrix)
+  interpreter.pushLiteralNumber(xPrime)
+  interpreter.pushLiteralNumber(yPrime)
+}
+
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=561
 export function concatMatrix(interpreter: PSInterpreter) {
   const matrix3Obj = interpreter.pop(ObjectType.Array)
