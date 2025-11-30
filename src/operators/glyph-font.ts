@@ -85,8 +85,8 @@ export async function defineFont(interpreter: PSInterpreter) {
     }
   }
 
-  const sanitizedData = parse(binaryData.slice().buffer)
   try {
+    const sanitizedData = parse(binaryData.slice().buffer)
     const fontFace = new FontFace(name, sanitizedData.toArrayBuffer())
     const loaded = await fontFace.load()
     document.fonts.add(loaded)
