@@ -164,6 +164,8 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['itransform', coordinateSystemMatrixOperators.itransform],
   ['transform', coordinateSystemMatrixOperators.transform],
   ['dtransform', coordinateSystemMatrixOperators.dtransform],
+  ['idtransform', coordinateSystemMatrixOperators.idtransform],
+  ['identmatrix', coordinateSystemMatrixOperators.identMatrix],
   ['setmatrix', coordinateSystemMatrixOperators.setMatrix],
   ['translate', coordinateSystemMatrixOperators.translate],
   ['concatmatrix', coordinateSystemMatrixOperators.concatMatrix],

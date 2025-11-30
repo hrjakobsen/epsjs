@@ -1,5 +1,6 @@
 import { PSArray } from '../array'
 import {
+  IDENTITY_MATRIX,
   invertTransformationMatrix,
   matrixFromPSArray,
   matrixMultiply,
@@ -259,6 +260,58 @@ export function dtransform(interpreter: PSInterpreter) {
   const { x: xPrime, y: yPrime } = transformCoordinate({ x, y }, matrix)
   interpreter.pushLiteralNumber(xPrime)
   interpreter.pushLiteralNumber(yPrime)
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=620
+export function idtransform(interpreter: PSInterpreter) {
+  let xPrime: number
+  let yPrime: number
+  let matrix: TransformationMatrix
+  const matrixOrNumber = interpreter.pop(
+    ObjectType.Real | ObjectType.Integer | ObjectType.Array
+  )
+  if (matrixOrNumber.type === ObjectType.Array) {
+    matrix = matrixFromPSArray(matrixOrNumber)
+    yPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    xPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+  } else {
+    matrix = interpreter.printer.getTransformationMatrix()
+    yPrime = matrixOrNumber.value
+    xPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+  }
+  let inverseTransform = invertTransformationMatrix(matrix)
+  inverseTransform = [
+    inverseTransform[0],
+    inverseTransform[1],
+    inverseTransform[2],
+    inverseTransform[3],
+    0,
+    0,
+  ]
+  const { x, y } = transformCoordinate(
+    { x: xPrime, y: yPrime },
+    inverseTransform
+  )
+  interpreter.pushLiteralNumber(x)
+  interpreter.pushLiteralNumber(y)
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=619
+export function identMatrix(interpreter: PSInterpreter) {
+  const matrixObj = interpreter.pop(ObjectType.Array)
+  if (matrixObj.value.length !== 6) {
+    throw new Error(
+      `currentmatrix: Invalid matrix length ${matrixObj.value.length}`
+    )
+  }
+  const matrix = matrixFromPSArray(matrixObj)
+  for (let i = 0; i < matrix.length; ++i) {
+    matrixObj.value.set(
+      i,
+      createLiteral(IDENTITY_MATRIX[i]!, ObjectType.Integer)
+    )
+  }
+  interpreter.operandStack.push(matrixObj)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=561
