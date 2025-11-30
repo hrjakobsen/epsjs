@@ -1,0 +1,62 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%BoundingBox: 0 0 500 500
+%%Title: Matrix-Based Text
+%%EndComments
+
+% --- Configuration ---
+/CenterX 250 def
+/CenterY 250 def
+/Radius 140 def
+/FontSize 30 def
+/Message (Circular text example) def
+
+% --- Get the Base Font ---
+% We load the font but do NOT call 'scalefont'.
+% We keep it at 1 unit size so our matrix math is easier.
+/BaseFont /Helvetica findfont def
+
+% --- Loop variables ---
+/AngleStep 16 def
+/StartAngle 110 def
+
+0 1 Message length 1 sub {
+    /i exch def
+    /char Message i 1 getinterval def
+
+    % --- 1. Calculate the Geometry ---
+    % Angle for this character
+    /theta StartAngle i AngleStep mul sub def
+
+    % Rotation: theta - 90 (so text sits on the circle)
+    /rot theta 90 sub def
+
+    % Position: Polar to Cartesian
+    /tx CenterX Radius theta cos mul add def
+    /ty CenterY Radius theta sin mul add def
+
+    % --- 2. Calculate Matrix Components ---
+    % Matrix = [ S*cos(R)  S*sin(R)  -S*sin(R)  S*cos(R)  tx  ty ]
+
+    /a FontSize rot cos mul def
+    /b FontSize rot sin mul def
+    /c FontSize rot sin mul neg def
+    /d FontSize rot cos mul def
+
+    % --- 3. Create the Matrix Array ---
+    % Stack: [ a b c d tx ty ]
+    [ a b c d tx ty ]
+
+    % --- 4. Apply to Font ---
+    % Apply this matrix to the BaseFont (which is 1 unit big)
+    BaseFont exch makefont setfont
+
+    % --- 5. Draw ---
+    % Since the translation (tx, ty) is INSIDE the font matrix,
+    % we draw at the origin (0,0). The font matrix teleports the glyph.
+    0 0 moveto
+    char show
+
+} for
+
+showpage
+%%EOF
