@@ -88,7 +88,7 @@ export class PSDictionary {
       createLiteral('FontMatrix', ObjectType.Name),
       createLiteral(
         new PSArray(
-          [0.001 * scale, 0, 0, 0.001 * scale, 0, 0].map((num) =>
+          [scale, 0, 0, scale, 0, 0].map((num) =>
             createLiteral(num, ObjectType.Real)
           )
         ),

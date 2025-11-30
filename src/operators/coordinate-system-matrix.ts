@@ -162,7 +162,7 @@ export function rotate(interpreter: PSInterpreter) {
     const rotation = rotationMatrix(
       (angle as PSObject<ObjectType.Integer | ObjectType.Real>).value
     )
-    const res = matrixMultiply(matrix, rotation)
+    const res = matrixMultiply(rotation, matrix)
     matrixArray.value = new PSArray(
       res.map((x) => createLiteral(x, ObjectType.Real))
     )

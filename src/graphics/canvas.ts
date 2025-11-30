@@ -1,4 +1,9 @@
-import { Coordinate, matrixMultiply, TransformationMatrix } from '../coordinate'
+import {
+  Coordinate,
+  IDENTITY_MATRIX,
+  matrixMultiply,
+  TransformationMatrix,
+} from '../coordinate'
 import { PSInterpreter } from '../interpreter'
 import { degreeToRadians } from '../utils'
 import { GraphicsContext, LineCap, LineJoin, RGBColor } from './context'
@@ -11,6 +16,9 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   private transformationMatrix: TransformationMatrix
   private currentColor: RGBColor = { r: 0, g: 0, b: 0 }
   private defaultTransformationMatrix: TransformationMatrix
+  private activeFont:
+    | { name: string; matrix: TransformationMatrix | undefined }
+    | undefined
 
   override setFont(font: PSDictionary): void {
     this.fonts[this.fonts.length - 1] = font
@@ -80,10 +88,10 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
 
   override concat(matrix: TransformationMatrix): void {
     this.transformationMatrix = matrixMultiply(
-      this.transformationMatrix,
-      matrix
+      matrix,
+      this.transformationMatrix
     )
-    this.canvasContext.transform(...matrix)
+    this.canvasContext.setTransform(...this.transformationMatrix)
   }
 
   override bezierCurveTo(
@@ -149,16 +157,41 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.setCurrentPoint(undefined)
   }
   override fillText(text: string, coordinate: Coordinate): void {
-    // Postscript has inverted y axis, so we temporarily flip the canvas to
-    // draw the text
+    if (!this.activeFont) {
+      throw new Error('No font set')
+    }
     const currentPoint = this.getCurrentPoint()
-    const stringWidth = this.canvasContext.measureText(text).width
+
     this.canvasContext.save()
+
+    // 1. Move to the text origin
     this.canvasContext.translate(coordinate.x, coordinate.y)
-    this.canvasContext.scale(1, -1) // Flip to draw the text
+
+    // 2. Apply the FontMatrix
+    const { matrix: activeFontMatrix, name } = this.activeFont
+    const fontMatrix = activeFontMatrix ?? IDENTITY_MATRIX
+    this.canvasContext.transform(...fontMatrix)
+
+    // 3. Set Font Size to 1
+    // Since the FontMatrix (e.g., [12 0 0 12 0 0]) usually handles the scaling,
+    // we must tell Canvas to draw at a "unit size" so we don't scale twice.
+    this.canvasContext.font = `1pt ${name}`
+
+    // 4. Flip the Y-axis so it points UP (matching PostScript expectations)
+    this.canvasContext.scale(1, -1)
+
+    // 5. Draw at (0,0)
     this.canvasContext.fillText(text, 0, 0)
+
+    // 6. Calculate Width for cursor update
+    const measure = this.canvasContext.measureText(text)
+    const transformWidth = measure.width
+
     this.canvasContext.restore()
-    this.moveTo({ x: currentPoint.x + stringWidth, y: currentPoint.y })
+
+    // 7. Update Position
+    // TODO: Do we need to consider the font matrix here?
+    this.moveTo({ x: currentPoint.x + transformWidth, y: currentPoint.y })
   }
   override arc(
     coordinate: Coordinate,
@@ -267,10 +300,9 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     const font = this.fonts[this.fonts.length - 1]!
     const matrix = (font.searchByName('FontMatrix')?.value as PSArray).map(
       (x) => x.value
-    ) as TransformationMatrix
+    ) as TransformationMatrix | undefined
     const fontName = font.searchByName('FontName')!.value as string
-    const fontsize = matrix[3] * 1000
-    this.canvasContext.font = `${fontsize}px ${fontName}`
+    this.activeFont = { name: fontName, matrix }
   }
 
   override getDefaultTransformationMatrix(): TransformationMatrix {

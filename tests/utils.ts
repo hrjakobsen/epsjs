@@ -2,14 +2,14 @@ import { PSInterpreter } from '../src'
 import { ObjectType } from '../src/scanner'
 import { PSString } from '../src/string'
 
-export function testProgram(programText: string) {
+export async function testProgram(programText: string) {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
   if (!ctx) {
     throw new Error('No 2d context')
   }
   const interpreter = PSInterpreter.load(programText)
-  interpreter.run(ctx)
+  await interpreter.run(ctx)
   return interpreter
 }
 
