@@ -234,6 +234,8 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['show', fontOperators.show],
   ['ashow', fontOperators.ashow],
   ['kshow', fontOperators.kshow],
+  ['widthshow', fontOperators.widthshow],
+  ['awidthshow', fontOperators.awidthshow],
   // Overloads
   [
     'copy',

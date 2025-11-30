@@ -177,3 +177,52 @@ export function kshow(interpreter: PSInterpreter) {
     )
   )
 }
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=732
+export function widthshow(interpreter: PSInterpreter) {
+  const string = interpreter.pop(ObjectType.String).value
+  const { value: char } = interpreter.pop(ObjectType.Integer)
+  const { value: cy } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const { value: cx } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+
+  const characters = string.asString().split('')
+  for (const currentChar of characters) {
+    const currentPoint = interpreter.printer.getCurrentPoint()
+    interpreter.printer.fillText(currentChar, currentPoint)
+    if (currentChar.charCodeAt(0) === char) {
+      const updatedGraphicsPoint = interpreter.printer.getCurrentPoint()
+      interpreter.printer.moveTo({
+        x: updatedGraphicsPoint.x + cx,
+        y: updatedGraphicsPoint.y + cy,
+      })
+    }
+  }
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=550
+export function awidthshow(interpreter: PSInterpreter) {
+  const string = interpreter.pop(ObjectType.String).value
+  const { value: ay } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const { value: ax } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const { value: char } = interpreter.pop(ObjectType.Integer)
+  const { value: cy } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const { value: cx } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+
+  const characters = string.asString().split('')
+  for (const currentChar of characters) {
+    const currentPoint = interpreter.printer.getCurrentPoint()
+    interpreter.printer.fillText(currentChar, currentPoint)
+    const updatedGraphicsPoint = interpreter.printer.getCurrentPoint()
+    interpreter.printer.moveTo({
+      x: updatedGraphicsPoint.x + ax,
+      y: updatedGraphicsPoint.y + ay,
+    })
+    if (currentChar.charCodeAt(0) === char) {
+      const updatedGraphicsPoint = interpreter.printer.getCurrentPoint()
+      interpreter.printer.moveTo({
+        x: updatedGraphicsPoint.x + cx,
+        y: updatedGraphicsPoint.y + cy,
+      })
+    }
+  }
+}
