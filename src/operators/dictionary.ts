@@ -163,7 +163,7 @@ export function forall(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=569
 export function currentDict(interpreter: PSInterpreter) {
-  interpreter.pushLiteral(interpreter.dictionary, ObjectType.Dictionary)
+  interpreter.operandStack.push(interpreter.dictionary)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541

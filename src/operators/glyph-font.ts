@@ -8,8 +8,10 @@ import {
 import { PSDictionary } from '../dictionary/dictionary'
 import { PSInterpreter } from '../interpreter'
 import { StringKShowLoopContext } from '../loop-context'
-import { Executability, ObjectType } from '../scanner'
+import { Executability, ObjectType, PSObject } from '../scanner'
+import { PSString } from '../string'
 import { createLiteral } from '../utils'
+import { parse } from 'opentype.js'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=606
 export function findFont(interpreter: PSInterpreter) {
@@ -59,11 +61,37 @@ export function scaleFont(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=583
-export function defineFont(interpreter: PSInterpreter) {
+export async function defineFont(interpreter: PSInterpreter) {
   const font = interpreter.pop(ObjectType.Dictionary)
   const key = interpreter.pop(ObjectType.Any)
   if (!font.value.isFontDictionary()) {
     throw new Error('definefont: Not a font dictionary')
+  }
+  const name = font.value.searchByName('FontName')!.value as string
+  const data = font.value.searchByName('sfnts')!.value as PSArray
+  let totalLength = 0
+  for (const str of data.items) {
+    if (str.type !== ObjectType.String) {
+      throw new Error('Invalid data type, expected string got ' + str.type)
+    }
+    totalLength += (str as PSObject<ObjectType.String>).value.length
+  }
+  const binaryData = new Uint8Array(totalLength)
+  let cursor = 0
+  for (const str of data.items) {
+    const buffer = (str.value as PSString).asBuffer()
+    for (let i = 0; i <= buffer.length; ++i) {
+      binaryData[cursor++] = buffer[i]!
+    }
+  }
+
+  const sanitizedData = parse(binaryData.slice().buffer)
+  try {
+    const fontFace = new FontFace(name, sanitizedData.toArrayBuffer())
+    const loaded = await fontFace.load()
+    document.fonts.add(loaded)
+  } catch (err) {
+    console.error('Error loading font', err)
   }
   interpreter.fonts.set(key, font)
   interpreter.operandStack.push(font)

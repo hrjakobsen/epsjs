@@ -449,7 +449,7 @@ function isNumber(contentChars: number[]) {
 
 function readHexString(hexString: string) {
   const charcodes = []
-  for (let c = 0; c < hexString.length - 2; c++) {
+  for (let c = 0; c < hexString.length - 2; c += 2) {
     charcodes.push(parseInt(hexString.substring(c, c + 2), 16))
   }
   return String.fromCharCode(...charcodes)

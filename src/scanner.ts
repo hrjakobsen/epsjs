@@ -78,7 +78,9 @@ export class TokenError extends Error {
     super(message)
   }
 }
-export type OperatorFunction = (interpreter: PSInterpreter) => void
+export type OperatorFunction = (
+  interpreter: PSInterpreter
+) => void | Promise<void>
 export type Operator = {
   name: string
   func: OperatorFunction

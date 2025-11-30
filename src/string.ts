@@ -90,4 +90,12 @@ export class PSString {
       this.set(index + i, data.charCodeAt(i))
     }
   }
+
+  asBuffer(): Uint8Array {
+    const buffer = new Uint8Array(this.data.length)
+    for (let i = 0; i <= this.data.length; ++i) {
+      buffer[i] = this.data[i]!
+    }
+    return buffer
+  }
 }

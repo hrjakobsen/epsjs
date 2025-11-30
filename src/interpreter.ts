@@ -87,11 +87,11 @@ export class PSInterpreter {
     return this.dictionaryStack[this.dictionaryStack.length - 1]!
   }
 
-  public run(ctx: CanvasRenderingContext2D) {
+  public async run(ctx: CanvasRenderingContext2D) {
     this._printer = new CanvasBackedGraphicsContext(this, ctx)
     start(this)
     while (!this.done()) {
-      this.fetchAndExecute()
+      await this.fetchAndExecute()
     }
   }
 
@@ -144,7 +144,7 @@ export class PSInterpreter {
     return this.stopped || this.executionStack.length === 0
   }
 
-  private fetchAndExecute(): void {
+  private async fetchAndExecute(): Promise<void> {
     const itemOrLoopContext = this.next()
     if (!itemOrLoopContext) {
       this.stopped = true
@@ -175,7 +175,7 @@ export class PSInterpreter {
       // Look up name and invoke procedure
       const definition = this.symbolLookup(item)!
       if (definition.type === ObjectType.Operator) {
-        ;(definition as PSObject<ObjectType.Operator>).value.func(this)
+        await (definition as PSObject<ObjectType.Operator>).value.func(this)
         return
       } else if (
         definition.type === ObjectType.Array &&

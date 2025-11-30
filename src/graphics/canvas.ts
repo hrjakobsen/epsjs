@@ -5,7 +5,6 @@ import { GraphicsContext, LineCap, LineJoin, RGBColor } from './context'
 import { BoundingBox } from '../scanner'
 import { PSArray } from '../array'
 import { PSDictionary } from '../dictionary/dictionary'
-import { PSString } from '../string'
 
 export class CanvasBackedGraphicsContext extends GraphicsContext {
   private fonts: PSDictionary[] = [PSDictionary.newFont('Helvetica', 10)]
@@ -262,9 +261,9 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     const matrix = (font.searchByName('FontMatrix')?.value as PSArray).map(
       (x) => x.value
     ) as TransformationMatrix
-    const fontName = font.searchByName('FontName')!.value as PSString
+    const fontName = font.searchByName('FontName')!.value as string
     const fontsize = matrix[3] * 1000
-    this.canvasContext.font = `${fontsize}px ${fontName.asString()}`
+    this.canvasContext.font = `${fontsize}px ${fontName}`
   }
 
   override getDefaultTransformationMatrix(): TransformationMatrix {
