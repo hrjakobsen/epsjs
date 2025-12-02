@@ -10,7 +10,6 @@ import { indentWithTab } from '@codemirror/commands'
 import { PSInterpreter } from '../src'
 import { TokenError } from '../src/scanner'
 import { ps } from './lezer/ps-language'
-import { stack } from '../src/operators/file'
 
 const INITIAL_DOC = `10 280 moveto
 (<- Write code over there) show
@@ -40,24 +39,12 @@ export const view = new EditorView({
       keymap.of([indentWithTab]),
       ps(),
       highlightTrailingWhitespace(),
-      keymap.of([
-        {
-          key: 'Mod-s',
-          run: () => {
-            const interpreter = render()
-            if (interpreter) {
-              stack(interpreter)
-            }
-            return true
-          },
-        },
-      ]),
     ],
   }),
   parent: document.getElementById('text')!,
 })
 
-function render(): PSInterpreter | undefined {
+async function render(): Promise<PSInterpreter | undefined> {
   try {
     document.getElementById('error')!.innerText = ''
     const canvas = document.getElementById('canvas') as HTMLCanvasElement
@@ -76,7 +63,7 @@ function render(): PSInterpreter | undefined {
       canvas.width = 300
       canvas.height = 300
     }
-    interpreter.run(context)
+    await interpreter.run(context)
     return interpreter
   } catch (e: any) {
     let message = ''
