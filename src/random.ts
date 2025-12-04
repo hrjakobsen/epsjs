@@ -53,7 +53,7 @@ export class PseudoRandomNumberGenerator {
       j += n
     }
 
-    let x = ((this.state[k]! & UMASK) | (this.state[j]! & LMASK)) >>> 0
+    let x = ((this.state[k] & UMASK) | (this.state[j] & LMASK)) >>> 0
     let xA = (x >> 1) >>> 0
     if (x & 0x00000001) {
       xA ^= a
@@ -65,7 +65,7 @@ export class PseudoRandomNumberGenerator {
       j += n
     }
 
-    x = (this.state[j]! ^ xA) >>> 0
+    x = (this.state[j] ^ xA) >>> 0
     this.state[k++] = x
     if (k >= n) {
       k = 0

@@ -35,7 +35,7 @@ export function endDict(interpreter: PSInterpreter) {
   }
   const dictionary = new PSDictionary(elements.length / 2)
   for (let i = 0; i < elements.length; i += 2) {
-    dictionary.set(elements[i]!, elements[i + 1]!)
+    dictionary.set(elements[i], elements[i + 1])
   }
   interpreter.pushLiteral(dictionary, ObjectType.Dictionary)
 }
@@ -137,7 +137,7 @@ export function known(interpreter: PSInterpreter) {
 export function where(interpreter: PSInterpreter) {
   const key = interpreter.pop(ObjectType.Any)
   for (let i = interpreter.dictionaryStack.length - 1; i >= 0; --i) {
-    const currentDictionary = interpreter.dictionaryStack[i]!
+    const currentDictionary = interpreter.dictionaryStack[i]
     if (currentDictionary.value.has(key)) {
       interpreter.operandStack.push(currentDictionary)
       interpreter.pushLiteral(true, ObjectType.Boolean)
@@ -208,7 +208,7 @@ export function dictStack(interpreter: PSInterpreter) {
   const n = interpreter.dictionaryStack.length
   for (let i = 0; i < n; ++i) {
     array.set(i, {
-      value: interpreter.dictionaryStack[i]!,
+      value: interpreter.dictionaryStack[i],
       type: ObjectType.Dictionary,
       attributes: {
         access: Access.Unlimited,

@@ -165,7 +165,7 @@ export class DictionaryForAllLoopContext extends LoopContext {
 
   public execute(): void {
     while (this.index < this.keys.length) {
-      const key = this.keys[this.index]!
+      const key = this.keys[this.index]
       const item = this.dictionary.value.get(key)
       if (item !== undefined) {
         this.operandStack.push(key, item)

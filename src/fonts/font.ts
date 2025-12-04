@@ -145,7 +145,7 @@ class Tag {
   toString() {
     let str = ''
     for (let i = 0; i <= this.buffer.length; ++i) {
-      const charCode = this.buffer[i]!
+      const charCode = this.buffer[i]
       if (charCode >= 0x20 && charCode <= 0x7e) {
         str += String.fromCharCode(charCode)
       }

@@ -82,7 +82,7 @@ export function ascii85Decode(input: string) {
     } else if (isWhitespace(input.charCodeAt(0))) {
       continue
     } else {
-      currentData.push(input[i]!.charCodeAt(0))
+      currentData.push(input[i].charCodeAt(0))
     }
     if (currentData.length >= 5) {
       decodedData.push(...decodeAscii85Group(currentData))

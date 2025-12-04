@@ -39,7 +39,7 @@ export function index(interpreter: PSInterpreter) {
     throw new Error('Index too high')
   }
   interpreter.operandStack.push(
-    interpreter.operandStack[interpreter.operandStack.length - 1 - offset]!
+    interpreter.operandStack[interpreter.operandStack.length - 1 - offset]
   )
 }
 

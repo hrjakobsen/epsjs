@@ -86,7 +86,7 @@ export class PSInterpreter {
     if (!this.dictionaryStack.length) {
       throw new Error('Empty dictionary stack')
     }
-    return this.dictionaryStack[this.dictionaryStack.length - 1]!
+    return this.dictionaryStack[this.dictionaryStack.length - 1]
   }
 
   public async run(ctx: CanvasRenderingContext2D) {
@@ -99,7 +99,7 @@ export class PSInterpreter {
 
   private next(): (typeof this.executionStack)[number] | undefined {
     while (this.executionStack.length) {
-      const top = this.executionStack[this.executionStack.length - 1]!
+      const top = this.executionStack[this.executionStack.length - 1]
       if (top instanceof LoopContext) {
         return top
       }
@@ -203,8 +203,8 @@ export class PSInterpreter {
 
   symbolLookup(key: PSObject): PSObject {
     for (let i = this.dictionaryStack.length - 1; i >= 0; --i) {
-      if (this.dictionaryStack[i]!.value.get(key)) {
-        return this.dictionaryStack[i]!.value.get(key)!
+      if (this.dictionaryStack[i].value.get(key)) {
+        return this.dictionaryStack[i].value.get(key)!
       }
     }
     throw new Error('Undefined symbol: ' + key.value)

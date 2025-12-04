@@ -81,7 +81,7 @@ export async function defineFont(interpreter: PSInterpreter) {
   for (const str of data.items) {
     const buffer = (str.value as PSString).asBuffer()
     for (let i = 0; i <= buffer.length; ++i) {
-      binaryData[cursor++] = buffer[i]!
+      binaryData[cursor++] = buffer[i]
     }
   }
   const view = new DataView(binaryData.buffer, 0)

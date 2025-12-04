@@ -52,7 +52,7 @@ export function defaultMatrix(interpreter: PSInterpreter) {
     interpreter.printer.getDefaultTransformationMatrix()
 
   for (let i = 0; i < defaultDeviceMatrix.length; ++i) {
-    matrix.value.set(i, createLiteral(defaultDeviceMatrix[i]!, ObjectType.Real))
+    matrix.value.set(i, createLiteral(defaultDeviceMatrix[i], ObjectType.Real))
   }
   interpreter.operandStack.push(matrix)
 }
@@ -186,7 +186,7 @@ export function invertMatrix(interpreter: PSInterpreter) {
   const sourceMatrix = matrixFromPSArray(sourceArray)
   const inverted = invertTransformationMatrix(sourceMatrix)
   for (let i = 0; i < 6; i++) {
-    targetArray.value.set(i, createLiteral(inverted[i]!, ObjectType.Real))
+    targetArray.value.set(i, createLiteral(inverted[i], ObjectType.Real))
   }
   interpreter.operandStack.push(targetArray)
 }
@@ -308,7 +308,7 @@ export function identMatrix(interpreter: PSInterpreter) {
   for (let i = 0; i < matrix.length; ++i) {
     matrixObj.value.set(
       i,
-      createLiteral(IDENTITY_MATRIX[i]!, ObjectType.Integer)
+      createLiteral(IDENTITY_MATRIX[i], ObjectType.Integer)
     )
   }
   interpreter.operandStack.push(matrixObj)
@@ -328,7 +328,7 @@ export function concatMatrix(interpreter: PSInterpreter) {
   const matrix1 = matrixFromPSArray(matrix1Obj)
   const matrixResult = matrixMultiply(matrix1, matrix2)
   for (let i = 0; i < matrixResult.length; ++i) {
-    matrix3Obj.value.set(i, createLiteral(matrixResult[i]!, ObjectType.Real))
+    matrix3Obj.value.set(i, createLiteral(matrixResult[i], ObjectType.Real))
   }
   interpreter.operandStack.push(matrix3Obj)
 }

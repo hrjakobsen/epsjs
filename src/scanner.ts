@@ -153,10 +153,10 @@ export class PSScanner extends BufferedStreamer<PSObject> {
         )
         if (boundingBox) {
           metaData.boundingBox = {
-            lowerLeftX: parseInt(boundingBox[1]!),
-            lowerLeftY: parseInt(boundingBox[2]!),
-            upperRightX: parseInt(boundingBox[3]!),
-            upperRightY: parseInt(boundingBox[4]!),
+            lowerLeftX: parseInt(boundingBox[1]),
+            lowerLeftY: parseInt(boundingBox[2]),
+            upperRightX: parseInt(boundingBox[3]),
+            upperRightY: parseInt(boundingBox[4]),
           }
         }
         if (token.content.match(/^%EndComments$/)) {
@@ -305,8 +305,8 @@ export function parseNumber(numberString: string): {
   let type = ObjectType.Real
   if (numberString.match(RADIX_NUMBER)) {
     const parts = numberString.split('#')
-    const base = parseInt(parts[0]!)
-    value = parseInt(parts[1]!, base)
+    const base = parseInt(parts[0])
+    value = parseInt(parts[1], base)
     type = ObjectType.Integer
   } else if (numberString.match(BASE_10_INT)) {
     value = parseInt(numberString)

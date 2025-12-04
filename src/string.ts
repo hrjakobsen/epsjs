@@ -30,7 +30,7 @@ export class PSString {
         `Attempted to access index ${index} in string with length ${this.length}`
       )
     }
-    return this.data[index]!
+    return this.data[index]
   }
 
   public anchorSearch(other: PSString): boolean {
@@ -94,7 +94,7 @@ export class PSString {
   asBuffer(): Uint8Array {
     const buffer = new Uint8Array(this.data.length)
     for (let i = 0; i <= this.data.length; ++i) {
-      buffer[i] = this.data[i]!
+      buffer[i] = this.data[i]
     }
     return buffer
   }

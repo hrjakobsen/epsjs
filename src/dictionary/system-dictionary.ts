@@ -38,8 +38,8 @@ function stackMatches(interpreter: PSInterpreter, pattern: StackPattern) {
   for (let i = 0; i < pattern.length; i++) {
     if (
       !(
-        pattern[pattern.length - 1 - i]! &
-        interpreter.operandStack[interpreter.operandStack.length - 1 - i]!.type
+        pattern[pattern.length - 1 - i] &
+        interpreter.operandStack[interpreter.operandStack.length - 1 - i].type
       )
     ) {
       return false
