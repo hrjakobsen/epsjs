@@ -95,7 +95,7 @@ export type ObjectValue<T extends ObjectType | unknown = unknown> =
     : T extends ObjectType.Boolean
     ? boolean
     : T extends ObjectType.FontID
-    ? never
+    ? number
     : T extends ObjectType.Mark
     ? undefined
     : T extends ObjectType.Name

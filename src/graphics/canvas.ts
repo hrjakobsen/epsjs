@@ -5,11 +5,13 @@ import {
   TransformationMatrix,
 } from '../coordinate'
 import { PSInterpreter } from '../interpreter'
-import { degreeToRadians } from '../utils'
+import { createLiteral, degreeToRadians } from '../utils'
 import { GraphicsContext, LineCap, LineJoin, RGBColor } from './context'
-import { BoundingBox } from '../scanner'
+import { BoundingBox, ObjectType, PSObject } from '../scanner'
 import { PSArray } from '../array'
 import { PSDictionary } from '../dictionary/dictionary'
+import { Font, SimpleGlyph } from '../fonts/font'
+import { renderSimpleGlyph } from './canvas-font-renderer'
 
 export class CanvasBackedGraphicsContext extends GraphicsContext {
   private fonts: PSDictionary[] = [PSDictionary.newFont('Helvetica', 10)]
@@ -22,7 +24,6 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
 
   override setFont(font: PSDictionary): void {
     this.fonts[this.fonts.length - 1] = font
-    this.applyTopFont()
   }
 
   override clip(): void {
@@ -156,10 +157,74 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.canvasContext.closePath()
     this.setCurrentPoint(undefined)
   }
+
+  fillTextFromFont(
+    fontDict: PSDictionary,
+    font: Font,
+    text: string,
+    coordinate: Coordinate
+  ) {
+    for (let i = 0; i < text.length; ++i) {
+      const charCode = text.charCodeAt(i)
+      const encodingDict = fontDict.get(
+        createLiteral('Encoding', ObjectType.Name)
+      ) as PSObject<ObjectType.Array>
+      const encodingMapping = encodingDict.value.get(charCode)
+      if (!encodingMapping) {
+        throw new Error("Couldn't find encoding for charcode " + charCode)
+      }
+
+      const charStringsDict = fontDict.get(
+        createLiteral('CharStrings', ObjectType.Name)
+      ) as PSObject<ObjectType.Dictionary>
+      const glyphIndex = charStringsDict.value.get(
+        encodingMapping
+      ) as PSObject<ObjectType.Integer>
+
+      if (!glyphIndex) {
+        throw new Error(
+          "Couldn't find glyph index for name /" + encodingMapping.value
+        )
+      }
+
+      const glyph = font.glyf.glyphs.at(glyphIndex.value)
+      if (!(glyph instanceof SimpleGlyph)) {
+        throw new Error('Cannot draw composite glyphs')
+      }
+
+      this.canvasContext.save()
+      const matrix = (
+        fontDict.searchByName('FontMatrix')?.value as PSArray
+      ).map((x) => x.value) as TransformationMatrix | undefined
+      const fontMatrix = matrix ?? IDENTITY_MATRIX
+      this.canvasContext.translate(coordinate.x, coordinate.y)
+      this.canvasContext.transform(...fontMatrix)
+      const scalingFactor = 1 / font.head.unitsPerEm
+      this.canvasContext.scale(scalingFactor, scalingFactor)
+
+      renderSimpleGlyph(this.canvasContext, glyph)
+
+      this.canvasContext.restore()
+    }
+  }
+
   override fillText(text: string, coordinate: Coordinate): void {
-    if (!this.activeFont) {
+    const fontDict = this.fonts[this.fonts.length - 1]
+    if (!fontDict) {
       throw new Error('No font set')
     }
+    const fid = fontDict.get(createLiteral('FID', ObjectType.Name))
+
+    if (fid) {
+      const font = this.interpreter.parsedFonts.getFont(fid)
+      return this.fillTextFromFont(fontDict, font, text, coordinate)
+    }
+
+    const matrix = (fontDict.searchByName('FontMatrix')?.value as PSArray).map(
+      (x) => x.value
+    ) as TransformationMatrix | undefined
+    const fontName = fontDict.searchByName('FontName')!.value as string
+
     const currentPoint = this.getCurrentPoint()
 
     this.canvasContext.save()
@@ -168,14 +233,14 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.canvasContext.translate(coordinate.x, coordinate.y)
 
     // 2. Apply the FontMatrix
-    const { matrix: activeFontMatrix, name } = this.activeFont
-    const fontMatrix = activeFontMatrix ?? IDENTITY_MATRIX
+
+    const fontMatrix = matrix ?? IDENTITY_MATRIX
     this.canvasContext.transform(...fontMatrix)
 
     // 3. Set Font Size to 1
     // Since the FontMatrix (e.g., [12 0 0 12 0 0]) usually handles the scaling,
     // we must tell Canvas to draw at a "unit size" so we don't scale twice.
-    this.canvasContext.font = `1pt ${name}`
+    this.canvasContext.font = `1pt ${fontName}`
 
     // 4. Flip the Y-axis so it points UP (matching PostScript expectations)
     this.canvasContext.scale(1, -1)
@@ -193,6 +258,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     // TODO: Do we need to consider the font matrix here?
     this.moveTo({ x: currentPoint.x + transformWidth, y: currentPoint.y })
   }
+
   override arc(
     coordinate: Coordinate,
     radius: number,
@@ -294,15 +360,6 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
       width: measure.width,
       height: measure.actualBoundingBoxAscent,
     }
-  }
-
-  applyTopFont() {
-    const font = this.fonts[this.fonts.length - 1]!
-    const matrix = (font.searchByName('FontMatrix')?.value as PSArray).map(
-      (x) => x.value
-    ) as TransformationMatrix | undefined
-    const fontName = font.searchByName('FontName')!.value as string
-    this.activeFont = { name: fontName, matrix }
   }
 
   override getDefaultTransformationMatrix(): TransformationMatrix {

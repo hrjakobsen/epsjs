@@ -19,6 +19,7 @@ import { CanvasBackedGraphicsContext } from './graphics/canvas'
 import { PseudoRandomNumberGenerator } from './random'
 import { start } from './operators/control'
 import { FileSystem } from './fs/file-system'
+import { FontCollection } from './fonts/font-collection'
 
 const MAX_STEPS = 100_000
 const MAX_EXECUTION_STACK_SIZE = 1024
@@ -46,6 +47,7 @@ export class PSInterpreter {
     })
   }
   public fonts = new PSDictionary(1024)
+  public parsedFonts = new FontCollection()
 
   public fs: FileSystem
 

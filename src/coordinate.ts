@@ -242,3 +242,7 @@ export function rotationMatrix(angle_degrees: number): TransformationMatrix {
     0,
   ]
 }
+
+export function midpoint(c1: Coordinate, c2: Coordinate): Coordinate {
+  return { x: (c1.x + c2.x) / 2, y: (c1.y + c2.y) / 2 }
+}
