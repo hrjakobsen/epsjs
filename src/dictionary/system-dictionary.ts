@@ -82,7 +82,6 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['known', dictionaryOperators.known],
   ['where', dictionaryOperators.where],
   ['currentdict', dictionaryOperators.currentDict],
-  ['$error', dictionaryOperators.error],
   ['userdict', dictionaryOperators.userDict],
   ['globaldict', dictionaryOperators.globalDict],
   ['statusdict', dictionaryOperators.statusDict],

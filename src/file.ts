@@ -5,6 +5,7 @@ import {
   TILDE_CHARCODE,
   Z_CHARCODE,
 } from './ascii85'
+import { IoError, RangeCheckError } from './error'
 import { PSInterpreter } from './interpreter'
 import { CARRIAGE_RETURN, CharStream, LINE_FEED, PSLexer } from './lexer'
 import { PSObject, PSScanner } from './scanner'
@@ -92,7 +93,7 @@ abstract class PeekableFile implements PSReadableFile {
       }
       string.set(i, next)
     }
-    throw new Error('rangecheckerror')
+    throw new RangeCheckError()
   }
 
   readHexString(string: PSString): ReadResult {
@@ -186,12 +187,12 @@ export class Ascii85DecodeFilter extends DecodingFilter {
     const buffer: number[] = []
     const nextChar = this.backingFile.read()
     if (nextChar === undefined) {
-      throw new Error('ioerror')
+      throw new IoError()
     }
     if (nextChar === TILDE_CHARCODE) {
       // next must be >
       if (this.backingFile.read() !== GREATER_THAN_CHARCODE) {
-        throw new Error('ioerror: Invalid eod')
+        throw new IoError()
       }
       this.isEof = true
       return undefined
@@ -212,12 +213,12 @@ export class Ascii85DecodeFilter extends DecodingFilter {
       // Read up to 5 characters or ->
       const next = this.backingFile.read()
       if (next === undefined) {
-        throw new Error('invalid eof')
+        throw new IoError()
       }
       if (next === TILDE_CHARCODE) {
         // next must be >
         if (this.backingFile.read() !== GREATER_THAN_CHARCODE) {
-          throw new Error('ioerror: Invalid eod')
+          throw new IoError()
         }
         this.isEof = true
         this.bufferedCharacters.push(...decodeAscii85Group(buffer))

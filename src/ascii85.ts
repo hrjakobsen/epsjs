@@ -1,3 +1,4 @@
+import { IoError, LimitCheckError } from './error'
 import { isWhitespace } from './lexer'
 
 const EIGHTYFIVE_POW_FOUR = 52200625
@@ -18,20 +19,20 @@ export const U_OFFSET = 'u'.charCodeAt(0)
 
 export function decodeAscii85Group(group: number[]): number[] {
   if (group.length === 0) {
-    throw new Error('ioerror: nothing to decode')
+    throw new IoError()
   }
 
   if (group.length > 5) {
-    throw new Error('ioerror: invalid length in convertgroup')
+    throw new IoError()
   }
   const padding = 5 - group.length
   if (padding === 4) {
     // PLRM page 132. We'd have nothing to push to the decoded data!
-    throw new Error('ioerror: 4 character padding is invalid')
+    throw new IoError()
   }
 
   if (group.some((x) => x < EXCLAM_OFFSET || x > U_OFFSET)) {
-    throw new Error('ioerror: Invalid base85 encoding')
+    throw new IoError()
   }
 
   group.push(...Array(padding).fill(U_OFFSET))
@@ -49,7 +50,7 @@ export function decodeAscii85Group(group: number[]): number[] {
     c5!
 
   if (val > MAX_UINT) {
-    throw new Error('ioerror')
+    throw new LimitCheckError()
   }
 
   const b4 = val % TWO_HUNDRED_FIFTY_SIX_POW_ONE

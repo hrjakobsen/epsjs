@@ -166,11 +166,6 @@ export function currentDict(interpreter: PSInterpreter) {
   interpreter.operandStack.push(interpreter.dictionary)
 }
 
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541
-export function error(_interpreter: PSInterpreter) {
-  throw new Error('errordict: Not implemented')
-}
-
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=727
 export function userDict(interpreter: PSInterpreter) {
   const dict = interpreter.dictionaryStack[1]

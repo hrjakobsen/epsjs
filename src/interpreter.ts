@@ -20,6 +20,8 @@ import { PseudoRandomNumberGenerator } from './random'
 import { start } from './operators/control'
 import { FileSystem } from './fs/file-system'
 import { FontCollection } from './fonts/font-collection'
+import { PSError, StackUnderflowError } from './error'
+import { PSArray } from './array'
 
 const MAX_STEPS = 100_000
 const MAX_EXECUTION_STACK_SIZE = 1024
@@ -84,7 +86,7 @@ export class PSInterpreter {
 
   public get dictionary() {
     if (!this.dictionaryStack.length) {
-      throw new Error('Empty dictionary stack')
+      throw new StackUnderflowError()
     }
     return this.dictionaryStack[this.dictionaryStack.length - 1]
   }
@@ -162,34 +164,62 @@ export class PSInterpreter {
       return
     }
     const item = itemOrLoopContext
-    if (
-      item.attributes.executability === Executability.Literal ||
-      (item.type === ObjectType.Array &&
-        item.attributes.executability === Executability.Executable)
-    ) {
-      this.operandStack.push(item)
-      return
-    }
-    if (
-      item.type === ObjectType.Name &&
-      item.attributes.executability === Executability.Executable
-    ) {
-      // Look up name and invoke procedure
-      const definition = this.symbolLookup(item)!
-      if (definition.type === ObjectType.Operator) {
-        await (definition as PSObject<ObjectType.Operator>).value.func(this)
-        return
-      } else if (
-        definition.type === ObjectType.Array &&
-        definition.attributes.executability === Executability.Executable
+    try {
+      if (
+        item.attributes.executability === Executability.Literal ||
+        (item.type === ObjectType.Array &&
+          item.attributes.executability === Executability.Executable)
       ) {
-        ;(definition as PSObject<ObjectType.Array>).value.execute(this)
+        this.operandStack.push(item)
         return
-      } else if (
-        definition.attributes.executability === Executability.Literal
+      }
+      if (
+        item.type === ObjectType.Name &&
+        item.attributes.executability === Executability.Executable
       ) {
-        this.operandStack.push(definition)
+        // Look up name and invoke procedure
+        const definition = this.symbolLookup(item)!
+        if (definition.type === ObjectType.Operator) {
+          await (definition as PSObject<ObjectType.Operator>).value.func(this)
+          return
+        } else if (
+          definition.type === ObjectType.Array &&
+          definition.attributes.executability === Executability.Executable
+        ) {
+          ;(definition as PSObject<ObjectType.Array>).value.execute(this)
+          return
+        } else if (
+          definition.attributes.executability === Executability.Literal
+        ) {
+          this.operandStack.push(definition)
+          return
+        }
+      }
+    } catch (error) {
+      if (error instanceof PSError) {
+        this.operandStack.push(item)
+        // Look up the type name in errordict
+        const errorDict = this.symbolLookup(
+          createLiteral('errordict', ObjectType.Name)
+        )
+        if (!errorDict) {
+          throw new Error("Can't find errordict")
+        }
+        if (errorDict.type !== ObjectType.Dictionary) {
+          throw new Error('errordict is not a dictionary')
+        }
+        const handler = (errorDict.value as PSDictionary).get(
+          createLiteral(error.type, ObjectType.Name)
+        )
+        if (!handler) {
+          throw new Error(
+            'Unable to look up error handler for type ' + error.type
+          )
+        }
+        ;(handler.value as PSArray).execute(this)
         return
+      } else {
+        throw error
       }
     }
     throw new Error(
@@ -253,7 +283,7 @@ export class PSInterpreter {
   public pop<T extends ObjectType>(typ: T): PSObject<T> {
     const top = this.operandStack.pop()
     if (!top) {
-      throw new Error('Empty stack')
+      throw new StackUnderflowError()
     }
     if (!(top.type & typ)) {
       throw new Error(
