@@ -5,7 +5,6 @@ export function createSimpleGlyphPath(
   ctx: CanvasRenderingContext2D,
   glyph: SimpleGlyph
 ) {
-  ctx.beginPath()
   for (
     let contourEndIndex = 0;
     contourEndIndex < glyph.endPtsOfContours.length;

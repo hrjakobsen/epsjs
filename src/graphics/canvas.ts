@@ -165,6 +165,17 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     text: string,
     coordinate: Coordinate
   ) {
+    this.canvasContext.beginPath()
+    this.appendTextToPathFromFont(fontDict, font, text, coordinate)
+    this.canvasContext.fill()
+  }
+
+  appendTextToPathFromFont(
+    fontDict: PSDictionary,
+    font: Font,
+    text: string,
+    coordinate: Coordinate
+  ) {
     let nextCoordinate = coordinate
 
     const encodingDict = fontDict.get(
@@ -209,7 +220,6 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
       this.canvasContext.transform(...fontMatrix)
       this.canvasContext.scale(scalingFactor, scalingFactor)
       createSimpleGlyphPath(this.canvasContext, glyph)
-      this.canvasContext.fill()
       this.canvasContext.restore()
 
       const advanceWidth = font.getAdvanceWidth(glyphIndex.value)
