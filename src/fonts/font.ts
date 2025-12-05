@@ -4,7 +4,8 @@ export class Font {
   constructor(
     readonly head: HeadTable,
     readonly glyf: GlyfTable,
-    readonly hmtx: HmtxTable
+    readonly hmtx: HmtxTable,
+    readonly hhea: HheaTable
   ) {}
 
   static parse(data: DataView, offset: number = 0) {
@@ -77,7 +78,7 @@ export class Font {
     }
     const hmtx = HmtxTable.parse(data, hmtxHeader.offset, maxp.numGlyphs, hhea)
 
-    return new Font(head, glyf, hmtx)
+    return new Font(head, glyf, hmtx, hhea)
   }
 }
 

@@ -3,6 +3,7 @@ import {
   IDENTITY_MATRIX,
   matrixMultiply,
   TransformationMatrix,
+  transformCoordinate,
 } from '../coordinate'
 import { PSInterpreter } from '../interpreter'
 import { createLiteral, degreeToRadians } from '../utils'
@@ -11,7 +12,7 @@ import { BoundingBox, ObjectType, PSObject } from '../scanner'
 import { PSArray } from '../array'
 import { PSDictionary } from '../dictionary/dictionary'
 import { Font, SimpleGlyph } from '../fonts/font'
-import { renderSimpleGlyph } from './canvas-font-renderer'
+import { createSimpleGlyphPath } from './canvas-font-renderer'
 
 export class CanvasBackedGraphicsContext extends GraphicsContext {
   private fonts: PSDictionary[] = [PSDictionary.newFont('Helvetica', 10)]
@@ -164,6 +165,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     text: string,
     coordinate: Coordinate
   ) {
+    let nextCoordinate = coordinate
     for (let i = 0; i < text.length; ++i) {
       const charCode = text.charCodeAt(i)
       const encodingDict = fontDict.get(
@@ -197,14 +199,31 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
         fontDict.searchByName('FontMatrix')?.value as PSArray
       ).map((x) => x.value) as TransformationMatrix | undefined
       const fontMatrix = matrix ?? IDENTITY_MATRIX
-      this.canvasContext.translate(coordinate.x, coordinate.y)
+      this.canvasContext.translate(nextCoordinate.x, nextCoordinate.y)
       this.canvasContext.transform(...fontMatrix)
       const scalingFactor = 1 / font.head.unitsPerEm
       this.canvasContext.scale(scalingFactor, scalingFactor)
-
-      renderSimpleGlyph(this.canvasContext, glyph)
-
+      createSimpleGlyphPath(this.canvasContext, glyph)
+      this.canvasContext.fill()
       this.canvasContext.restore()
+      let advanceWidth
+      if (glyphIndex.value < font.hhea.numberOfHMetrics) {
+        advanceWidth =
+          font.hmtx.horizontalMetrics[glyphIndex.value].advanceWidth
+      } else {
+        advanceWidth =
+          font.hmtx.horizontalMetrics[font.hhea.numberOfHMetrics - 1]
+            .advanceWidth
+      }
+      const distance = transformCoordinate(
+        { y: 0, x: advanceWidth * scalingFactor },
+        fontMatrix
+      )
+      nextCoordinate = {
+        x: nextCoordinate.x + distance.x,
+        y: nextCoordinate.y,
+      }
+      this.moveTo(nextCoordinate)
     }
   }
 

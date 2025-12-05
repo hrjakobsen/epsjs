@@ -1,7 +1,7 @@
 import { midpoint } from '../coordinate'
 import { SimpleGlyph, SimpleGlyphFlags } from '../fonts/font'
 
-export function renderSimpleGlyph(
+export function createSimpleGlyphPath(
   ctx: CanvasRenderingContext2D,
   glyph: SimpleGlyph
 ) {
@@ -56,5 +56,4 @@ export function renderSimpleGlyph(
     // Close the path
     ctx.closePath()
   }
-  ctx.fill()
 }
