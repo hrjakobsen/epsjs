@@ -8,6 +8,15 @@ export class Font {
     readonly hhea: HheaTable
   ) {}
 
+  public getAdvanceWidth(glyphIndex: number) {
+    if (glyphIndex < this.hhea.numberOfHMetrics) {
+      return this.hmtx.horizontalMetrics[glyphIndex].advanceWidth
+    } else {
+      return this.hmtx.horizontalMetrics[this.hhea.numberOfHMetrics - 1]
+        .advanceWidth
+    }
+  }
+
   static parse(data: DataView, offset: number = 0) {
     let cursor = offset
     const tableDirectory = TableDirectory.parse(data, cursor)

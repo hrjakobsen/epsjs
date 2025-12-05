@@ -166,19 +166,29 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     coordinate: Coordinate
   ) {
     let nextCoordinate = coordinate
+
+    const encodingDict = fontDict.get(
+      createLiteral('Encoding', ObjectType.Name)
+    ) as PSObject<ObjectType.Array>
+
+    const charStringsDict = fontDict.get(
+      createLiteral('CharStrings', ObjectType.Name)
+    ) as PSObject<ObjectType.Dictionary>
+
+    const matrix = (fontDict.searchByName('FontMatrix')?.value as PSArray).map(
+      (x) => x.value
+    ) as TransformationMatrix | undefined
+    const fontMatrix = matrix ?? IDENTITY_MATRIX
+
+    const scalingFactor = 1 / font.head.unitsPerEm
+
     for (let i = 0; i < text.length; ++i) {
       const charCode = text.charCodeAt(i)
-      const encodingDict = fontDict.get(
-        createLiteral('Encoding', ObjectType.Name)
-      ) as PSObject<ObjectType.Array>
       const encodingMapping = encodingDict.value.get(charCode)
       if (!encodingMapping) {
         throw new Error("Couldn't find encoding for charcode " + charCode)
       }
 
-      const charStringsDict = fontDict.get(
-        createLiteral('CharStrings', ObjectType.Name)
-      ) as PSObject<ObjectType.Dictionary>
       const glyphIndex = charStringsDict.value.get(
         encodingMapping
       ) as PSObject<ObjectType.Integer>
@@ -195,26 +205,14 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
       }
 
       this.canvasContext.save()
-      const matrix = (
-        fontDict.searchByName('FontMatrix')?.value as PSArray
-      ).map((x) => x.value) as TransformationMatrix | undefined
-      const fontMatrix = matrix ?? IDENTITY_MATRIX
       this.canvasContext.translate(nextCoordinate.x, nextCoordinate.y)
       this.canvasContext.transform(...fontMatrix)
-      const scalingFactor = 1 / font.head.unitsPerEm
       this.canvasContext.scale(scalingFactor, scalingFactor)
       createSimpleGlyphPath(this.canvasContext, glyph)
       this.canvasContext.fill()
       this.canvasContext.restore()
-      let advanceWidth
-      if (glyphIndex.value < font.hhea.numberOfHMetrics) {
-        advanceWidth =
-          font.hmtx.horizontalMetrics[glyphIndex.value].advanceWidth
-      } else {
-        advanceWidth =
-          font.hmtx.horizontalMetrics[font.hhea.numberOfHMetrics - 1]
-            .advanceWidth
-      }
+
+      const advanceWidth = font.getAdvanceWidth(glyphIndex.value)
       const distance = transformCoordinate(
         { y: 0, x: advanceWidth * scalingFactor },
         fontMatrix
