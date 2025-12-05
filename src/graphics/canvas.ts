@@ -235,15 +235,38 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     }
   }
 
+  private getFont(fontDict: PSDictionary) {
+    const fid = fontDict.get(createLiteral('FID', ObjectType.Name))
+
+    if (fid) {
+      return this.interpreter.parsedFonts.getFont(fid)
+    }
+    return null
+  }
+
+  override charPath(text: string, coordinate: Coordinate) {
+    const fontDict = this.fonts[this.fonts.length - 1]
+    if (!fontDict) {
+      throw new Error('No font set')
+    }
+
+    const font = this.getFont(fontDict)
+    if (!font) {
+      console.error('No font details')
+      return
+    }
+
+    this.appendTextToPathFromFont(fontDict, font, text, coordinate)
+  }
+
   override fillText(text: string, coordinate: Coordinate): void {
     const fontDict = this.fonts[this.fonts.length - 1]
     if (!fontDict) {
       throw new Error('No font set')
     }
-    const fid = fontDict.get(createLiteral('FID', ObjectType.Name))
 
-    if (fid) {
-      const font = this.interpreter.parsedFonts.getFont(fid)
+    const font = this.getFont(fontDict)
+    if (font) {
       return this.fillTextFromFont(fontDict, font, text, coordinate)
     }
 

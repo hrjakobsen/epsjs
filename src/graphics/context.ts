@@ -77,6 +77,7 @@ export abstract class GraphicsContext {
   abstract fillRect(coordinate: Coordinate, width: number, height: number): void
   abstract closePath(): void
   abstract fillText(text: string, coordinate: Coordinate): void
+  abstract charPath(text: string, coordinate: Coordinate): void
   abstract concat(matrix: TransformationMatrix): void
   abstract getTransformationMatrix(): TransformationMatrix
   abstract setTransformationMatrix(matrix: TransformationMatrix): void

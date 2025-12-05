@@ -223,3 +223,15 @@ export function awidthshow(interpreter: PSInterpreter) {
     }
   }
 }
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=554
+export function charpath(interpreter: PSInterpreter) {
+  const { value: bool } = interpreter.pop(ObjectType.Boolean)
+  const { value: string } = interpreter.pop(ObjectType.String)
+  const currentPoint = interpreter.printer.getCurrentPoint()
+  const content = string.asString()
+  if (bool) {
+    throw new Error('Uninplemented')
+  }
+  interpreter.printer.charPath(content, currentPoint)
+}
