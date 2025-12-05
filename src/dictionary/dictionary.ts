@@ -6,9 +6,7 @@ import { createLiteral, prettyPrint } from '../utils'
 const MIN_FONT_CAPACITY = 3
 
 export class PSDictionary {
-  protected map = new Map<any, PSObject>()
-  // HACK
-  private keysMap = new Map<any, PSObject>()
+  protected map = new Map<any, { key: any; value: PSObject }>()
 
   constructor(public readonly capacity: number) {}
 
@@ -24,21 +22,20 @@ export class PSDictionary {
   }
 
   public entries() {
-    return this.map.entries()
+    return [...this.map.entries()].map((x) => [x[0], x[1].value])
   }
 
   public keys(): PSObject[] {
-    return [...this.map.keys()].map((key) => this.keysMap.get(key)!)
+    return [...this.map.values()].map((x) => x.key)
   }
 
   public get(key: PSObject) {
-    return this.map.get(this.toKey(key))
+    return this.map.get(this.toKey(key))?.value
   }
 
   public forceSet(key: PSObject, value: PSObject) {
     const keyInMap = this.toKey(key)
-    this.map.set(keyInMap, value)
-    this.keysMap.set(keyInMap, key)
+    this.map.set(keyInMap, { key, value })
   }
 
   public remove(key: PSObject) {
@@ -46,7 +43,28 @@ export class PSDictionary {
   }
 
   protected toKey(obj: PSObject) {
-    return obj.value
+    switch (obj.type) {
+      case ObjectType.Boolean:
+      case ObjectType.FontID:
+      case ObjectType.Integer:
+      case ObjectType.Mark:
+      case ObjectType.Name:
+      case ObjectType.Null:
+      case ObjectType.Real:
+        return `${obj.type}:${obj.value}`
+      case ObjectType.Array:
+      case ObjectType.Operator:
+      case ObjectType.Dictionary:
+      case ObjectType.File:
+      case ObjectType.GState:
+      case ObjectType.PackedArray:
+      case ObjectType.Save:
+      case ObjectType.String: {
+        return obj.value
+      }
+      default:
+        throw new Error('Invalid key type ' + obj.type)
+    }
   }
 
   public get size() {
@@ -68,9 +86,7 @@ export class PSDictionary {
   public copy() {
     const newDict = new PSDictionary(this.capacity)
     const newDictEntries = Array.from(this.map.entries())
-    const newDictKeys = Array.from(this.keysMap.entries())
     newDict.map = new Map(newDictEntries)
-    newDict.keysMap = new Map(newDictKeys)
     return newDict
   }
 
