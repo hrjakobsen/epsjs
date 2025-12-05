@@ -154,3 +154,8 @@ export function rectClip(interpreter: PSInterpreter) {
   const { value: x } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
   interpreter.printer.rectClip({ x, y }, width, height)
 }
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=593
+export function eoClip(interpreter: PSInterpreter) {
+  interpreter.printer.evenOddClip()
+}

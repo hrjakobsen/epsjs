@@ -186,6 +186,7 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['closepath', pathOperators.closePath],
   ['clip', pathOperators.clip],
   ['rectclip', pathOperators.rectClip],
+  ['eoclip', pathOperators.eoClip],
   ['stroke', paintingOperators.stroke],
   ['fill', paintingOperators.fill],
   ['eofill', paintingOperators.eofill],

@@ -66,6 +66,7 @@ export abstract class GraphicsContext {
     endPoint: Coordinate
   ): void
   abstract rectClip(coordinate: Coordinate, width: number, height: number): void
+  abstract evenOddClip(): void
   abstract stroke(): void
   abstract fill(): void
   abstract eofill(): void

@@ -111,6 +111,11 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     )
     this.setCurrentPoint(endPoint)
   }
+
+  override evenOddClip(): void {
+    this.canvasContext.clip('evenodd')
+  }
+
   override rectClip(
     coordinate: Coordinate,
     width: number,
