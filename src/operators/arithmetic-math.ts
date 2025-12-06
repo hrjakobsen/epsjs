@@ -1,3 +1,4 @@
+import { UndefinedResultError } from '../error'
 import { PSInterpreter } from '../interpreter'
 import { ObjectType } from '../scanner'
 import { degreeToRadians, radiansToDegrees } from '../utils'
@@ -19,10 +20,15 @@ export function add(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=588
 export function div(interpreter: PSInterpreter) {
-  const { value: v2 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const v2 = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const v1 = interpreter.pop(ObjectType.Integer | ObjectType.Real)
 
-  interpreter.pushLiteralNumber(v1 / v2, ObjectType.Real)
+  if (v2.value === 0) {
+    interpreter.operandStack.push(v1, v2)
+    throw new UndefinedResultError()
+  }
+
+  interpreter.pushLiteralNumber(v1.value / v2.value, ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=619

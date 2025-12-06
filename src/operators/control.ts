@@ -6,6 +6,7 @@ import {
 } from '../execution-contexts/loop-context'
 import { Executability, ObjectType, PSObject } from '../scanner'
 import { ProcedureContext } from '../execution-contexts/procedure-context'
+import { StoppedContext } from '../execution-contexts/stopped-context'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=596
 export function exec(interpreter: PSInterpreter) {
@@ -49,7 +50,7 @@ export function ifelse(interpreter: PSInterpreter) {
     procedureTrue.attributes.executability !== Executability.Executable ||
     procedureFalse.attributes.executability !== Executability.Executable
   ) {
-    throw new Error('Second argument to if is not a procedure')
+    throw new Error('Second or third argument to if is not a procedure')
   }
   if (bool) {
     interpreter.executionStack.push(
@@ -103,13 +104,22 @@ export function exit(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=711
-export function stop(_interpreter: PSInterpreter) {
-  throw new Error('stop: Not implemented')
+export function stop(interpreter: PSInterpreter) {
+  let index = 0
+  for (let i = interpreter.executionStack.length - 1; i >= 0; --i) {
+    if (interpreter.executionStack[i] instanceof StoppedContext) {
+      index = i
+      break
+    }
+  }
+  interpreter.executionStack.splice(index)
+  interpreter.pushLiteral(false, ObjectType.Boolean)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=711
-export function stopped(_interpreter: PSInterpreter) {
-  throw new Error('stopped: Not implemented')
+export function stopped(interpreter: PSInterpreter) {
+  interpreter.executionStack.push(new StoppedContext(interpreter))
+  exec(interpreter)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=565

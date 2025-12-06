@@ -1,11 +1,11 @@
-import { ExecutionContext } from '.'
+import { ProcedureBackedExecutionContext } from '.'
 import { GraphicsContext } from '../graphics/context'
 import { PSInterpreter } from '../interpreter'
 import { ObjectType, PSObject } from '../scanner'
 import { createLiteral } from '../utils'
 import { ProcedureContext } from './procedure-context'
 
-export abstract class LoopContext extends ExecutionContext {
+export abstract class LoopContext extends ProcedureBackedExecutionContext {
   protected executeProcedure() {
     this.interpreter.executionStack.push(
       new ProcedureContext(this.interpreter, this.procedure)

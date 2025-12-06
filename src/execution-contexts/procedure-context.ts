@@ -1,8 +1,8 @@
-import { ExecutionContext } from '.'
+import { ProcedureBackedExecutionContext } from '.'
 import { PSInterpreter } from '../interpreter'
 import { ObjectType, PSObject } from '../scanner'
 
-export class ProcedureContext extends ExecutionContext {
+export class ProcedureContext extends ProcedureBackedExecutionContext {
   private index = 0
   constructor(
     interpreter: PSInterpreter,

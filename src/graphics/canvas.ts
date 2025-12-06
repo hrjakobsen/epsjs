@@ -310,8 +310,9 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.canvasContext.restore()
 
     // 7. Update Position
-    // TODO: Do we need to consider the font matrix here?
-    this.moveTo({ x: currentPoint.x + transformWidth, y: currentPoint.y })
+    const point = { x: transformWidth, y: 0 }
+    const newPoint = transformCoordinate(point, fontMatrix)
+    this.moveTo({ x: currentPoint.x + newPoint.x, y: currentPoint.y })
   }
 
   override arc(
