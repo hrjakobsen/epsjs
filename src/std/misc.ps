@@ -15,4 +15,46 @@ systemdict begin
   % https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=671
   /serialnumber -1 def
 
+  % https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=707
+  /StandardEncoding 256 array
+  0 1 255 { 1 index exch /.notdef put } for % Fill with .notdef first
+
+  dup 32 [
+    /space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright
+    /parenleft /parenright /asterisk /plus /comma /hyphen /period /slash
+    /zero /one /two /three /four /five /six /seven
+    /eight /nine /colon /semicolon /less /equal /greater /question
+    /at /A /B /C /D /E /F /G
+    /H /I /J /K /L /M /N /O
+    /P /Q /R /S /T /U /V /W
+    /X /Y /Z /bracketleft /backslash /bracketright /asciicircum /underscore
+    /quoteleft /a /b /c /d /e /f /g
+    /h /i /j /k /l /m /n /o
+    /p /q /r /s /t /u /v /w
+    /x /y /z /braceleft /bar /braceright /asciitilde
+  ] putinterval
+
+  dup 161 [
+    /exclamdown /cent /sterling /fraction /yen /florin /section /currency
+    /quotesingle /quotedblleft /guillemotleft /guilsinglleft /guilsinglright /fi /fl
+    /endash /dagger /daggerdbl /periodcentered /paragraph /bullet /quotesinglbase
+    /quotedblbase /quotedblright /guillemotright /ellipsis /perthousand /questiondown /grave
+    /acute /circumflex /tilde /macron /breve /dotaccent /dieresis /ring
+    /cedilla /hungarumlaut /ogonek /caron /emdash
+  ] putinterval
+
+  dup 225 /AE put
+  dup 227 /ordfeminine put
+  dup 232 /Lslash put
+  dup 233 /Oslash put
+  dup 234 /OE put
+  dup 235 /ordmasculine put
+  dup 241 /ae put
+  dup 245 /dotlessi put
+  dup 248 /lslash put
+  dup 249 /oslash put
+  dup 250 /oe put
+  dup 251 /germandbls put
+
+  readonly def
 end

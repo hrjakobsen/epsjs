@@ -2,6 +2,8 @@ import { CharStreamBackedFile } from '../file'
 import initPs from '../std/init.ps?raw'
 import miscPs from '../std/misc.ps?raw'
 import errorPs from '../std/error.ps?raw'
+import symbolFont from '../../src/assets/fonts/symbol/custom-symbol.ps?raw'
+import arimoRegular from '../../src/assets/fonts/arimo/arimo-regular.ps?raw'
 import { PSInterpreter } from '../interpreter'
 
 export class FileSystem {
@@ -32,6 +34,8 @@ export class FileSystem {
     fs.addFileFromString('init.ps', initPs)
     fs.addFileFromString('misc.ps', miscPs)
     fs.addFileFromString('error.ps', errorPs)
+    fs.addFileFromString('symbol.ps', symbolFont)
+    fs.addFileFromString('arimo-regular.ps', arimoRegular)
     return fs
   }
 }
