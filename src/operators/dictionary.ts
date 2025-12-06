@@ -1,6 +1,6 @@
 import { PSDictionary } from '../dictionary/dictionary'
 import { PSInterpreter } from '../interpreter'
-import { DictionaryForAllLoopContext } from '../loop-context'
+import { DictionaryForAllLoopContext } from '../execution-contexts/loop-context'
 import { Access, Executability, ObjectType } from '../scanner'
 
 const MAX_DICT_CAPACITY = 1024

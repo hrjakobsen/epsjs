@@ -3,8 +3,9 @@ import {
   ForLoopContext,
   InfiteLoopContext,
   RepeatLoopContext,
-} from '../loop-context'
+} from '../execution-contexts/loop-context'
 import { Executability, ObjectType, PSObject } from '../scanner'
+import { ProcedureContext } from '../execution-contexts/procedure-context'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=596
 export function exec(interpreter: PSInterpreter) {
@@ -13,7 +14,12 @@ export function exec(interpreter: PSInterpreter) {
     obj.type === ObjectType.Array &&
     obj.attributes.executability === Executability.Executable
   ) {
-    ;(obj as unknown as PSObject<ObjectType.Array>).value.execute(interpreter)
+    interpreter.executionStack.push(
+      new ProcedureContext(
+        interpreter,
+        obj as unknown as PSObject<ObjectType.Array>
+      )
+    )
   } else {
     interpreter.executionStack.push(obj)
   }
@@ -28,7 +34,9 @@ export function _if(interpreter: PSInterpreter) {
     throw new Error('Second argument to if is not a procedure')
   }
   if (bool) {
-    procedure.value.execute(interpreter)
+    interpreter.executionStack.push(
+      new ProcedureContext(interpreter, procedure)
+    )
   }
 }
 
@@ -44,9 +52,13 @@ export function ifelse(interpreter: PSInterpreter) {
     throw new Error('Second argument to if is not a procedure')
   }
   if (bool) {
-    procedureTrue.value.execute(interpreter)
+    interpreter.executionStack.push(
+      new ProcedureContext(interpreter, procedureTrue)
+    )
   } else {
-    procedureFalse.value.execute(interpreter)
+    interpreter.executionStack.push(
+      new ProcedureContext(interpreter, procedureFalse)
+    )
   }
 }
 

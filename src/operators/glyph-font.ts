@@ -8,7 +8,7 @@ import {
 import { PSDictionary } from '../dictionary/dictionary'
 import { Font } from '../fonts/font'
 import { PSInterpreter } from '../interpreter'
-import { StringKShowLoopContext } from '../loop-context'
+import { StringKShowLoopContext } from '../execution-contexts/loop-context'
 import { Executability, ObjectType, PSObject } from '../scanner'
 import { PSString } from '../string'
 import { createLiteral } from '../utils'

@@ -1,6 +1,6 @@
 import { PSArray } from '../array'
 import { PSInterpreter } from '../interpreter'
-import { ArrayForAllLoopContext } from '../loop-context'
+import { ArrayForAllLoopContext } from '../execution-contexts/loop-context'
 import { ObjectType } from '../scanner'
 import { createLiteral } from '../utils'
 

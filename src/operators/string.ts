@@ -1,6 +1,6 @@
 import { PSInterpreter } from '../interpreter'
 import { CharStream, PSLexer } from '../lexer'
-import { StringForAllLoopContext } from '../loop-context'
+import { StringForAllLoopContext } from '../execution-contexts/loop-context'
 import { ObjectType, PSScanner } from '../scanner'
 import { PSString } from '../string'
 

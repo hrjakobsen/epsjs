@@ -1,7 +1,6 @@
 import { PSDictionary } from './dictionary/dictionary'
 import { SystemDictionary } from './dictionary/system-dictionary'
 import { CharStreamBackedFile } from './file'
-import { LoopContext } from './loop-context'
 import {
   Access,
   EPSMetaData,
@@ -21,7 +20,9 @@ import { start } from './operators/control'
 import { FileSystem } from './fs/file-system'
 import { FontCollection } from './fonts/font-collection'
 import { PSError, StackUnderflowError } from './error'
-import { PSArray } from './array'
+import { ExecutionContext } from './execution-contexts'
+import { ProcedureContext } from './execution-contexts/procedure-context'
+import { LoopContext } from './execution-contexts/loop-context'
 
 const MAX_STEPS = 100_000
 const MAX_EXECUTION_STACK_SIZE = 1024
@@ -65,9 +66,9 @@ export class PSInterpreter {
     },
   ]
   public operandStack: PSObject[] = []
-  public executionStack: (PSObject | LoopContext)[] = []
+  public executionStack: (PSObject | ExecutionContext)[] = []
 
-  public beginLoop(loop: LoopContext) {
+  public beginLoop(loop: ExecutionContext) {
     if (this.executionStack.length >= MAX_EXECUTION_STACK_SIZE) {
       throw new Error('Too many nested loops')
     }
@@ -102,7 +103,7 @@ export class PSInterpreter {
   private next(): (typeof this.executionStack)[number] | undefined {
     while (this.executionStack.length) {
       const top = this.executionStack[this.executionStack.length - 1]
-      if (top instanceof LoopContext) {
+      if (top instanceof ExecutionContext) {
         return top
       }
       if (top.type === ObjectType.File) {
@@ -154,7 +155,7 @@ export class PSInterpreter {
       this.stopped = true
       return
     }
-    if (itemOrLoopContext instanceof LoopContext) {
+    if (itemOrLoopContext instanceof ExecutionContext) {
       const loopCtx = itemOrLoopContext
       if (loopCtx.finished()) {
         loopCtx.exit()
@@ -186,7 +187,7 @@ export class PSInterpreter {
           definition.type === ObjectType.Array &&
           definition.attributes.executability === Executability.Executable
         ) {
-          ;(definition as PSObject<ObjectType.Array>).value.execute(this)
+          this.executionStack.push(new ProcedureContext(this, definition))
           return
         } else if (
           definition.attributes.executability === Executability.Literal
@@ -216,7 +217,7 @@ export class PSInterpreter {
             'Unable to look up error handler for type ' + error.type
           )
         }
-        ;(handler.value as PSArray).execute(this)
+        this.executionStack.push(new ProcedureContext(this, handler))
         return
       } else {
         throw error

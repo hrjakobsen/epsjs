@@ -1,4 +1,3 @@
-import { PSInterpreter } from './interpreter'
 import { PSObject } from './scanner'
 
 export class PSArray {
@@ -30,11 +29,6 @@ export class PSArray {
 
   public get items(): readonly PSObject[] {
     return this.data
-  }
-
-  public execute(interpreter: PSInterpreter) {
-    const body = [...this.items]
-    interpreter.executionStack.push(...body.reverse())
   }
 
   public splice(

@@ -1,32 +1,15 @@
-import { GraphicsContext } from './graphics/context'
-import { PSInterpreter } from './interpreter'
-import { Executability, ObjectType, PSObject } from './scanner'
-import { createLiteral } from './utils'
+import { ExecutionContext } from '.'
+import { GraphicsContext } from '../graphics/context'
+import { PSInterpreter } from '../interpreter'
+import { ObjectType, PSObject } from '../scanner'
+import { createLiteral } from '../utils'
+import { ProcedureContext } from './procedure-context'
 
-export abstract class LoopContext {
-  constructor(
-    protected interpreter: PSInterpreter,
-    protected procedure: PSObject<ObjectType.Array>
-  ) {
-    if (
-      procedure.type !== ObjectType.Array ||
-      procedure.attributes.executability !== Executability.Executable
-    ) {
-      throw new Error('Invalid loop procedure body')
-    }
-  }
-
-  public abstract finished(): boolean
-
-  public exit() {
-    const selfIndex = this.interpreter.executionStack.indexOf(this)
-    this.interpreter.executionStack.splice(selfIndex)
-  }
-
-  public abstract execute(): void
-
+export abstract class LoopContext extends ExecutionContext {
   protected executeProcedure() {
-    this.procedure.value.execute(this.interpreter)
+    this.interpreter.executionStack.push(
+      new ProcedureContext(this.interpreter, this.procedure)
+    )
   }
 }
 
