@@ -19,7 +19,7 @@ import { PseudoRandomNumberGenerator } from './random'
 import { start } from './operators/control'
 import { FileSystem } from './fs/file-system'
 import { FontCollection } from './fonts/font-collection'
-import { PSError, StackUnderflowError } from './error'
+import { InvalidFontError, PSError, StackUnderflowError } from './error'
 import { ExecutionContext } from './execution-contexts'
 import { ProcedureContext } from './execution-contexts/procedure-context'
 import { LoopContext } from './execution-contexts/loop-context'
@@ -318,9 +318,6 @@ export class PSInterpreter {
     if (typeof fontName !== 'string') {
       fontName = fontName.asString()
     }
-    if (!document.fonts.check(`12px ${fontName}`)) {
-      throw new Error(`Font ${fontName} not found`)
-    }
-    return PSDictionary.newFont(fontName)
+    throw new InvalidFontError()
   }
 }

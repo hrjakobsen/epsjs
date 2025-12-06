@@ -16,12 +16,24 @@ import { createSimpleGlyphPath } from './canvas-font-renderer'
 
 export class CanvasBackedGraphicsContext extends GraphicsContext {
   private fonts: PSDictionary[] = [PSDictionary.newFont('Helvetica', 10)]
-  private transformationMatrix: TransformationMatrix
   private currentColor: RGBColor = { r: 0, g: 0, b: 0 }
   private defaultTransformationMatrix: TransformationMatrix
-  private activeFont:
-    | { name: string; matrix: TransformationMatrix | undefined }
-    | undefined
+  private _tranformationMatrixStack: TransformationMatrix[] = []
+
+  private get transformationMatrix(): TransformationMatrix {
+    return this._tranformationMatrixStack[
+      this._tranformationMatrixStack.length - 1
+    ]
+  }
+  private set transformationMatrix(matrix: TransformationMatrix) {
+    if (this._tranformationMatrixStack.length === 0) {
+      this._tranformationMatrixStack.push(matrix)
+    } else {
+      this._tranformationMatrixStack[
+        this._tranformationMatrixStack.length - 1
+      ] = matrix
+    }
+  }
 
   override setFont(font: PSDictionary): void {
     this.fonts[this.fonts.length - 1] = font
@@ -369,9 +381,11 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   override save(): void {
     this.canvasContext.save()
     this.currentPoints.push(this.currentPoints[this.currentPoints.length - 1])
+    this._tranformationMatrixStack.push(this.transformationMatrix)
   }
   override restore(): void {
     this.canvasContext.restore()
+    this._tranformationMatrixStack.pop()
     this.currentPoints.pop()
   }
   override setLineWidth(width: number): void {

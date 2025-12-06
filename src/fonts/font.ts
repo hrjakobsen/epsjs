@@ -176,7 +176,7 @@ export class GlyphHeader {
   ) {}
 
   static parse(data: DataView, offset: number) {
-    const numberOfContours = data.getUint16(offset, false)
+    const numberOfContours = data.getInt16(offset, false)
     const xMin = data.getInt16(offset + 2, false)
     const yMin = data.getInt16(offset + 4, false)
     const xMax = data.getInt16(offset + 6, false)
@@ -346,8 +346,21 @@ export class GlyfTable {
       }
       let cursor = current + offset
       const header = GlyphHeader.parse(data, cursor)
-      // We don't handle composite glyphs
-      assert(header.numberOfContours >= 0)
+      if (header.numberOfContours < 0) {
+        // TODO: Support composite glyphs
+        glyphs.push(
+          new SimpleGlyph(
+            new GlyphHeader(0, 0, 0, 0, 0),
+            0,
+            new Uint16Array(0),
+            0,
+            new Uint8Array(0),
+            new Uint8Array(0),
+            []
+          )
+        )
+        continue
+      }
       cursor += GlyphHeader.BYTE_SIZE
       const simpleGlyph = SimpleGlyph.parse(data, cursor, header)
       glyphs.push(simpleGlyph)
@@ -388,7 +401,7 @@ export class LocaTable {
         cursor += 4
         return read
       } else {
-        const read = data.getUint16(cursor, false)
+        const read = data.getUint16(cursor, false) * 2
         cursor += 2
         return read
       }

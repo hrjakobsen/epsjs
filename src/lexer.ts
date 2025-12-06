@@ -216,7 +216,7 @@ export class PSLexer extends BufferedStreamer<Token> {
         if (isOctalDigit(next)) {
           // Parse up to three digits in octal
           const octalCodepoints = [next!]
-          this.advance(1)
+          this.dataStream.advance(1)
           for (let i = 0; i < 2; ++i) {
             if (isOctalDigit(this.dataStream.next)) {
               octalCodepoints.push(this.dataStream.next!)

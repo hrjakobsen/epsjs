@@ -3,7 +3,7 @@ import { ObjectType, PSObject } from '../scanner'
 import { PSString } from '../string'
 import { createLiteral, prettyPrint } from '../utils'
 
-const MIN_FONT_CAPACITY = 3
+const MIN_FONT_CAPACITY = 4
 
 export class PSDictionary {
   protected map = new Map<any, { key: any; value: PSObject }>()
