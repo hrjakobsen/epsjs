@@ -113,7 +113,7 @@ export function stop(interpreter: PSInterpreter) {
     }
   }
   interpreter.executionStack.splice(index)
-  interpreter.pushLiteral(false, ObjectType.Boolean)
+  interpreter.pushLiteral(true, ObjectType.Boolean)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=711

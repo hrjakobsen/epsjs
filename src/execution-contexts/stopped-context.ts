@@ -10,6 +10,6 @@ export class StoppedContext extends ExecutionContext {
 
   public override exit(): void {
     super.exit()
-    this.interpreter.pushLiteral(true, ObjectType.Boolean)
+    this.interpreter.pushLiteral(false, ObjectType.Boolean)
   }
 }

@@ -14,19 +14,19 @@
     % OR: numerator denominator boolean_status (if failed/stopped)
 
     {
-        % --- SUCCESS CASE (stopped returned false) ---
-        % Convert the number to a string and show it
-        (Success: ) show
-        20 string cvs show
-    }
-    {
         % --- ERROR CASE (stopped returned true) ---
         (Error: Cannot divide by zero.) show
         % Clean up the unused numbers from the stack
         % (since 'div' failed, the inputs are still there)
         pop pop
     }
-     ifelse
+    {
+        % --- SUCCESS CASE (stopped returned false) ---
+        % Convert the number to a string and show it
+        (Success: ) show
+        20 string cvs show
+    }
+    ifelse
 
     % Move to a new line for the next output
     currentpoint pop -1 mul 20 rmoveto

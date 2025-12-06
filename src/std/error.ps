@@ -4,8 +4,16 @@ systemdict begin
   /$error 12 dict def
   errordict begin
     /handleerror {
-      % Default error handler
-      (Unhandled error) =
+      50 string dup dup
+      $error /errorname get
+      20 string cvs
+      exch
+      0
+      (Unhandled error: )
+      putinterval
+      17 exch
+      putinterval
+      =
     } def
   end
 
@@ -21,9 +29,8 @@ systemdict begin
     errordict exch % errordict, /ErrorName(key)
     [
       /$error load /newerror true /put load
-      /$error load /errorname 7 index
-      /put load
-      /$error load  /errorobject /exch /put load
+      /$error load /errorname 7 index /put load
+      /$error load /exch load /errorobject /exch load /put load
       /stop load
     ] cvx
     put

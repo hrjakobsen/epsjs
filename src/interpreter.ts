@@ -250,7 +250,7 @@ export class PSInterpreter {
 
   public static load(program: string) {
     function wrapWithErrorHandler(program: string) {
-      return `{ ${program} } stopped not { errordict /handleerror get exec } if`
+      return `{ ${program} } stopped { errordict /handleerror get exec } if`
     }
 
     let metadata = {}
