@@ -175,6 +175,13 @@ export class PSInterpreter {
         return
       }
       if (
+        item.type === ObjectType.Operator &&
+        item.attributes.executability === Executability.Executable
+      ) {
+        await (item as PSObject<ObjectType.Operator>).value.func(this)
+        return
+      }
+      if (
         item.type === ObjectType.Name &&
         item.attributes.executability === Executability.Executable
       ) {
@@ -242,6 +249,10 @@ export class PSInterpreter {
   }
 
   public static load(program: string) {
+    function wrapWithErrorHandler(program: string) {
+      return `{ ${program} } stopped not { errordict /handleerror get exec } if`
+    }
+
     let metadata = {}
     try {
       metadata = new PSScanner(
@@ -251,7 +262,7 @@ export class PSInterpreter {
       console.warn('error collecting metadata', { error })
     }
     const interpreter = new PSInterpreter(
-      CharStreamBackedFile.fromString(program),
+      CharStreamBackedFile.fromString(wrapWithErrorHandler(program)),
       metadata
     )
     return interpreter

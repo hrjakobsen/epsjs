@@ -1,44 +1,36 @@
 % https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=595
 systemdict begin
   /errordict 32 dict def
-  /handleerror {
-    % Default error handler
-    (default error recovery. Offending object: ) =
-    =
-    stop
-  } def
+  /$error 12 dict def
+  errordict begin
+    /handleerror {
+      % Default error handler
+      (Unhandled error) =
+    } def
+  end
+
+  [
+    /dictfull /dictstackoverflow /dictstackunderflow /execstackoverflow
+    /interrupt /invalidaccess /invalidexit /invalidfileaccess /invalidfont
+    /invalidrestore /ioerror /limitcheck /nocurrentpoint /rangecheck
+    /stackoverflow /stackunderflow /syntaxerror /timeout /typecheck /undefined
+    /undefinedresource /undefinedresult /unmatchedmark /unregistered /VMerror
+  ]
+  {
+    % Stack: /ErrorName
+    errordict exch % errordict, /ErrorName(key)
+    [
+      /$error load /newerror true /put load
+      /$error load /errorname 7 index
+      /put load
+      /$error load  /errorobject /exch /put load
+      /stop load
+    ] cvx
+    put
+  } forall
 
   errordict begin
-    /dictfull { systemdict /handleerror get exec } def
-    /dictstackoverflow { systemdict /handleerror get exec } def
-    /dictstackunderflow { systemdict /handleerror get exec } def
-    /execstackoverflow { systemdict /handleerror get exec } def
-    /interrupt { systemdict /handleerror get exec } def
-    /invalidaccess { systemdict /handleerror get exec } def
-    /invalidexit { systemdict /handleerror get exec } def
-    /invalidfileaccess { systemdict /handleerror get exec } def
-    /invalidfont { systemdict /handleerror get exec } def
-    /invalidrestore { systemdict /handleerror get exec } def
-    /ioerror { systemdict /handleerror get exec } def
-    /limitcheck { systemdict /handleerror get exec } def
-    /nocurrentpoint { systemdict /handleerror get exec } def
-    /rangecheck { systemdict /handleerror get exec } def
-    /stackoverflow { systemdict /handleerror get exec } def
-    /stackunderflow { systemdict /handleerror get exec } def
-    /syntaxerror { systemdict /handleerror get exec } def
-    /timeout { systemdict /handleerror get exec } def
-    /typecheck { systemdict /handleerror get exec } def
-    /undefined { systemdict /handleerror get exec } def
-
-    % 'undefinedfilename' is a bit special, it needs to take a string operand (the filename).
-    % The default implementation will just call the general 'undefined' error handler.
     /undefinedfilename { undefined } def
-
-    /undefinedresource { systemdict /handleerror get exec } def
-    /undefinedresult { systemdict /handleerror get exec } def
-    /unmatchedmark { systemdict /handleerror get exec } def
-    /unregistered { systemdict /handleerror get exec } def
-    /VMerror { systemdict /handleerror get exec } def
   end
 
 end
