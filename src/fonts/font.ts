@@ -431,8 +431,10 @@ export class Glyph {
           onCurve: p.onCurve,
         }
       })
+      combinedContours.push(
+        ...component.endPtsOfContours.map((x) => x + combinedPoints.length)
+      )
       combinedPoints.push(...points)
-      combinedContours.push(...component.endPtsOfContours)
     } while (flags & CompositeGlyphFlags.MORE_COMPONENTS)
     const byteSize = cursor - offset
     return new Glyph(header, byteSize, combinedPoints, combinedContours)
