@@ -13,9 +13,10 @@ import { PSArray } from '../array'
 import { PSDictionary } from '../dictionary/dictionary'
 import { Font } from '../fonts/font'
 import { createSimpleGlyphPath } from './canvas-font-renderer'
+import { InvalidFontError } from '../error'
 
 export class CanvasBackedGraphicsContext extends GraphicsContext {
-  private fonts: PSDictionary[] = [PSDictionary.newFont('Helvetica', 10)]
+  private fonts: PSDictionary[] = []
   private currentColor: RGBColor = { r: 0, g: 0, b: 0 }
   private defaultTransformationMatrix: TransformationMatrix
   private _tranformationMatrixStack: TransformationMatrix[] = []
@@ -251,77 +252,28 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
 
   private getFont(fontDict: PSDictionary) {
     const fid = fontDict.get(createLiteral('FID', ObjectType.Name))
-
     if (fid) {
       return this.interpreter.parsedFonts.getFont(fid)
     }
-    return null
+    throw new InvalidFontError()
   }
 
   override charPath(text: string, coordinate: Coordinate) {
     const fontDict = this.fonts[this.fonts.length - 1]
     if (!fontDict) {
-      throw new Error('No font set')
+      throw new InvalidFontError()
     }
-
     const font = this.getFont(fontDict)
-    if (!font) {
-      console.error('No font details')
-      return
-    }
-
     this.appendTextToPathFromFont(fontDict, font, text, coordinate)
   }
 
   override fillText(text: string, coordinate: Coordinate): void {
     const fontDict = this.fonts[this.fonts.length - 1]
     if (!fontDict) {
-      throw new Error('No font set')
+      throw new InvalidFontError()
     }
-
     const font = this.getFont(fontDict)
-    if (font) {
-      return this.fillTextFromFont(fontDict, font, text, coordinate)
-    }
-
-    const matrix = (fontDict.searchByName('FontMatrix')?.value as PSArray).map(
-      (x) => x.value
-    ) as TransformationMatrix | undefined
-    const fontName = fontDict.searchByName('FontName')!.value as string
-
-    const currentPoint = this.getCurrentPoint()
-
-    this.canvasContext.save()
-
-    // 1. Move to the text origin
-    this.canvasContext.translate(coordinate.x, coordinate.y)
-
-    // 2. Apply the FontMatrix
-
-    const fontMatrix = matrix ?? IDENTITY_MATRIX
-    this.canvasContext.transform(...fontMatrix)
-
-    // 3. Set Font Size to 1
-    // Since the FontMatrix (e.g., [12 0 0 12 0 0]) usually handles the scaling,
-    // we must tell Canvas to draw at a "unit size" so we don't scale twice.
-    this.canvasContext.font = `1pt ${fontName}`
-
-    // 4. Flip the Y-axis so it points UP (matching PostScript expectations)
-    this.canvasContext.scale(1, -1)
-
-    // 5. Draw at (0,0)
-    this.canvasContext.fillText(text, 0, 0)
-
-    // 6. Calculate Width for cursor update
-    const measure = this.canvasContext.measureText(text)
-    const transformWidth = measure.width
-
-    this.canvasContext.restore()
-
-    // 7. Update Position
-    const point = { x: transformWidth, y: 0 }
-    const newPoint = transformCoordinate(point, fontMatrix)
-    this.moveTo({ x: currentPoint.x + newPoint.x, y: currentPoint.y })
+    return this.fillTextFromFont(fontDict, font, text, coordinate)
   }
 
   override arc(
