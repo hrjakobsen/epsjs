@@ -346,21 +346,7 @@ export class GlyfTable {
       }
       let cursor = current + offset
       const header = GlyphHeader.parse(data, cursor)
-      if (header.numberOfContours < 0) {
-        // TODO: Support composite glyphs
-        glyphs.push(
-          new SimpleGlyph(
-            new GlyphHeader(0, 0, 0, 0, 0),
-            0,
-            new Uint16Array(0),
-            0,
-            new Uint8Array(0),
-            new Uint8Array(0),
-            []
-          )
-        )
-        continue
-      }
+      assert(header.numberOfContours >= 0)
       cursor += GlyphHeader.BYTE_SIZE
       const simpleGlyph = SimpleGlyph.parse(data, cursor, header)
       glyphs.push(simpleGlyph)

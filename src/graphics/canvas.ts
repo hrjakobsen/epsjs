@@ -185,6 +185,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     this.canvasContext.beginPath()
     this.appendTextToPathFromFont(fontDict, font, text, coordinate)
     this.canvasContext.fill()
+    this.canvasContext.beginPath()
   }
 
   appendTextToPathFromFont(
