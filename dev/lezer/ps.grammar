@@ -24,7 +24,7 @@ Dictionary {
 @tokens {
   LineComment { "%" ![\n]* }
   Operator { $[a-zA-Z]+ }
-  Name { "/" $[a-zA-Z]+ }
+  Name { "/" $[a-zA-Z-]+ }
   Number { '-'? int frac? exp?  }
   int  { '0' | $[1-9] @digit* }
   frac { '.' @digit+ }

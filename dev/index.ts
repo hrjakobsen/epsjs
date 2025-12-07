@@ -10,6 +10,7 @@ import { indentWithTab } from '@codemirror/commands'
 import { PSInterpreter } from '../src'
 import { TokenError } from '../src/scanner'
 import { ps } from './lezer/ps-language'
+import { throttle } from './utils'
 
 const INITIAL_DOC = `10 280 moveto
 (<- Write code over there) show
@@ -22,6 +23,8 @@ newpath
 0 0 radius 0 90 arc
 fill`
 
+const debouncedRender = throttle(render, 500)
+
 export const view = new EditorView({
   state: EditorState.create({
     doc: localStorage.getItem('doc') || INITIAL_DOC,
@@ -32,7 +35,7 @@ export const view = new EditorView({
         update(update) {
           if (update.docChanged) {
             localStorage.setItem('doc', update.state.doc.toString())
-            render()
+            debouncedRender()
           }
         },
       })),
