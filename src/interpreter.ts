@@ -10,7 +10,6 @@ import {
   PSObject,
   PSScanner,
 } from './scanner'
-import { PSString } from './string'
 import { createLiteral } from './utils'
 import { CharStream, PSLexer } from './lexer'
 import { GraphicsContext } from './graphics/context'
@@ -310,14 +309,8 @@ export class PSInterpreter {
   public findFont(key: PSObject<ObjectType.Any>) {
     if (this.fonts.has(key)) {
       return this.fonts.get(key)!.value as PSDictionary
+    } else {
+      throw new InvalidFontError()
     }
-    if (key.type !== ObjectType.Name && key.type !== ObjectType.String) {
-      throw new Error('findfont: invalid key type')
-    }
-    let fontName = key.value as string | PSString
-    if (typeof fontName !== 'string') {
-      fontName = fontName.asString()
-    }
-    throw new InvalidFontError()
   }
 }

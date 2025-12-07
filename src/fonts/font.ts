@@ -185,37 +185,57 @@ export class GlyphHeader {
     return new GlyphHeader(numberOfContours, xMin, yMin, xMax, yMax)
   }
 }
+type GlyphPoint = Coordinate & { onCurve: boolean }
 
-class Glyph {
-  constructor(readonly header: GlyphHeader, readonly byteSize: number) {}
-}
-
-export const SimpleGlyphFlags = {
-  ON_CURVE_POINT: 0x01,
-  X_SHORT_VECTOR: 0x02,
-  Y_SHORT_VECTOR: 0x04,
-  REPEAT_FLAG: 0x08,
-  X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR: 0x10,
-  Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR: 0x20,
-  OVERLAP_SIMPLE: 0x40,
-}
-
-type GlyphPoint = Coordinate & { flags: number }
-// https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#simple-glyph-description
-export class SimpleGlyph extends Glyph {
+export class Glyph {
   constructor(
-    header: GlyphHeader,
-    byteSize: number,
-    readonly endPtsOfContours: Uint16Array,
-    readonly instructionLength: number,
-    readonly instructions: Uint8Array,
-    readonly flags: Uint8Array,
-    readonly coordinates: GlyphPoint[]
+    readonly header: GlyphHeader,
+    readonly byteSize: number,
+    readonly coordinates: GlyphPoint[],
+    readonly endPtsOfContours: number[]
+  ) {}
+
+  static parseGlyph(
+    data: DataView,
+    glyfTableOffset: number,
+    glyphIndex: number,
+    locaTable: LocaTable,
+    glyphCache: (Glyph | undefined)[]
   ) {
-    super(header, byteSize)
+    if (glyphCache[glyphIndex] !== undefined) {
+      return glyphCache[glyphIndex]
+    }
+    const current = locaTable.offsets[glyphIndex]
+    const next = locaTable.offsets[glyphIndex + 1]
+    if (current === next) {
+      // empty glyph
+      return new Glyph(new GlyphHeader(0, 0, 0, 0, 0), 0, [], [])
+    }
+    let cursor = current + glyfTableOffset
+    const header = GlyphHeader.parse(data, cursor)
+    cursor += GlyphHeader.BYTE_SIZE
+    if (header.numberOfContours >= 0) {
+      // A simple glyph
+      const glyph = Glyph.parseSimpleGlyph(data, cursor, header)
+      glyphCache[glyphIndex] = glyph
+      return glyph
+    } else {
+      // A composite glyph
+      const glyph = Glyph.parseCompositeGlyph(
+        data,
+        cursor,
+        glyfTableOffset,
+        header,
+        locaTable,
+        glyphCache
+      )
+      glyphCache[glyphIndex] = glyph
+      return glyph
+    }
   }
 
-  static parse(data: DataView, offset: number, header: GlyphHeader) {
+  // https://learn.microsoft.com/en-us/typography/opentype/spec/glyf#simple-glyph-description
+  static parseSimpleGlyph(data: DataView, offset: number, header: GlyphHeader) {
     let cursor = offset
     const endPtsOfContours = new Uint16Array(header.numberOfContours)
     for (let i = 0; i < header.numberOfContours; ++i) {
@@ -297,22 +317,151 @@ export class SimpleGlyph extends Glyph {
       coordinates.push({
         x: xCoordinates[i],
         y: yCoordinates[i],
-        flags: flags[i],
+        onCurve: Boolean(flags[i] & SimpleGlyphFlags.ON_CURVE_POINT),
       })
     }
 
     const byteSize = cursor - offset
 
-    return new SimpleGlyph(
+    return new Glyph(
       header,
       byteSize,
-      endPtsOfContours,
-      instructionLength,
-      instructions,
-      flags,
-      coordinates
+      coordinates,
+      Array.from(endPtsOfContours)
     )
   }
+
+  static parseCompositeGlyph(
+    data: DataView,
+    offset: number,
+    glyphTableOffset: number,
+    header: GlyphHeader,
+    locaTable: LocaTable,
+    glyphCache: (Glyph | undefined)[]
+  ) {
+    let cursor = offset
+    let flags: number
+    const combinedPoints: GlyphPoint[] = []
+    const combinedContours: number[] = []
+
+    do {
+      flags = data.getUint16(cursor, false)
+      cursor += 2
+      const componentGlyphIndex = data.getUint16(cursor, false)
+      const component = Glyph.parseGlyph(
+        data,
+        glyphTableOffset,
+        componentGlyphIndex,
+        locaTable,
+        glyphCache
+      )
+
+      let arg1: number
+      let arg2: number
+      // Check if arguments are 16-bit words or 8-bit bytes
+      if (flags & CompositeGlyphFlags.ARG_1_AND_2_ARE_WORDS) {
+        arg1 = data.getInt16(cursor, false)
+        cursor += 2
+        arg2 = data.getInt16(cursor, false)
+        cursor += 2
+      } else {
+        arg1 = data.getInt8(cursor)
+        cursor += 1
+        arg2 = data.getInt8(cursor)
+        cursor += 1
+      }
+      // Default tranformation matrix
+      let a = 1
+      let b = 0
+      let c = 0
+      let d = 1
+      let dx = 0
+      let dy = 0
+
+      function readF2Dot14() {
+        const raw = data.getInt16(cursor, false)
+        cursor += 2
+        return raw / 16384.0 // Divide by 2^14
+      }
+
+      if (flags & CompositeGlyphFlags.WE_HAVE_A_SCALE) {
+        const s = readF2Dot14()
+        a = s
+        d = s
+      } else if (flags & CompositeGlyphFlags.WE_HAVE_AN_X_AND_Y_SCALE) {
+        a = readF2Dot14()
+        d = readF2Dot14()
+      } else if (flags & CompositeGlyphFlags.WE_HAVE_A_TWO_BY_TWO) {
+        a = readF2Dot14()
+        b = readF2Dot14()
+        c = readF2Dot14()
+        d = readF2Dot14()
+      }
+
+      if (flags & CompositeGlyphFlags.ARGS_ARE_XY_VALUES) {
+        if (flags & CompositeGlyphFlags.SCALED_COMPONENT_OFFSET) {
+          // The offsets are attached to the component *before* transformation.
+          // We must apply the rotation/scale to the offset vector itself.
+          dx = arg1 * a + arg2 * c
+          dy = arg1 * b + arg2 * d
+        } else {
+          // The offsets are in the Parent's coordinate space.
+          // Just add them directly.
+          dx = arg1
+          dy = arg2
+        }
+
+        dx = arg1
+        dy = arg2
+      } else {
+        const rawChildPt = component.coordinates[arg2]
+        const parentPt = combinedPoints[arg1]
+        const scaledChildX = rawChildPt.x * a + rawChildPt.y * c
+        const scaledChildY = rawChildPt.x * b + rawChildPt.y * d
+        dx = parentPt.x - scaledChildX
+        dy = parentPt.y - scaledChildY
+      }
+
+      const points: GlyphPoint[] = component.coordinates.map((p) => {
+        const x = p.x
+        const y = p.y
+        return {
+          x: x * a + y * c + dx,
+          y: x * b + y * d + dy,
+          onCurve: p.onCurve,
+        }
+      })
+      combinedPoints.push(...points)
+      combinedContours.push(...component.endPtsOfContours)
+    } while (flags & CompositeGlyphFlags.MORE_COMPONENTS)
+    const byteSize = cursor - offset
+    return new Glyph(header, byteSize, combinedPoints, combinedContours)
+  }
+}
+
+export const SimpleGlyphFlags = {
+  ON_CURVE_POINT: 0x01,
+  X_SHORT_VECTOR: 0x02,
+  Y_SHORT_VECTOR: 0x04,
+  REPEAT_FLAG: 0x08,
+  X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR: 0x10,
+  Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR: 0x20,
+  OVERLAP_SIMPLE: 0x40,
+}
+
+export const CompositeGlyphFlags = {
+  ARG_1_AND_2_ARE_WORDS: 0x01,
+  ARGS_ARE_XY_VALUES: 0x02,
+  ROUND_XY_TO_GRID: 0x04,
+  WE_HAVE_A_SCALE: 0x08,
+  MORE_COMPONENTS: 0x20,
+  WE_HAVE_AN_X_AND_Y_SCALE: 0x40,
+  WE_HAVE_A_TWO_BY_TWO: 0x80,
+  WE_HAVE_INSTRUCTIONS: 0x100,
+  USE_MY_METRICS: 0x200,
+  OVERLAP_COMPOUND: 0x400,
+  SCALED_COMPONENT_OFFSET: 0x800,
+  UNSCALED_COMPONENT_OFFSET: 0x1000,
 }
 
 // https://learn.microsoft.com/en-us/typography/opentype/spec/glyf
@@ -325,34 +474,15 @@ export class GlyfTable {
     numGlyphs: number,
     locaTable: LocaTable
   ) {
-    const glyphs: Glyph[] = []
+    const glyphs: (Glyph | undefined)[] = []
     for (let i = 0; i < numGlyphs; ++i) {
-      const current = locaTable.offsets[i]
-      const next = locaTable.offsets[i + 1]
-      if (current === next) {
-        // empty glyph
-        glyphs.push(
-          new SimpleGlyph(
-            new GlyphHeader(0, 0, 0, 0, 0),
-            0,
-            new Uint16Array(0),
-            0,
-            new Uint8Array(0),
-            new Uint8Array(0),
-            []
-          )
-        )
-        continue
-      }
-      let cursor = current + offset
-      const header = GlyphHeader.parse(data, cursor)
-      assert(header.numberOfContours >= 0)
-      cursor += GlyphHeader.BYTE_SIZE
-      const simpleGlyph = SimpleGlyph.parse(data, cursor, header)
-      glyphs.push(simpleGlyph)
+      glyphs.push(undefined)
     }
-
-    return new GlyfTable(glyphs)
+    for (let i = 0; i < numGlyphs; ++i) {
+      const glyph = Glyph.parseGlyph(data, offset, i, locaTable, glyphs)
+      glyphs[i] = glyph
+    }
+    return new GlyfTable(glyphs.filter((glyph) => glyph !== undefined))
   }
 }
 

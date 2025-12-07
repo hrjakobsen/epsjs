@@ -11,7 +11,7 @@ import { GraphicsContext, LineCap, LineJoin, RGBColor } from './context'
 import { BoundingBox, ObjectType, PSObject } from '../scanner'
 import { PSArray } from '../array'
 import { PSDictionary } from '../dictionary/dictionary'
-import { Font, SimpleGlyph } from '../fonts/font'
+import { Font } from '../fonts/font'
 import { createSimpleGlyphPath } from './canvas-font-renderer'
 
 export class CanvasBackedGraphicsContext extends GraphicsContext {
@@ -228,11 +228,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
         )
       }
 
-      const glyph = font.glyf.glyphs.at(glyphIndex.value)
-      if (!(glyph instanceof SimpleGlyph)) {
-        throw new Error('Cannot draw composite glyphs')
-      }
-
+      const glyph = font.glyf.glyphs.at(glyphIndex.value)!
       this.canvasContext.save()
       this.canvasContext.translate(nextCoordinate.x, nextCoordinate.y)
       this.canvasContext.transform(...fontMatrix)
