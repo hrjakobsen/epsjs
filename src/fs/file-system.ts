@@ -4,6 +4,9 @@ import miscPs from '../std/misc.ps?raw'
 import errorPs from '../std/error.ps?raw'
 import symbolFont from '../../src/assets/fonts/symbol/symbol-neu.ps?raw'
 import arimoRegular from '../../src/assets/fonts/arimo/arimo-regular.ps?raw'
+import arimoBold from '../../src/assets/fonts/arimo/arimo-bold.ps?raw'
+import arimoOblique from '../../src/assets/fonts/arimo/arimo-oblique.ps?raw'
+import arimoBoldOblique from '../../src/assets/fonts/arimo/arimo-bold-oblique.ps?raw'
 import { PSInterpreter } from '../interpreter'
 
 export class FileSystem {
@@ -36,6 +39,9 @@ export class FileSystem {
     fs.addFileFromString('error.ps', errorPs)
     fs.addFileFromString('symbol.ps', symbolFont)
     fs.addFileFromString('arimo-regular.ps', arimoRegular)
+    fs.addFileFromString('arimo-bold.ps', arimoBold)
+    fs.addFileFromString('arimo-oblique.ps', arimoOblique)
+    fs.addFileFromString('arimo-bold-oblique.ps', arimoBoldOblique)
     return fs
   }
 }
