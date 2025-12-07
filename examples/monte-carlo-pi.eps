@@ -26,7 +26,6 @@
 
 % draw perimeter of circle
 0 0 0 setrgbcolor
-/Helvetica 14 selectfont
 radius radius radius 0 360 arc stroke
 
 0
@@ -48,7 +47,7 @@ dup
 4
 % shuffle move things into place for the putinterval
 4 -1 roll putinterval
-dup 0 (π = ) putinterval
+dup 0 (  = ) putinterval
 % reference we'll use for stringwidth
 dup
 
@@ -61,4 +60,7 @@ exch stringwidth pop
 % subtract half of string width to place string in center
 2 div sub
 % y coordinate
-radius moveto show
+radius moveto
+/Symbol 14 selectfont (\160) show
+/Helvetica 14 selectfont
+show

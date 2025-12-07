@@ -99,11 +99,16 @@ export class PSInterpreter {
     }
   }
 
-  private next(): (typeof this.executionStack)[number] | undefined {
+  private next(): PSObject | undefined {
     while (this.executionStack.length) {
       const top = this.executionStack[this.executionStack.length - 1]
       if (top instanceof ExecutionContext) {
-        return top
+        if (top.finished()) {
+          top.exit()
+        } else {
+          top.execute()
+        }
+        continue
       }
       if (top.type === ObjectType.File) {
         const file = (top as PSObject<ObjectType.File>).value
@@ -152,15 +157,6 @@ export class PSInterpreter {
     const itemOrLoopContext = this.next()
     if (!itemOrLoopContext) {
       this.stopped = true
-      return
-    }
-    if (itemOrLoopContext instanceof ExecutionContext) {
-      const loopCtx = itemOrLoopContext
-      if (loopCtx.finished()) {
-        loopCtx.exit()
-      } else {
-        loopCtx.execute()
-      }
       return
     }
     const item = itemOrLoopContext
