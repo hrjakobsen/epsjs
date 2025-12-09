@@ -304,7 +304,7 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
     x2: number,
     y2: number,
     r: number
-  ): void {
+  ): { tangentPoint1: Coordinate; tangentPoint2: Coordinate } | undefined {
     const c0 = this.getCurrentPoint()
     const c1 = { x: x1, y: y1 }
     const c2 = { x: x2, y: y2 }
@@ -358,6 +358,10 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
       isLeftTurn
     )
     this.setCurrentPoint(tangentPoint2)
+    return {
+      tangentPoint1,
+      tangentPoint2,
+    }
   }
 
   override lineTo(coordinate: Coordinate): void {

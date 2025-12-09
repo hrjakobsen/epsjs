@@ -66,7 +66,7 @@ export abstract class GraphicsContext {
     x2: number,
     y2: number,
     r: number
-  ): void
+  ): { tangentPoint1: Coordinate; tangentPoint2: Coordinate } | undefined
   abstract bezierCurveTo(
     controlPoint1: Coordinate,
     controlPoint2: Coordinate,

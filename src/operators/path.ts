@@ -1,3 +1,4 @@
+import { UndefinedResultError } from '../error'
 import { PSInterpreter } from '../interpreter'
 import { ObjectType } from '../scanner'
 
@@ -104,8 +105,20 @@ export function arct(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=548
-export function arcto(_interpreter: PSInterpreter) {
-  throw new Error('arcto: Not implemented')
+export function arcto(interpreter: PSInterpreter) {
+  const { value: r } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const { value: y2 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const { value: x2 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const { value: y1 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const { value: x1 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const result = interpreter.printer.arcTangents(x1, x2, y1, y2, r)
+  if (!result) {
+    throw new UndefinedResultError()
+  }
+  interpreter.pushLiteral(result.tangentPoint1.x, ObjectType.Real)
+  interpreter.pushLiteral(result.tangentPoint1.y, ObjectType.Real)
+  interpreter.pushLiteral(result.tangentPoint2.x, ObjectType.Real)
+  interpreter.pushLiteral(result.tangentPoint2.y, ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=578
