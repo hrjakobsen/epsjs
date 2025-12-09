@@ -94,9 +94,13 @@ export function arcn(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=546
-export function arct(_interpreter: PSInterpreter) {
-  // TODO: ctx arct?
-  throw new Error('arct: Not implemented')
+export function arct(interpreter: PSInterpreter) {
+  const { value: r } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const { value: y2 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const { value: x2 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const { value: y1 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const { value: x1 } = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  interpreter.printer.arcTangents(x1, x2, y1, y2, r)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=548

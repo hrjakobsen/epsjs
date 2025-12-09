@@ -1,5 +1,9 @@
 import {
   Coordinate,
+  coordinateDifference,
+  crossProduct,
+  dotProduct,
+  getUnitVector,
   IDENTITY_MATRIX,
   matrixMultiply,
   TransformationMatrix,
@@ -292,6 +296,68 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
       !counterClockWise
     )
     this.setCurrentPoint(coordinate)
+  }
+
+  override arcTangents(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    r: number
+  ): void {
+    const c0 = this.getCurrentPoint()
+    const c1 = { x: x1, y: y1 }
+    const c2 = { x: x2, y: y2 }
+    const directionC1ToC0 = getUnitVector(coordinateDifference(c0, c1))
+    const directionC1ToC2 = getUnitVector(coordinateDifference(c2, c1))
+    const angle = Math.acos(dotProduct(directionC1ToC0, directionC1ToC2))
+    if (Math.abs(angle) < 0.0001 || Math.abs(angle - Math.PI) < 0.0001) {
+      this.canvasContext.lineTo(c1.x, c1.y)
+      this.setCurrentPoint(c1)
+      return
+    }
+    const distanceToTangentPoints = r / Math.tan(angle / 2)
+    const tangentPoint1: Coordinate = {
+      x: c1.x + directionC1ToC0.x * distanceToTangentPoints,
+      y: c1.y + directionC1ToC0.y * distanceToTangentPoints,
+    }
+    const tangentPoint2: Coordinate = {
+      x: c1.x + directionC1ToC2.x * distanceToTangentPoints,
+      y: c1.y + directionC1ToC2.y * distanceToTangentPoints,
+    }
+    this.canvasContext.lineTo(tangentPoint1.x, tangentPoint1.y)
+    const cross = crossProduct(directionC1ToC0, directionC1ToC2)
+    const isLeftTurn = cross > 0
+    const normal = isLeftTurn
+      ? {
+          x: -directionC1ToC0.y,
+          y: directionC1ToC0.x,
+        }
+      : {
+          x: directionC1ToC0.y,
+          y: -directionC1ToC0.x,
+        }
+    const center: Coordinate = {
+      x: tangentPoint1.x + normal.x * r,
+      y: tangentPoint1.y + normal.y * r,
+    }
+    const startAngle = Math.atan2(
+      tangentPoint1.y - center.y,
+      tangentPoint1.x - center.x
+    )
+    const endAngle = Math.atan2(
+      tangentPoint2.y - center.y,
+      tangentPoint2.x - center.x
+    )
+    this.canvasContext.arc(
+      center.x,
+      center.y,
+      r,
+      startAngle,
+      endAngle,
+      isLeftTurn
+    )
+    this.setCurrentPoint(tangentPoint2)
   }
 
   override lineTo(coordinate: Coordinate): void {

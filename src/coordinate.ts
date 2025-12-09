@@ -246,3 +246,26 @@ export function rotationMatrix(angle_degrees: number): TransformationMatrix {
 export function midpoint(c1: Coordinate, c2: Coordinate): Coordinate {
   return { x: (c1.x + c2.x) / 2, y: (c1.y + c2.y) / 2 }
 }
+
+export function getUnitVector(c1: Coordinate) {
+  const length = Math.sqrt(c1.x * c1.x + c1.y * c1.y)
+  return {
+    x: c1.x / length,
+    y: c1.y / length,
+  }
+}
+
+export function dotProduct(c1: Coordinate, c2: Coordinate) {
+  return c1.x * c2.x + c1.y * c2.y
+}
+
+export function crossProduct(c1: Coordinate, c2: Coordinate) {
+  return c1.x * c2.y - c1.y * c2.x
+}
+
+export function coordinateDifference(c1: Coordinate, c2: Coordinate) {
+  return {
+    x: c1.x - c2.x,
+    y: c1.y - c2.y,
+  }
+}

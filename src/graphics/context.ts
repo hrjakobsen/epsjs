@@ -60,6 +60,13 @@ export abstract class GraphicsContext {
     degreeEnd: number,
     counterClockWise: boolean
   ): void
+  abstract arcTangents(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    r: number
+  ): void
   abstract bezierCurveTo(
     controlPoint1: Coordinate,
     controlPoint2: Coordinate,
