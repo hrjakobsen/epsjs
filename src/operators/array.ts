@@ -22,12 +22,7 @@ export function arrayStart(interpreter: PSInterpreter) {
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=538
 // @builtin(']')
 export function arrayEnd(interpreter: PSInterpreter) {
-  const markIndex = interpreter.findIndexOfMark()
-  if (markIndex === undefined) {
-    throw new Error("]: Can't find mark")
-  }
-  const list = interpreter.operandStack.splice(markIndex + 1)
-  interpreter.operandStack.pop() // Remove mark
+  const list = interpreter.operandStack.popMarked()
   interpreter.pushLiteral(new PSArray(list), ObjectType.Array)
 }
 

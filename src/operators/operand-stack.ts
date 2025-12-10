@@ -1,4 +1,6 @@
+import { StackUnderflowError } from '../error'
 import { PSInterpreter } from '../interpreter'
+import { OperandStack } from '../operand-stack'
 import { Access, Executability, ObjectType } from '../scanner'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=647
@@ -26,10 +28,7 @@ export function copy(interpreter: PSInterpreter) {
   if (interpreter.operandStack.length < numberOfElements) {
     throw new Error('Not enough elements on stack to copy')
   }
-  const slice = interpreter.operandStack.slice(
-    interpreter.operandStack.length - numberOfElements
-  )
-  interpreter.operandStack.push(...slice)
+  interpreter.operandStack.copy(numberOfElements)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=624
@@ -39,7 +38,7 @@ export function index(interpreter: PSInterpreter) {
     throw new Error('Index too high')
   }
   interpreter.operandStack.push(
-    interpreter.operandStack[interpreter.operandStack.length - 1 - offset]
+    interpreter.operandStack.at(interpreter.operandStack.length - 1 - offset)
   )
 }
 
@@ -67,7 +66,7 @@ export function roll(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555
 export function clear(interpreter: PSInterpreter) {
-  interpreter.operandStack = []
+  interpreter.operandStack = new OperandStack()
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=564
@@ -89,18 +88,14 @@ export function mark(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555
 export function clearToMark(interpreter: PSInterpreter) {
-  const markIndex = interpreter.findIndexOfMark()
-  if (markIndex === undefined) {
-    throw new Error('No mark defined')
-  }
-  interpreter.operandStack.splice(markIndex)
+  interpreter.operandStack.popMarked()
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=564
 export function countToMark(interpreter: PSInterpreter) {
-  const markIndex = interpreter.findIndexOfMark()
+  const markIndex = interpreter.operandStack.findIndexOfMark()
   if (markIndex === undefined) {
-    throw new Error('No mark defined')
+    throw new StackUnderflowError()
   }
   interpreter.pushLiteralNumber(interpreter.operandStack.length - 1 - markIndex)
 }

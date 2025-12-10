@@ -24,12 +24,7 @@ export function startDict(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=539
 export function endDict(interpreter: PSInterpreter) {
-  const mark = interpreter.findIndexOfMark()
-  if (mark === undefined) {
-    throw new Error('>>: Missing mark on stack')
-  }
-  const elements = interpreter.operandStack.splice(mark + 1)
-  interpreter.operandStack.pop() // pop mark
+  const elements = interpreter.operandStack.popMarked()
   if (elements.length % 2 !== 0) {
     throw new Error('Dictionary entries must be key-value pairs')
   }

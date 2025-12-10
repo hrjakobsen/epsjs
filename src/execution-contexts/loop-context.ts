@@ -1,6 +1,7 @@
 import { ProcedureBackedExecutionContext } from '.'
 import { GraphicsContext } from '../graphics/context'
 import { PSInterpreter } from '../interpreter'
+import { OperandStack } from '../operand-stack'
 import { ObjectType, PSObject } from '../scanner'
 import { createLiteral } from '../utils'
 import { ProcedureContext } from './procedure-context'
@@ -22,7 +23,7 @@ export class ForLoopContext extends LoopContext {
   constructor(
     interpreter: PSInterpreter,
     procedure: PSObject,
-    private operandStack: PSObject[],
+    private operandStack: OperandStack,
     initial: PSObject<ObjectType.Integer | ObjectType.Real>,
     increment: PSObject<ObjectType.Integer | ObjectType.Real>,
     limit: PSObject<ObjectType.Integer | ObjectType.Real>
@@ -110,7 +111,7 @@ export class ArrayForAllLoopContext extends LoopContext {
   constructor(
     interpreter: PSInterpreter,
     procedure: PSObject,
-    private operandStack: PSObject[],
+    private operandStack: OperandStack,
     private array: PSObject<ObjectType.Array>
   ) {
     super(interpreter, procedure)
@@ -135,7 +136,7 @@ export class DictionaryForAllLoopContext extends LoopContext {
   constructor(
     interpreter: PSInterpreter,
     procedure: PSObject,
-    private operandStack: PSObject[],
+    private operandStack: OperandStack,
     private dictionary: PSObject<ObjectType.Dictionary>
   ) {
     super(interpreter, procedure)
@@ -166,7 +167,7 @@ export class StringForAllLoopContext extends LoopContext {
   constructor(
     interpreter: PSInterpreter,
     procedure: PSObject,
-    private operandStack: PSObject[],
+    private operandStack: OperandStack,
     private string: PSObject<ObjectType.String>
   ) {
     super(interpreter, procedure)

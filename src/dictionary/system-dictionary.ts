@@ -39,7 +39,8 @@ function stackMatches(interpreter: PSInterpreter, pattern: StackPattern) {
     if (
       !(
         pattern[pattern.length - 1 - i] &
-        interpreter.operandStack[interpreter.operandStack.length - 1 - i].type
+        interpreter.operandStack.at(interpreter.operandStack.length - 1 - i)
+          .type
       )
     ) {
       return false

@@ -22,6 +22,7 @@ import { InvalidFontError, PSError, StackUnderflowError } from './error'
 import { ExecutionContext } from './execution-contexts'
 import { ProcedureContext } from './execution-contexts/procedure-context'
 import { LoopContext } from './execution-contexts/loop-context'
+import { OperandStack } from './operand-stack'
 
 const MAX_STEPS = 100_000
 const MAX_EXECUTION_STACK_SIZE = 1024
@@ -64,7 +65,7 @@ export class PSInterpreter {
       value: new PSDictionary(1024),
     },
   ]
-  public operandStack: PSObject[] = []
+  public operandStack = new OperandStack()
   public executionStack: (PSObject | ExecutionContext)[] = []
 
   public beginLoop(loop: ExecutionContext) {
@@ -277,28 +278,8 @@ export class PSInterpreter {
     this.pushLiteral(num, type)
   }
 
-  public findIndexOfMark() {
-    for (let index = this.operandStack.length - 1; index >= 0; --index) {
-      const element = this.operandStack[index]
-      if (element!.type === ObjectType.Mark) {
-        return index
-      }
-    }
-    return undefined
-  }
-
-  public pop<T extends ObjectType>(typ: T): PSObject<T> {
-    const top = this.operandStack.pop()
-    if (!top) {
-      throw new StackUnderflowError()
-    }
-    if (!(top.type & typ)) {
-      throw new Error(
-        `Expected "${getObjectTypeName(typ)}", got "${getObjectTypeName(
-          top.type
-        )}"`
-      )
-    }
+  public pop<T extends ObjectType>(typ: T) {
+    const [top] = this.operandStack.pop(typ)
     return top
   }
 

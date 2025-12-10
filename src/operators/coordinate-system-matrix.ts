@@ -83,14 +83,16 @@ export function translate(interpreter: PSInterpreter) {
   const modifyCTM = offsetYOrMatrix.type !== ObjectType.Array
   if (!modifyCTM) {
     offsetY = offsetXOrY
-    const topOfStack = interpreter.operandStack.pop()
+    const [topOfStack] = interpreter.operandStack.pop(ObjectType.Any)
     if (
       topOfStack?.type !== ObjectType.Real &&
       topOfStack?.type !== ObjectType.Integer
     ) {
       throw new Error('translate: Invalid x offset')
     }
-    offsetX = topOfStack
+    offsetX = topOfStack as unknown as PSObject<
+      ObjectType.Real | ObjectType.Integer
+    >
   } else {
     offsetX = offsetXOrY
     offsetY = offsetYOrMatrix
@@ -119,14 +121,16 @@ export function scale(interpreter: PSInterpreter) {
   const modifyCTM = scaleYOrMatrix.type !== ObjectType.Array
   if (!modifyCTM) {
     scaleY = scaleXOrY
-    const topOfStack = interpreter.operandStack.pop()
+    const [topOfStack] = interpreter.operandStack.pop(ObjectType.Any)
     if (
       topOfStack?.type !== ObjectType.Real &&
       topOfStack?.type !== ObjectType.Integer
     ) {
       throw new Error('scale: Invalid x scale')
     }
-    scaleX = topOfStack
+    scaleX = topOfStack as unknown as PSObject<
+      ObjectType.Integer | ObjectType.Real
+    >
   } else {
     scaleX = scaleXOrY
     scaleY = scaleYOrMatrix
@@ -144,14 +148,16 @@ export function scale(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=665
 export function rotate(interpreter: PSInterpreter) {
-  const arg = interpreter.operandStack.pop()
+  const [arg] = interpreter.operandStack.pop(ObjectType.Array | ObjectType.Real)
   if (!arg) {
     throw new Error('rotate: Missing argument')
   }
   if (arg.type === ObjectType.Array) {
     const matrixArray = arg as PSObject<ObjectType.Array>
     // There must be a angle argument as well
-    const angle = interpreter.operandStack.pop()
+    const [angle] = interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real
+    )
     if (!angle) {
       throw new Error('rotate: Missing angle argument')
     }
