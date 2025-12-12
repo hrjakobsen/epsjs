@@ -35,91 +35,81 @@ export function length(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
 export function get(interpreter: PSInterpreter) {
-  const [index, elements] = interpreter.operandStack.pop(
-    ObjectType.Integer,
-    ObjectType.Array
+  interpreter.operandStack.withPopped(
+    [ObjectType.Integer, ObjectType.Array],
+    ([index, elements]) => {
+      if (elements.value.length <= index.value) {
+        throw new RangeCheckError()
+      }
+      interpreter.operandStack.push(elements.value.get(index.value)!)
+    }
   )
-  if (elements.value.length <= index.value) {
-    // restore stack
-    interpreter.operandStack.push(elements, index)
-    throw new RangeCheckError()
-  }
-  interpreter.operandStack.push(elements.value.get(index.value)!)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
 export function put(interpreter: PSInterpreter) {
-  const [item, index, elements] = interpreter.operandStack.pop(
-    ObjectType.Any,
-    ObjectType.Integer,
-    ObjectType.Array
+  interpreter.operandStack.withPopped(
+    [ObjectType.Any, ObjectType.Integer, ObjectType.Array],
+    ([item, index, elements]) => {
+      if (elements.value.length <= index.value) {
+        throw new RangeCheckError()
+      }
+      elements.value.set(index.value, item)
+    }
   )
-
-  if (elements.value.length <= index.value) {
-    // restore stack
-    interpreter.operandStack.push(elements, index, item)
-    throw new RangeCheckError()
-  }
-  elements.value.set(index.value, item)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=613
 export function getInterval(interpreter: PSInterpreter) {
-  const [count, index, elements] = interpreter.operandStack.pop(
-    ObjectType.Integer,
-    ObjectType.Integer,
-    ObjectType.Array
-  )
-  if (
-    elements.value.length <= index.value ||
-    elements.value.length <= index.value + count.value
-  ) {
-    // restore stack
-    interpreter.operandStack.push(elements, index, count)
-    throw new RangeCheckError()
-  }
-  interpreter.pushLiteral(
-    elements.value.slice(index.value, index.value + count.value),
-    ObjectType.Array
+  interpreter.operandStack.withPopped(
+    [ObjectType.Integer, ObjectType.Integer, ObjectType.Array],
+    ([count, index, elements]) => {
+      if (
+        elements.value.length <= index.value ||
+        elements.value.length <= index.value + count.value
+      ) {
+        throw new RangeCheckError()
+      }
+      interpreter.pushLiteral(
+        elements.value.slice(index.value, index.value + count.value),
+        ObjectType.Array
+      )
+    }
   )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=650
 export function putInterval(interpreter: PSInterpreter) {
-  const [source, index, target] = interpreter.operandStack.pop(
-    ObjectType.Array,
-    ObjectType.Integer,
-    ObjectType.Array
+  interpreter.operandStack.withPopped(
+    [ObjectType.Array, ObjectType.Integer, ObjectType.Array],
+    ([source, index, target]) => {
+      if (target.value.length < index.value + source.value.length) {
+        throw new RangeCheckError()
+      }
+      target.value.splice(index.value, source.value.length, source.value)
+    }
   )
-
-  if (target.value.length < index.value + source.value.length) {
-    // restore stack
-    interpreter.operandStack.push(target, index, source)
-    throw new RangeCheckError()
-  }
-  target.value.splice(index.value, source.value.length, source.value)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=549
 export function aStore(interpreter: PSInterpreter) {
-  const [array] = interpreter.operandStack.pop(ObjectType.Array)
-  const { value: elements } = array
-  if (interpreter.operandStack.length < elements.length) {
-    // restore stack
+  interpreter.operandStack.withPopped([ObjectType.Array], ([array]) => {
+    const { value: elements } = array
+    if (interpreter.operandStack.length < elements.length) {
+      throw new StackUnderflowError()
+    }
+    // Move items from stack into array
+    elements.splice(
+      0,
+      elements.length,
+      new PSArray([
+        ...interpreter.operandStack.splice(
+          interpreter.operandStack.length - elements.length
+        ),
+      ])
+    )
     interpreter.operandStack.push(array)
-    throw new StackUnderflowError()
-  }
-  // Move items from stack into array
-  elements.splice(
-    0,
-    elements.length,
-    new PSArray([
-      ...interpreter.operandStack.splice(
-        interpreter.operandStack.length - elements.length
-      ),
-    ])
-  )
-  interpreter.operandStack.push(array)
+  })
 }
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=542
 export function aLoad(interpreter: PSInterpreter) {
@@ -129,22 +119,21 @@ export function aLoad(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=562
 export function copy(interpreter: PSInterpreter) {
-  const [target, source] = interpreter.operandStack.pop(
-    ObjectType.Array,
-    ObjectType.Array
+  interpreter.operandStack.withPopped(
+    [ObjectType.Array, ObjectType.Array],
+    ([target, source]) => {
+      // Returns the removed elements of target
+      if (target.value.length < source.value.length) {
+        throw new RangeCheckError()
+      }
+      const returnedElements = target.value.splice(
+        0,
+        source.value.length,
+        source.value
+      )
+      interpreter.pushLiteral(returnedElements, ObjectType.Array)
+    }
   )
-  // Returns the removed elements of target
-  if (target.value.length < source.value.length) {
-    // restore stack
-    interpreter.operandStack.push(source, target)
-    throw new RangeCheckError()
-  }
-  const returnedElements = target.value.splice(
-    0,
-    source.value.length,
-    source.value
-  )
-  interpreter.pushLiteral(returnedElements, ObjectType.Array)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=611

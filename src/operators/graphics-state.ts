@@ -31,13 +31,13 @@ export function currentLineWidth(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=687
 export function setLineCap(interpreter: PSInterpreter) {
-  const [lineCap] = interpreter.operandStack.pop(ObjectType.Integer)
-  if (lineCap.value in LineCap) {
-    interpreter.printer.setLineCap(lineCap.value)
-  } else {
-    interpreter.operandStack.push(lineCap)
-    throw new RangeCheckError()
-  }
+  interpreter.operandStack.withPopped([ObjectType.Integer], ([lineCap]) => {
+    if (lineCap.value in LineCap) {
+      interpreter.printer.setLineCap(lineCap.value)
+    } else {
+      throw new RangeCheckError()
+    }
+  })
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573
@@ -47,12 +47,13 @@ export function currentLineCap(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=687
 export function setLineJoin(interpreter: PSInterpreter) {
-  const [lineJoin] = interpreter.operandStack.pop(ObjectType.Integer)
-  if (lineJoin.value in LineJoin) {
-    interpreter.printer.setLineJoin(lineJoin.value)
-  } else {
-    throw new RangeCheckError()
-  }
+  interpreter.operandStack.withPopped([ObjectType.Integer], ([lineJoin]) => {
+    if (lineJoin.value in LineJoin) {
+      interpreter.printer.setLineJoin(lineJoin.value)
+    } else {
+      throw new RangeCheckError()
+    }
+  })
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573

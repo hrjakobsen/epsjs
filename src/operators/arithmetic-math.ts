@@ -19,17 +19,19 @@ export function add(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=588
 export function div(interpreter: PSInterpreter) {
-  const [v2, v1] = interpreter.operandStack.pop(
-    ObjectType.Integer | ObjectType.Real,
-    ObjectType.Integer | ObjectType.Real
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real,
+    ],
+    ([{ value: v2 }, { value: v1 }]) => {
+      if (v2 === 0) {
+        throw new UndefinedResultError()
+      }
+
+      interpreter.pushLiteralNumber(v1 / v2, ObjectType.Real)
+    }
   )
-
-  if (v2.value === 0) {
-    interpreter.operandStack.push(v1, v2)
-    throw new UndefinedResultError()
-  }
-
-  interpreter.pushLiteralNumber(v1.value / v2.value, ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=619

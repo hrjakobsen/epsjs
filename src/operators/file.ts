@@ -47,21 +47,20 @@ export function readString(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=603
 export function filter(interpreter: PSInterpreter) {
-  const [name, input] = interpreter.operandStack.pop(
-    ObjectType.Name,
-    ObjectType.File
-  )
-  const { value: inputFile } = input
-  if (name.attributes.executability !== Executability.Literal) {
-    interpreter.operandStack.push(input, name)
-    throw new Error('filter: Must be a literal name')
-  }
-  if (name.value !== 'ASCII85Decode') {
-    interpreter.operandStack.push(input, name)
-    throw new Error(`Unsupported filter: ${name.value}`)
-  }
-  interpreter.operandStack.push(
-    createLiteral(new Ascii85DecodeFilter(inputFile), ObjectType.File)
+  interpreter.operandStack.withPopped(
+    [ObjectType.Name, ObjectType.File],
+    ([name, input]) => {
+      const { value: inputFile } = input
+      if (name.attributes.executability !== Executability.Literal) {
+        throw new Error('filter: Must be a literal name')
+      }
+      if (name.value !== 'ASCII85Decode') {
+        throw new Error(`Unsupported filter: ${name.value}`)
+      }
+      interpreter.operandStack.push(
+        createLiteral(new Ascii85DecodeFilter(inputFile), ObjectType.File)
+      )
+    }
   )
 }
 
@@ -87,14 +86,14 @@ export function currentFile(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=667
 export function run(interpreter: PSInterpreter) {
-  const [pathObj] = interpreter.operandStack.pop(ObjectType.String)
-  const path = pathObj.value.asString()
-  if (!interpreter.fs.exists(path)) {
-    interpreter.operandStack.push(pathObj)
-    throw new IoError()
-  }
-  const file = interpreter.fs.getFile(path)
-  interpreter.pushFileToExecutionStack(file)
+  interpreter.operandStack.withPopped([ObjectType.String], ([pathObj]) => {
+    const path = pathObj.value.asString()
+    if (!interpreter.fs.exists(path)) {
+      throw new IoError()
+    }
+    const file = interpreter.fs.getFile(path)
+    interpreter.pushFileToExecutionStack(file)
+  })
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=601

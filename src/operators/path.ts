@@ -66,148 +66,169 @@ export function rLineTo(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=544
 export function arc(interpreter: PSInterpreter) {
-  const [angle2, angle1, radius, y, x] = interpreter.operandStack.pop(
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer
-  )
-  if (
-    angle1.value < 0 ||
-    angle1.value > 360 ||
-    angle2.value < 0 ||
-    angle2.value > 360
-  ) {
-    interpreter.operandStack.push(x, y, radius, angle1, angle2)
-    throw new RangeCheckError()
-  }
-  interpreter.printer.arc(
-    { x: x.value, y: y.value },
-    radius.value,
-    angle1.value,
-    angle2.value,
-    true
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+    ],
+    ([angle2, angle1, radius, y, x]) => {
+      if (
+        angle1.value < 0 ||
+        angle1.value > 360 ||
+        angle2.value < 0 ||
+        angle2.value > 360
+      ) {
+        throw new RangeCheckError()
+      }
+      interpreter.printer.arc(
+        { x: x.value, y: y.value },
+        radius.value,
+        angle1.value,
+        angle2.value,
+        true
+      )
+    }
   )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=545
 export function arcn(interpreter: PSInterpreter) {
-  const [angle2, angle1, radius, y, x] = interpreter.operandStack.pop(
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer
-  )
-  if (
-    angle1.value < 0 ||
-    angle1.value > 360 ||
-    angle2.value < 0 ||
-    angle2.value > 360
-  ) {
-    interpreter.operandStack.push(x, y, radius, angle1, angle2)
-    throw new RangeCheckError()
-  }
-  interpreter.printer.arc(
-    { x: x.value, y: y.value },
-    radius.value,
-    angle1.value,
-    angle2.value,
-    false
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+    ],
+    ([angle2, angle1, radius, y, x]) => {
+      if (
+        angle1.value < 0 ||
+        angle1.value > 360 ||
+        angle2.value < 0 ||
+        angle2.value > 360
+      ) {
+        throw new RangeCheckError()
+      }
+      interpreter.printer.arc(
+        { x: x.value, y: y.value },
+        radius.value,
+        angle1.value,
+        angle2.value,
+        false
+      )
+    }
   )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=546
 export function arct(interpreter: PSInterpreter) {
-  const [
-    { value: r },
-    { value: y2 },
-    { value: x2 },
-    { value: y1 },
-    { value: x1 },
-  ] = interpreter.operandStack.pop(
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+    ],
+    ([
+      { value: r },
+      { value: y2 },
+      { value: x2 },
+      { value: y1 },
+      { value: x1 },
+    ]) => {
+      interpreter.printer.arcTangents(x1, x2, y1, y2, r)
+    }
   )
-  interpreter.printer.arcTangents(x1, x2, y1, y2, r)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=548
 export function arcto(interpreter: PSInterpreter) {
-  const [r, y2, x2, y1, x1] = interpreter.operandStack.pop(
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+    ],
+    ([r, y2, x2, y1, x1]) => {
+      const result = interpreter.printer.arcTangents(
+        x1.value,
+        x2.value,
+        y1.value,
+        y2.value,
+        r.value
+      )
+      if (!result) {
+        throw new UndefinedResultError()
+      }
+      interpreter.pushLiteral(result.tangentPoint1.x, ObjectType.Real)
+      interpreter.pushLiteral(result.tangentPoint1.y, ObjectType.Real)
+      interpreter.pushLiteral(result.tangentPoint2.x, ObjectType.Real)
+      interpreter.pushLiteral(result.tangentPoint2.y, ObjectType.Real)
+    }
   )
-  const result = interpreter.printer.arcTangents(
-    x1.value,
-    x2.value,
-    y1.value,
-    y2.value,
-    r.value
-  )
-  if (!result) {
-    interpreter.operandStack.push(x1, x2, y1, y2, r)
-    throw new UndefinedResultError()
-  }
-  interpreter.pushLiteral(result.tangentPoint1.x, ObjectType.Real)
-  interpreter.pushLiteral(result.tangentPoint1.y, ObjectType.Real)
-  interpreter.pushLiteral(result.tangentPoint2.x, ObjectType.Real)
-  interpreter.pushLiteral(result.tangentPoint2.y, ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=578
 export function curveto(interpreter: PSInterpreter) {
-  const [
-    { value: y3 },
-    { value: x3 },
-    { value: y2 },
-    { value: x2 },
-    { value: y1 },
-    { value: x1 },
-  ] = interpreter.operandStack.pop(
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer
-  )
-  interpreter.printer.bezierCurveTo(
-    { x: x1, y: y1 },
-    { x: x2, y: y2 },
-    { x: x3, y: y3 }
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+    ],
+    ([
+      { value: y3 },
+      { value: x3 },
+      { value: y2 },
+      { value: x2 },
+      { value: y1 },
+      { value: x1 },
+    ]) => {
+      interpreter.printer.bezierCurveTo(
+        { x: x1, y: y1 },
+        { x: x2, y: y2 },
+        { x: x3, y: y3 }
+      )
+    }
   )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=652
 export function rcurveto(interpreter: PSInterpreter) {
-  const [
-    { value: y3 },
-    { value: x3 },
-    { value: y2 },
-    { value: x2 },
-    { value: y1 },
-    { value: x1 },
-  ] = interpreter.operandStack.pop(
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer,
-    ObjectType.Real | ObjectType.Integer
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+    ],
+    ([
+      { value: y3 },
+      { value: x3 },
+      { value: y2 },
+      { value: x2 },
+      { value: y1 },
+      { value: x1 },
+    ]) => {
+      const currentPoint = interpreter.printer.getCurrentPoint()
+      const cp1 = { x: currentPoint.x + x1, y: currentPoint.y + y1 }
+      const cp2 = { x: currentPoint.x + x2, y: currentPoint.y + y2 }
+      const endPoint = { x: currentPoint.x + x3, y: currentPoint.y + y3 }
+      interpreter.printer.bezierCurveTo(cp1, cp2, endPoint)
+    }
   )
-  const currentPoint = interpreter.printer.getCurrentPoint()
-  const cp1 = { x: currentPoint.x + x1, y: currentPoint.y + y1 }
-  const cp2 = { x: currentPoint.x + x2, y: currentPoint.y + y2 }
-  const endPoint = { x: currentPoint.x + x3, y: currentPoint.y + y3 }
-  interpreter.printer.bezierCurveTo(cp1, cp2, endPoint)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=568
@@ -222,14 +243,17 @@ export function clip(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=655
 export function rectClip(interpreter: PSInterpreter) {
-  const [{ value: height }, { value: width }, { value: y }, { value: x }] =
-    interpreter.operandStack.pop(
+  interpreter.operandStack.withPopped(
+    [
       ObjectType.Integer | ObjectType.Real,
       ObjectType.Integer | ObjectType.Real,
       ObjectType.Integer | ObjectType.Real,
-      ObjectType.Integer | ObjectType.Real
-    )
-  interpreter.printer.rectClip({ x, y }, width, height)
+      ObjectType.Integer | ObjectType.Real,
+    ],
+    ([{ value: height }, { value: width }, { value: y }, { value: x }]) => {
+      interpreter.printer.rectClip({ x, y }, width, height)
+    }
+  )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=593

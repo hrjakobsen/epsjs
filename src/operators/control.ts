@@ -28,45 +28,43 @@ export function exec(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=620
 export function _if(interpreter: PSInterpreter) {
-  const [procedure, bool] = interpreter.operandStack.pop(
-    ObjectType.Array,
-    ObjectType.Boolean
+  interpreter.operandStack.withPopped(
+    [ObjectType.Array, ObjectType.Boolean],
+    ([procedure, bool]) => {
+      if (procedure.attributes.executability !== Executability.Executable) {
+        throw new Error('Second argument to if is not a procedure')
+      }
+      if (bool.value) {
+        interpreter.executionStack.push(
+          new ProcedureContext(interpreter, procedure)
+        )
+      }
+    }
   )
-
-  if (procedure.attributes.executability !== Executability.Executable) {
-    // restore stack
-    interpreter.operandStack.push(bool, procedure)
-    throw new Error('Second argument to if is not a procedure')
-  }
-  if (bool.value) {
-    interpreter.executionStack.push(
-      new ProcedureContext(interpreter, procedure)
-    )
-  }
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=621
 export function ifelse(interpreter: PSInterpreter) {
-  const [procedureFalse, procedureTrue, bool] = interpreter.operandStack.pop(
-    ObjectType.Array,
-    ObjectType.Array,
-    ObjectType.Boolean
+  interpreter.operandStack.withPopped(
+    [ObjectType.Array, ObjectType.Array, ObjectType.Boolean],
+    ([procedureFalse, procedureTrue, bool]) => {
+      if (
+        procedureTrue.attributes.executability !== Executability.Executable ||
+        procedureFalse.attributes.executability !== Executability.Executable
+      ) {
+        throw new Error('Second or third argument to if is not a procedure')
+      }
+      if (bool.value) {
+        interpreter.executionStack.push(
+          new ProcedureContext(interpreter, procedureTrue)
+        )
+      } else {
+        interpreter.executionStack.push(
+          new ProcedureContext(interpreter, procedureFalse)
+        )
+      }
+    }
   )
-  if (
-    procedureTrue.attributes.executability !== Executability.Executable ||
-    procedureFalse.attributes.executability !== Executability.Executable
-  ) {
-    throw new Error('Second or third argument to if is not a procedure')
-  }
-  if (bool.value) {
-    interpreter.executionStack.push(
-      new ProcedureContext(interpreter, procedureTrue)
-    )
-  } else {
-    interpreter.executionStack.push(
-      new ProcedureContext(interpreter, procedureFalse)
-    )
-  }
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=610

@@ -8,15 +8,15 @@ const MAX_DICT_CAPACITY = 1024
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=586
 export function dict(interpreter: PSInterpreter) {
-  const [capacity] = interpreter.operandStack.pop(ObjectType.Integer)
-  if (capacity.value > MAX_DICT_CAPACITY) {
-    interpreter.operandStack.push(capacity)
-    throw new Error(
-      `${capacity} is higher than the max capacity of ${MAX_DICT_CAPACITY}`
-    )
-  }
-  const dictionary = new PSDictionary(capacity.value)
-  interpreter.pushLiteral(dictionary, ObjectType.Dictionary)
+  interpreter.operandStack.withPopped([ObjectType.Integer], ([capacity]) => {
+    if (capacity.value > MAX_DICT_CAPACITY) {
+      throw new Error(
+        `${capacity} is higher than the max capacity of ${MAX_DICT_CAPACITY}`
+      )
+    }
+    const dictionary = new PSDictionary(capacity.value)
+    interpreter.pushLiteral(dictionary, ObjectType.Dictionary)
+  })
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=539
@@ -67,80 +67,79 @@ export function end(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
 export function def(interpreter: PSInterpreter) {
-  const [procedure, name] = interpreter.operandStack.pop(
-    ObjectType.Any,
-    ObjectType.Any
+  interpreter.operandStack.withPopped(
+    [ObjectType.Any, ObjectType.Any],
+    ([procedure, name]) => {
+      if (interpreter.dictionary.attributes.access !== Access.Unlimited) {
+        throw new Error('Attempting to write to readonly dictionary')
+      }
+      interpreter.dictionary.value.set(name, procedure)
+    }
   )
-  if (interpreter.dictionary.attributes.access !== Access.Unlimited) {
-    interpreter.operandStack.push(name, procedure)
-    throw new Error('Attempting to write to readonly dictionary')
-  }
-  interpreter.dictionary.value.set(name, procedure)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
 export function load(interpreter: PSInterpreter) {
-  const [name] = interpreter.operandStack.pop(ObjectType.Any)
-  const element = interpreter.dictionary.value.get(name)
-  if (element === undefined) {
-    interpreter.operandStack.push(name)
-    throw new InvalidAccessError()
-  }
-  interpreter.operandStack.push(element)
+  interpreter.operandStack.withPopped([ObjectType.Any], ([name]) => {
+    const element = interpreter.dictionary.value.get(name)
+    if (element === undefined) {
+      throw new InvalidAccessError()
+    }
+    interpreter.operandStack.push(element)
+  })
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=712
 export function store(interpreter: PSInterpreter) {
-  const [value, key] = interpreter.operandStack.pop(
-    ObjectType.Any,
-    ObjectType.Any
+  interpreter.operandStack.withPopped(
+    [ObjectType.Any, ObjectType.Any],
+    ([value, key]) => {
+      if (interpreter.dictionary.attributes.access !== Access.Unlimited) {
+        throw new Error('Attempting to write to readonly dictionary')
+      }
+      interpreter.dictionary.value.set(key, value)
+    }
   )
-  if (interpreter.dictionary.attributes.access !== Access.Unlimited) {
-    interpreter.operandStack.push(key, value)
-    throw new Error('Attempting to write to readonly dictionary')
-  }
-  interpreter.dictionary.value.set(key, value)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
 export function get(interpreter: PSInterpreter) {
-  const [key, dictionary] = interpreter.operandStack.pop(
-    ObjectType.Any,
-    ObjectType.Dictionary
+  interpreter.operandStack.withPopped(
+    [ObjectType.Any, ObjectType.Dictionary],
+    ([key, dictionary]) => {
+      const value = dictionary.value.get(key)
+      if (value === undefined) {
+        throw new InvalidAccessError()
+      }
+      interpreter.operandStack.push(value)
+    }
   )
-  const value = dictionary.value.get(key)
-  if (value === undefined) {
-    interpreter.operandStack.push(dictionary, key)
-    throw new InvalidAccessError()
-  }
-  interpreter.operandStack.push(value)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
 export function put(interpreter: PSInterpreter) {
-  const [value, key, dictionary] = interpreter.operandStack.pop(
-    ObjectType.Any,
-    ObjectType.Any,
-    ObjectType.Dictionary
+  interpreter.operandStack.withPopped(
+    [ObjectType.Any, ObjectType.Any, ObjectType.Dictionary],
+    ([value, key, dictionary]) => {
+      if (dictionary.attributes.access !== Access.Unlimited) {
+        throw new Error('Attempting to write to readonly dictionary')
+      }
+      dictionary.value.set(key, value)
+    }
   )
-  if (dictionary.attributes.access !== Access.Unlimited) {
-    interpreter.operandStack.push(dictionary, key, value)
-    throw new Error('Attempting to write to readonly dictionary')
-  }
-  dictionary.value.set(key, value)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=722
 export function undef(interpreter: PSInterpreter) {
-  const [key, dictionary] = interpreter.operandStack.pop(
-    ObjectType.Any,
-    ObjectType.Dictionary
+  interpreter.operandStack.withPopped(
+    [ObjectType.Any, ObjectType.Dictionary],
+    ([key, dictionary]) => {
+      if (dictionary.attributes.access !== Access.Unlimited) {
+        throw new Error('Attempting to write to readonly dictionary')
+      }
+      dictionary.value.remove(key)
+    }
   )
-  if (dictionary.attributes.access !== Access.Unlimited) {
-    interpreter.operandStack.push(dictionary, key)
-    throw new Error('Attempting to write to readonly dictionary')
-  }
-  dictionary.value.remove(key)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=633
@@ -216,24 +215,24 @@ export function countDictStack(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=587
 export function dictStack(interpreter: PSInterpreter) {
-  const [array] = interpreter.operandStack.pop(ObjectType.Array)
-  if (array.value.length < interpreter.dictionaryStack.length) {
-    interpreter.operandStack.push(array)
-    throw new RangeCheckError()
-  }
-  const n = interpreter.dictionaryStack.length
-  for (let i = 0; i < n; ++i) {
-    array.value.set(i, {
-      value: interpreter.dictionaryStack[i],
-      type: ObjectType.Dictionary,
-      attributes: {
-        access: Access.Unlimited,
-        executability: Executability.Literal,
-      },
-    })
-  }
-  // TODO: The pushed array should only contain n elements
-  interpreter.pushLiteral(array, ObjectType.Array)
+  interpreter.operandStack.withPopped([ObjectType.Array], ([array]) => {
+    if (array.value.length < interpreter.dictionaryStack.length) {
+      throw new RangeCheckError()
+    }
+    const n = interpreter.dictionaryStack.length
+    for (let i = 0; i < n; ++i) {
+      array.value.set(i, {
+        value: interpreter.dictionaryStack[i],
+        type: ObjectType.Dictionary,
+        attributes: {
+          access: Access.Unlimited,
+          executability: Executability.Literal,
+        },
+      })
+    }
+    // TODO: The pushed array should only contain n elements
+    interpreter.pushLiteral(array, ObjectType.Array)
+  })
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555

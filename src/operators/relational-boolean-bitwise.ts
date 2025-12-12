@@ -1,3 +1,4 @@
+import { TypecheckError } from '../error'
 import { PSInterpreter } from '../interpreter'
 import { ObjectType } from '../scanner'
 import { PSString } from '../string'
@@ -93,21 +94,27 @@ export function lt(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=543
 export function and(interpreter: PSInterpreter) {
-  const [obj2, obj1] = interpreter.operandStack.pop(
-    ObjectType.Boolean | ObjectType.Integer,
-    ObjectType.Boolean | ObjectType.Integer
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Boolean | ObjectType.Integer,
+      ObjectType.Boolean | ObjectType.Integer,
+    ],
+    ([obj2, obj1]) => {
+      const { value: v2, type: t2 } = obj2
+      const { value: v1, type: t1 } = obj1
+      if (t1 !== t2) {
+        throw new Error('and requires same type of params')
+      }
+      if (t1 === ObjectType.Boolean) {
+        interpreter.pushLiteral(v1 && v2, ObjectType.Boolean)
+      } else {
+        interpreter.pushLiteral(
+          (v1 as number) & (v2 as number),
+          ObjectType.Boolean
+        )
+      }
+    }
   )
-  const { value: v2, type: t2 } = obj2
-  const { value: v1, type: t1 } = obj1
-  if (t1 !== t2) {
-    interpreter.operandStack.push(obj1, obj2)
-    throw new Error('and requires same type of params')
-  }
-  if (t1 === ObjectType.Boolean) {
-    interpreter.pushLiteral(v1 && v2, ObjectType.Boolean)
-  } else {
-    interpreter.pushLiteral((v1 as number) & (v2 as number), ObjectType.Boolean)
-  }
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=643
@@ -124,42 +131,54 @@ export function not(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=645
 export function or(interpreter: PSInterpreter) {
-  const [obj2, obj1] = interpreter.operandStack.pop(
-    ObjectType.Boolean | ObjectType.Integer,
-    ObjectType.Boolean | ObjectType.Integer
-  )
-  const { value: v2, type: t2 } = obj2
-  const { value: v1, type: t1 } = obj1
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Boolean | ObjectType.Integer,
+      ObjectType.Boolean | ObjectType.Integer,
+    ],
+    ([obj2, obj1]) => {
+      const { value: v2, type: t2 } = obj2
+      const { value: v1, type: t1 } = obj1
 
-  if (t1 !== t2) {
-    interpreter.operandStack.push(obj1, obj2)
-    throw new Error('or requires same type of params')
-  }
-  if (t1 === ObjectType.Boolean) {
-    interpreter.pushLiteral(v1 || v2, ObjectType.Boolean)
-  } else {
-    interpreter.pushLiteral((v1 as number) | (v2 as number), ObjectType.Boolean)
-  }
+      if (t1 !== t2) {
+        throw new TypecheckError()
+      }
+      if (t1 === ObjectType.Boolean) {
+        interpreter.pushLiteral(v1 || v2, ObjectType.Boolean)
+      } else {
+        interpreter.pushLiteral(
+          (v1 as number) | (v2 as number),
+          ObjectType.Boolean
+        )
+      }
+    }
+  )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=736
 export function xor(interpreter: PSInterpreter) {
-  const [obj2, obj1] = interpreter.operandStack.pop(
-    ObjectType.Boolean | ObjectType.Integer,
-    ObjectType.Boolean | ObjectType.Integer
-  )
-  const { value: v2, type: t2 } = obj2
-  const { value: v1, type: t1 } = obj1
+  interpreter.operandStack.withPopped(
+    [
+      ObjectType.Boolean | ObjectType.Integer,
+      ObjectType.Boolean | ObjectType.Integer,
+    ],
+    ([obj2, obj1]) => {
+      const { value: v2, type: t2 } = obj2
+      const { value: v1, type: t1 } = obj1
 
-  if (t1 !== t2) {
-    interpreter.operandStack.push(obj1, obj2)
-    throw new Error('xor requires same type of params')
-  }
-  if (t1 === ObjectType.Boolean) {
-    interpreter.pushLiteral((v1 && !v2) || (!v1 && v2), ObjectType.Boolean)
-  } else {
-    interpreter.pushLiteral((v1 as number) ^ (v2 as number), ObjectType.Boolean)
-  }
+      if (t1 !== t2) {
+        throw new TypecheckError()
+      }
+      if (t1 === ObjectType.Boolean) {
+        interpreter.pushLiteral((v1 && !v2) || (!v1 && v2), ObjectType.Boolean)
+      } else {
+        interpreter.pushLiteral(
+          (v1 as number) ^ (v2 as number),
+          ObjectType.Boolean
+        )
+      }
+    }
+  )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=601

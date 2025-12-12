@@ -40,68 +40,68 @@ export function put(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=613
 export function getInterval(interpreter: PSInterpreter) {
-  const [count, index, string] = interpreter.operandStack.pop(
-    ObjectType.Integer,
-    ObjectType.Integer,
-    ObjectType.String
-  )
-  if (
-    index.value < 0 ||
-    count.value < 0 ||
-    index.value + count.value > string.value.length
-  ) {
-    interpreter.operandStack.push(string, index, count)
-    throw new RangeCheckError()
-  }
-  interpreter.pushLiteral(
-    PSString.fromCharCode(
-      ...string.value.data.slice(index.value, index.value + count.value)
-    ),
-    ObjectType.String
+  interpreter.operandStack.withPopped(
+    [ObjectType.Integer, ObjectType.Integer, ObjectType.String],
+    ([count, index, string]) => {
+      if (
+        index.value < 0 ||
+        count.value < 0 ||
+        index.value + count.value > string.value.length
+      ) {
+        throw new RangeCheckError()
+      }
+      interpreter.pushLiteral(
+        PSString.fromCharCode(
+          ...string.value.data.slice(index.value, index.value + count.value)
+        ),
+        ObjectType.String
+      )
+    }
   )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=650
 export function putInterval(interpreter: PSInterpreter) {
-  const [source, index, target] = interpreter.operandStack.pop(
-    ObjectType.String,
-    ObjectType.Integer,
-    ObjectType.String
-  )
-  if (index.value < 0) {
-    interpreter.operandStack.push(target, index, source)
-    throw new RangeCheckError()
-  }
+  interpreter.operandStack.withPopped(
+    [ObjectType.String, ObjectType.Integer, ObjectType.String],
+    ([source, index, target]) => {
+      if (index.value < 0) {
+        throw new RangeCheckError()
+      }
 
-  if (target.value.length < source.value.length + index.value) {
-    interpreter.operandStack.push(target, index, source)
-    throw new RangeCheckError()
-  }
+      if (target.value.length < source.value.length + index.value) {
+        throw new RangeCheckError()
+      }
 
-  target.value.data.splice(
-    index.value,
-    source.value.length,
-    ...source.value.data
+      target.value.data.splice(
+        index.value,
+        source.value.length,
+        ...source.value.data
+      )
+    }
   )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=562
 export function copy(interpreter: PSInterpreter) {
-  const [source, target] = interpreter.operandStack.pop(
-    ObjectType.String,
-    ObjectType.String
-  )
-  if (!(target.value.length < source.value.length)) {
-    interpreter.operandStack.push(target, source)
-    throw new RangeCheckError()
-  }
+  interpreter.operandStack.withPopped(
+    [ObjectType.String, ObjectType.String],
+    ([source, target]) => {
+      if (!(target.value.length < source.value.length)) {
+        throw new RangeCheckError()
+      }
 
-  const removed = target.value.data.splice(
-    0,
-    source.value.length,
-    ...source.value.data
+      const removed = target.value.data.splice(
+        0,
+        source.value.length,
+        ...source.value.data
+      )
+      interpreter.pushLiteral(
+        PSString.fromCharCode(...removed),
+        ObjectType.String
+      )
+    }
   )
-  interpreter.pushLiteral(PSString.fromCharCode(...removed), ObjectType.String)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=611

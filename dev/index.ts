@@ -12,7 +12,8 @@ import { TokenError } from '../src/scanner'
 import { ps } from './lezer/ps-language'
 import { throttle } from './utils'
 
-const INITIAL_DOC = `10 280 moveto
+const INITIAL_DOC = `/Helvetica 12 selectfont
+10 280 moveto
 (<- Write code over there) show
 
 /radius { 200 } def

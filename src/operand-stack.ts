@@ -30,6 +30,32 @@ export class OperandStack {
     return result.reverse() as { [K in keyof T]: PSObject<T[K]> }
   }
 
+  public withPopped<const T extends ObjectType[]>(
+    types: T,
+    cb: (args: {
+      [K in keyof T]: PSObject<T[K]>
+    }) => void
+  ) {
+    if (this.length < types.length) {
+      throw new StackUnderflowError()
+    }
+    for (let i = 0; i < types.length; ++i) {
+      const objectIndex = this.length - 1 - i
+      if (!(this._stack[objectIndex].type & types[i])) {
+        throw new TypecheckError()
+      }
+    }
+    const args = this._stack.splice(this.length - types.length).reverse() as {
+      [K in keyof T]: PSObject<T[K]>
+    }
+    try {
+      cb(args)
+    } catch (e) {
+      this._stack.push(...args.reverse())
+      throw e
+    }
+  }
+
   public get length(): number {
     return this._stack.length
   }

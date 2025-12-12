@@ -25,52 +25,54 @@ export function dup(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=563
 export function copy(interpreter: PSInterpreter) {
-  const [numberOfElements] = interpreter.operandStack.pop(ObjectType.Integer)
-
-  if (interpreter.operandStack.length < numberOfElements.value) {
-    interpreter.operandStack.push(numberOfElements)
-    throw new RangeCheckError()
-  }
-  interpreter.operandStack.copy(numberOfElements.value)
+  interpreter.operandStack.withPopped(
+    [ObjectType.Integer],
+    ([numberOfElements]) => {
+      if (interpreter.operandStack.length < numberOfElements.value) {
+        throw new RangeCheckError()
+      }
+      interpreter.operandStack.copy(numberOfElements.value)
+    }
+  )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=624
 export function index(interpreter: PSInterpreter) {
-  const [offset] = interpreter.operandStack.pop(ObjectType.Integer)
-  if (interpreter.operandStack.length <= offset.value) {
-    interpreter.operandStack.push(offset)
-    throw new RangeCheckError()
-  }
-  interpreter.operandStack.push(
-    interpreter.operandStack.at(
-      interpreter.operandStack.length - 1 - offset.value
+  interpreter.operandStack.withPopped([ObjectType.Integer], ([offset]) => {
+    if (interpreter.operandStack.length <= offset.value) {
+      throw new RangeCheckError()
+    }
+    interpreter.operandStack.push(
+      interpreter.operandStack.at(
+        interpreter.operandStack.length - 1 - offset.value
+      )
     )
-  )
+  })
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=664
 export function roll(interpreter: PSInterpreter) {
-  const [numRolls, numElements] = interpreter.operandStack.pop(
-    ObjectType.Integer,
-    ObjectType.Integer
-  )
-  if (interpreter.operandStack.length < numElements.value) {
-    interpreter.operandStack.push(numRolls, numElements)
-    throw new RangeCheckError()
-  }
-  const toRotate = interpreter.operandStack.splice(
-    interpreter.operandStack.length - numElements.value,
-    numElements.value
-  )
-  for (let i = 0; i < Math.abs(numRolls.value); ++i) {
-    const upwards = numRolls.value > 0
-    if (upwards) {
-      toRotate.unshift(toRotate.pop()!)
-    } else {
-      toRotate.push(toRotate.shift()!)
+  interpreter.operandStack.withPopped(
+    [ObjectType.Integer, ObjectType.Integer],
+    ([numRolls, numElements]) => {
+      if (interpreter.operandStack.length < numElements.value) {
+        throw new RangeCheckError()
+      }
+      const toRotate = interpreter.operandStack.splice(
+        interpreter.operandStack.length - numElements.value,
+        numElements.value
+      )
+      for (let i = 0; i < Math.abs(numRolls.value); ++i) {
+        const upwards = numRolls.value > 0
+        if (upwards) {
+          toRotate.unshift(toRotate.pop()!)
+        } else {
+          toRotate.push(toRotate.shift()!)
+        }
+      }
+      interpreter.operandStack.push(...toRotate)
     }
-  }
-  interpreter.operandStack.push(...toRotate)
+  )
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=555
