@@ -11,7 +11,7 @@ import { createLiteral } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=719
 export function type(interpreter: PSInterpreter) {
-  const { type } = interpreter.pop(ObjectType.Any)
+  const [{ type }] = interpreter.operandStack.pop(ObjectType.Any)
   let name
   switch (type) {
     case ObjectType.Boolean:
@@ -74,21 +74,21 @@ export function type(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=580
 export function cvlit(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(ObjectType.Any)
+  const [obj] = interpreter.operandStack.pop(ObjectType.Any)
   obj.attributes.executability = Executability.Literal
   interpreter.operandStack.push(obj)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
 export function cvx(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(ObjectType.Any)
+  const [obj] = interpreter.operandStack.pop(ObjectType.Any)
   obj.attributes.executability = Executability.Executable
   interpreter.operandStack.push(obj)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=735
 export function xcheck(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(ObjectType.Any)
+  const [obj] = interpreter.operandStack.pop(ObjectType.Any)
   interpreter.operandStack.push(
     createLiteral(
       obj.attributes.executability === Executability.Executable,
@@ -99,7 +99,7 @@ export function xcheck(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=598
 export function executeonly(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(
+  const [obj] = interpreter.operandStack.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
       ObjectType.File |
@@ -111,7 +111,7 @@ export function executeonly(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=642
 export function noaccess(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(
+  const [obj] = interpreter.operandStack.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
       ObjectType.File |
@@ -124,7 +124,7 @@ export function noaccess(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=654
 export function readonly(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(
+  const [obj] = interpreter.operandStack.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
       ObjectType.File |
@@ -137,7 +137,7 @@ export function readonly(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=652
 export function rcheck(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(
+  const [obj] = interpreter.operandStack.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
       ObjectType.File |
@@ -154,7 +154,7 @@ export function rcheck(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=732
 export function wcheck(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(
+  const [obj] = interpreter.operandStack.pop(
     ObjectType.Array |
       ObjectType.PackedArray |
       ObjectType.File |
@@ -171,7 +171,7 @@ export function wcheck(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=580
 export function cvi(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(
+  const [obj] = interpreter.operandStack.pop(
     ObjectType.String | ObjectType.Real | ObjectType.Integer
   )
   // Convert to integer
@@ -188,7 +188,7 @@ export function cvi(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=580
 export function cvn(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(ObjectType.String)
+  const [obj] = interpreter.operandStack.pop(ObjectType.String)
   // Convert to name
   interpreter.operandStack.push({
     attributes: {
@@ -202,7 +202,7 @@ export function cvn(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=581
 export function cvr(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(
+  const [obj] = interpreter.operandStack.pop(
     ObjectType.String | ObjectType.Real | ObjectType.Integer
   )
   // Convert to real
@@ -217,9 +217,11 @@ export function cvr(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=581
 export function cvrs(interpreter: PSInterpreter) {
-  const str = interpreter.pop(ObjectType.String)
-  const radix = interpreter.pop(ObjectType.Integer)
-  const num = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [str, radix, num] = interpreter.operandStack.pop(
+    ObjectType.String,
+    ObjectType.Integer,
+    ObjectType.Integer | ObjectType.Real
+  )
   const truncatedValueIfNeeded =
     radix.value === 10 ? num.value : Math.trunc(num.value)
   const strValue = truncatedValueIfNeeded.toString(radix.value)
@@ -233,8 +235,10 @@ export function cvrs(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
 export function cvs(interpreter: PSInterpreter) {
-  const str = interpreter.pop(ObjectType.String)
-  const obj = interpreter.pop(ObjectType.Any)
+  const [str, obj] = interpreter.operandStack.pop(
+    ObjectType.String,
+    ObjectType.Any
+  )
   const strValue = convertToString(obj)
   const newStrLength = strValue.length
   str.value.setSubString(0, strValue)

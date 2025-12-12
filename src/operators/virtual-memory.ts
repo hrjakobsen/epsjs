@@ -9,6 +9,6 @@ export function save(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=662
 export function restore(interpreter: PSInterpreter) {
-  interpreter.pop(ObjectType.Any)
+  interpreter.operandStack.pop(ObjectType.Any)
   // TODO: Implement
 }

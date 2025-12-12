@@ -5,8 +5,8 @@ import { compareTypeCompatible, createLiteral } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=594
 export function eq(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(ObjectType.Any)
-  const { value: v1, type: t1 } = interpreter.pop(ObjectType.Any)
+  const [{ value: v2, type: t2 }, { value: v1, type: t1 }] =
+    interpreter.operandStack.pop(ObjectType.Any, ObjectType.Any)
   if (t1 === ObjectType.String && t2 === ObjectType.String) {
     interpreter.pushLiteral(
       (v1 as PSString).asString() === (v2 as PSString).asString(),
@@ -22,8 +22,8 @@ export function eq(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=642
 export function ne(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(ObjectType.Any)
-  const { value: v1, type: t1 } = interpreter.pop(ObjectType.Any)
+  const [{ value: v2, type: t2 }, { value: v1, type: t1 }] =
+    interpreter.operandStack.pop(ObjectType.Any, ObjectType.Any)
   if (t1 === ObjectType.String && t2 === ObjectType.String) {
     interpreter.pushLiteral(
       (v1 as PSString).asString() !== (v2 as PSString).asString(),
@@ -39,12 +39,11 @@ export function ne(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=704
 export function ge(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real | ObjectType.String
-  )
-  const { value: v1, type: t1 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real | ObjectType.String
-  )
+  const [{ value: v2, type: t2 }, { value: v1, type: t1 }] =
+    interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real | ObjectType.String,
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    )
   interpreter.pushLiteral(
     compareTypeCompatible(t1, t2) && v1 >= v2,
     ObjectType.Boolean
@@ -53,12 +52,11 @@ export function ge(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=618
 export function gt(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real | ObjectType.String
-  )
-  const { value: v1, type: t1 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real | ObjectType.String
-  )
+  const [{ value: v2, type: t2 }, { value: v1, type: t1 }] =
+    interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real | ObjectType.String,
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    )
 
   interpreter.pushLiteral(
     compareTypeCompatible(t1, t2) && v1 > v2,
@@ -68,12 +66,11 @@ export function gt(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=634
 export function le(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real | ObjectType.String
-  )
-  const { value: v1, type: t1 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real | ObjectType.String
-  )
+  const [{ value: v2, type: t2 }, { value: v1, type: t1 }] =
+    interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real | ObjectType.String,
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    )
 
   interpreter.pushLiteral(
     compareTypeCompatible(t1, t2) && v1 <= v2,
@@ -83,13 +80,11 @@ export function le(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=637
 export function lt(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real | ObjectType.String
-  )
-  const { value: v1, type: t1 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real | ObjectType.String
-  )
-
+  const [{ value: v2, type: t2 }, { value: v1, type: t1 }] =
+    interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real | ObjectType.String,
+      ObjectType.Integer | ObjectType.Real | ObjectType.String
+    )
   interpreter.pushLiteral(
     compareTypeCompatible(t1, t2) && v1 < v2,
     ObjectType.Boolean
@@ -98,14 +93,14 @@ export function lt(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=543
 export function and(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(
+  const [obj2, obj1] = interpreter.operandStack.pop(
+    ObjectType.Boolean | ObjectType.Integer,
     ObjectType.Boolean | ObjectType.Integer
   )
-  const { value: v1, type: t1 } = interpreter.pop(
-    ObjectType.Boolean | ObjectType.Integer
-  )
-
+  const { value: v2, type: t2 } = obj2
+  const { value: v1, type: t1 } = obj1
   if (t1 !== t2) {
+    interpreter.operandStack.push(obj1, obj2)
     throw new Error('and requires same type of params')
   }
   if (t1 === ObjectType.Boolean) {
@@ -117,7 +112,7 @@ export function and(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=643
 export function not(interpreter: PSInterpreter) {
-  const { value: v1, type: t1 } = interpreter.pop(
+  const [{ value: v1, type: t1 }] = interpreter.operandStack.pop(
     ObjectType.Integer | ObjectType.Boolean
   )
   if (t1 === ObjectType.Boolean) {
@@ -129,14 +124,15 @@ export function not(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=645
 export function or(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(
+  const [obj2, obj1] = interpreter.operandStack.pop(
+    ObjectType.Boolean | ObjectType.Integer,
     ObjectType.Boolean | ObjectType.Integer
   )
-  const { value: v1, type: t1 } = interpreter.pop(
-    ObjectType.Boolean | ObjectType.Integer
-  )
+  const { value: v2, type: t2 } = obj2
+  const { value: v1, type: t1 } = obj1
 
   if (t1 !== t2) {
+    interpreter.operandStack.push(obj1, obj2)
     throw new Error('or requires same type of params')
   }
   if (t1 === ObjectType.Boolean) {
@@ -148,14 +144,15 @@ export function or(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=736
 export function xor(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(
+  const [obj2, obj1] = interpreter.operandStack.pop(
+    ObjectType.Boolean | ObjectType.Integer,
     ObjectType.Boolean | ObjectType.Integer
   )
-  const { value: v1, type: t1 } = interpreter.pop(
-    ObjectType.Boolean | ObjectType.Integer
-  )
+  const { value: v2, type: t2 } = obj2
+  const { value: v1, type: t1 } = obj1
 
   if (t1 !== t2) {
+    interpreter.operandStack.push(obj1, obj2)
     throw new Error('xor requires same type of params')
   }
   if (t1 === ObjectType.Boolean) {
@@ -173,8 +170,10 @@ export const TRUE_OBJECT = createLiteral(true, ObjectType.Boolean)
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=553
 export function bitshift(interpreter: PSInterpreter) {
-  const { value: shift } = interpreter.pop(ObjectType.Integer)
-  const { value } = interpreter.pop(ObjectType.Integer)
+  const [{ value: shift }, { value }] = interpreter.operandStack.pop(
+    ObjectType.Integer,
+    ObjectType.Integer
+  )
   interpreter.pushLiteral(
     shift > 0 ? value << shift : value >> -shift,
     ObjectType.Integer

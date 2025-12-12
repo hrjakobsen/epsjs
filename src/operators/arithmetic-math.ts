@@ -5,12 +5,11 @@ import { degreeToRadians, radiansToDegrees } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541
 export function add(interpreter: PSInterpreter) {
-  const { type: t2, value: v2 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real
-  )
-  const { type: t1, value: v1 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real
-  )
+  const [{ value: v2, type: t2 }, { value: v1, type: t1 }] =
+    interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real
+    )
   const isReal = t1 === ObjectType.Real || t2 === ObjectType.Real
   interpreter.pushLiteralNumber(
     v1 + v2,
@@ -20,8 +19,10 @@ export function add(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=588
 export function div(interpreter: PSInterpreter) {
-  const v2 = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const v1 = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [v2, v1] = interpreter.operandStack.pop(
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real
+  )
 
   if (v2.value === 0) {
     interpreter.operandStack.push(v1, v2)
@@ -33,26 +34,29 @@ export function div(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=619
 export function idiv(interpreter: PSInterpreter) {
-  const { value: v2 } = interpreter.pop(ObjectType.Integer)
-  const { value: v1 } = interpreter.pop(ObjectType.Integer)
+  const [{ value: v2 }, { value: v1 }] = interpreter.operandStack.pop(
+    ObjectType.Integer,
+    ObjectType.Integer
+  )
   interpreter.pushLiteralNumber(Math.floor(v1 / v2))
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=641
 export function mod(interpreter: PSInterpreter) {
-  const { value: v2 } = interpreter.pop(ObjectType.Integer)
-  const { value: v1 } = interpreter.pop(ObjectType.Integer)
+  const [{ value: v2 }, { value: v1 }] = interpreter.operandStack.pop(
+    ObjectType.Integer,
+    ObjectType.Integer
+  )
   interpreter.pushLiteralNumber(v1 % v2)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=641
 export function mul(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real
-  )
-  const { value: v1, type: t1 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real
-  )
+  const [{ value: v2, type: t2 }, { value: v1, type: t1 }] =
+    interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real
+    )
   const isReal = t1 === ObjectType.Real || t2 === ObjectType.Real
   interpreter.pushLiteralNumber(
     v1 * v2,
@@ -62,12 +66,11 @@ export function mul(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=715
 export function sub(interpreter: PSInterpreter) {
-  const { value: v2, type: t2 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real
-  )
-  const { value: v1, type: t1 } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real
-  )
+  const [{ value: v2, type: t2 }, { value: v1, type: t1 }] =
+    interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real
+    )
   const isReal = t1 === ObjectType.Real || t2 === ObjectType.Real
   interpreter.pushLiteralNumber(
     v1 - v2,
@@ -77,7 +80,7 @@ export function sub(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=541
 export function abs(interpreter: PSInterpreter) {
-  const { value: v1, type: t1 } = interpreter.pop(
+  const [{ value: v1, type: t1 }] = interpreter.operandStack.pop(
     ObjectType.Integer | ObjectType.Real
   )
   interpreter.pushLiteralNumber(
@@ -88,7 +91,7 @@ export function abs(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=642
 export function neg(interpreter: PSInterpreter) {
-  const { value: v1, type: t1 } = interpreter.pop(
+  const [{ value: v1, type: t1 }] = interpreter.operandStack.pop(
     ObjectType.Integer | ObjectType.Real
   )
   interpreter.pushLiteralNumber(-v1, t1 as ObjectType.Integer | ObjectType.Real)
@@ -96,7 +99,7 @@ export function neg(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=554
 export function ceiling(interpreter: PSInterpreter) {
-  const { value: v1, type: t1 } = interpreter.pop(
+  const [{ value: v1, type: t1 }] = interpreter.operandStack.pop(
     ObjectType.Integer | ObjectType.Real
   )
   interpreter.pushLiteralNumber(
@@ -107,7 +110,7 @@ export function ceiling(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=610
 export function floor(interpreter: PSInterpreter) {
-  const { value: v1, type: t1 } = interpreter.pop(
+  const [{ value: v1, type: t1 }] = interpreter.operandStack.pop(
     ObjectType.Integer | ObjectType.Real
   )
   interpreter.pushLiteralNumber(
@@ -118,7 +121,7 @@ export function floor(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=666
 export function round(interpreter: PSInterpreter) {
-  const { value: v1, type: t1 } = interpreter.pop(
+  const [{ value: v1, type: t1 }] = interpreter.operandStack.pop(
     ObjectType.Integer | ObjectType.Real
   )
   interpreter.pushLiteralNumber(
@@ -129,7 +132,7 @@ export function round(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=719
 export function truncate(interpreter: PSInterpreter) {
-  const { value: v1, type: t1 } = interpreter.pop(
+  const [{ value: v1, type: t1 }] = interpreter.operandStack.pop(
     ObjectType.Integer | ObjectType.Real
   )
 
@@ -141,14 +144,18 @@ export function truncate(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
 export function sqrt(interpreter: PSInterpreter) {
-  const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [{ value: v1 }] = interpreter.operandStack.pop(
+    ObjectType.Integer | ObjectType.Real
+  )
   interpreter.pushLiteralNumber(Math.sqrt(v1), ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=549
 export function atan(interpreter: PSInterpreter) {
-  const { value: den } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const { value: num } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [{ value: den }, { value: num }] = interpreter.operandStack.pop(
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real
+  )
   interpreter.pushLiteralNumber(
     (radiansToDegrees(Math.atan2(num, den)) + 360) % 360,
     ObjectType.Real
@@ -157,32 +164,42 @@ export function atan(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=564
 export function cos(interpreter: PSInterpreter) {
-  const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [{ value: v1 }] = interpreter.operandStack.pop(
+    ObjectType.Integer | ObjectType.Real
+  )
   interpreter.pushLiteralNumber(Math.cos(degreeToRadians(v1)), ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
 export function sin(interpreter: PSInterpreter) {
-  const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [{ value: v1 }] = interpreter.operandStack.pop(
+    ObjectType.Integer | ObjectType.Real
+  )
   interpreter.pushLiteralNumber(Math.sin(degreeToRadians(v1)), ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=600
 export function exp(interpreter: PSInterpreter) {
-  const { value: v2 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [{ value: v2 }, { value: v1 }] = interpreter.operandStack.pop(
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real
+  )
   interpreter.pushLiteralNumber(Math.pow(v1, v2), ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
 export function ln(interpreter: PSInterpreter) {
-  const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [{ value: v1 }] = interpreter.operandStack.pop(
+    ObjectType.Integer | ObjectType.Real
+  )
   interpreter.pushLiteralNumber(Math.log(v1), ObjectType.Real)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=637
 export function log(interpreter: PSInterpreter) {
-  const { value: v1 } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [{ value: v1 }] = interpreter.operandStack.pop(
+    ObjectType.Integer | ObjectType.Real
+  )
   interpreter.pushLiteralNumber(Math.log10(v1), ObjectType.Real)
 }
 
@@ -193,7 +210,7 @@ export function rand(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=706
 export function srand(interpreter: PSInterpreter) {
-  const { value } = interpreter.pop(ObjectType.Integer)
+  const [{ value }] = interpreter.operandStack.pop(ObjectType.Integer)
   interpreter.random.seed(value)
 }
 

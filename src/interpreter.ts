@@ -201,6 +201,7 @@ export class PSInterpreter {
       }
     } catch (error) {
       if (error instanceof PSError) {
+        console.error(error)
         this.operandStack.push(item)
         // Look up the type name in errordict
         const errorDict = this.symbolLookup(
@@ -276,11 +277,6 @@ export class PSInterpreter {
       num = Math.floor(num)
     }
     this.pushLiteral(num, type)
-  }
-
-  public pop<T extends ObjectType>(typ: T) {
-    const [top] = this.operandStack.pop(typ)
-    return top
   }
 
   public findFont(key: PSObject<ObjectType.Any>) {

@@ -20,9 +20,8 @@ export function checkStackValues(
   expect(interpreter.operandStack.length).toBe(expected.length)
   for (let i = expected.length - 1; i >= 0; --i) {
     const expectedValue = expected[i]
-    const { type: actualType, value: actualValue } = interpreter.pop(
-      ObjectType.Any
-    )
+    const [{ type: actualType, value: actualValue }] =
+      interpreter.operandStack.pop(ObjectType.Any)
     if (actualType === ObjectType.String) {
       expect((actualValue as PSString).asString()).toBe(expectedValue)
       continue

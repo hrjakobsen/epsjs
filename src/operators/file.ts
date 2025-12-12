@@ -1,3 +1,4 @@
+import { IoError } from '../error'
 import { ExecutionContext } from '../execution-contexts'
 import { Ascii85DecodeFilter } from '../file'
 import { PSInterpreter } from '../interpreter'
@@ -7,14 +8,14 @@ import { convertToString } from './type-attribute-conversion'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=540
 export function debugPrint(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(ObjectType.Any)
+  const [obj] = interpreter.operandStack.pop(ObjectType.Any)
   // eslint-disable-next-line no-console
   console.log(convertToString(obj))
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=540
 export function debugPrintObject(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(ObjectType.Any)
+  const [obj] = interpreter.operandStack.pop(ObjectType.Any)
   // eslint-disable-next-line no-console
   console.log(deepPrint(obj, interpreter))
 }
@@ -33,9 +34,10 @@ export function pstack(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=655
 export function readString(interpreter: PSInterpreter) {
-  const { value: target } = interpreter.pop(ObjectType.String)
-  const { value: file } = interpreter.pop(ObjectType.File)
-
+  const [{ value: target }, { value: file }] = interpreter.operandStack.pop(
+    ObjectType.String,
+    ObjectType.File
+  )
   const result = file.readString(target)
   interpreter.operandStack.push(
     createLiteral(result.substring, ObjectType.String),
@@ -45,12 +47,17 @@ export function readString(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=603
 export function filter(interpreter: PSInterpreter) {
-  const name = interpreter.pop(ObjectType.Name)
-  const { value: inputFile } = interpreter.pop(ObjectType.File)
+  const [name, input] = interpreter.operandStack.pop(
+    ObjectType.Name,
+    ObjectType.File
+  )
+  const { value: inputFile } = input
   if (name.attributes.executability !== Executability.Literal) {
+    interpreter.operandStack.push(input, name)
     throw new Error('filter: Must be a literal name')
   }
   if (name.value !== 'ASCII85Decode') {
+    interpreter.operandStack.push(input, name)
     throw new Error(`Unsupported filter: ${name.value}`)
   }
   interpreter.operandStack.push(
@@ -80,9 +87,11 @@ export function currentFile(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=667
 export function run(interpreter: PSInterpreter) {
-  const path = interpreter.pop(ObjectType.String).value.asString()
+  const [pathObj] = interpreter.operandStack.pop(ObjectType.String)
+  const path = pathObj.value.asString()
   if (!interpreter.fs.exists(path)) {
-    throw new Error(`${path} does not exist`)
+    interpreter.operandStack.push(pathObj)
+    throw new IoError()
   }
   const file = interpreter.fs.getFile(path)
   interpreter.pushFileToExecutionStack(file)

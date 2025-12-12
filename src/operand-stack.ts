@@ -66,7 +66,10 @@ export class OperandStack {
   }
 
   public splice(start: number, deleteCount?: number): PSObject[] {
-    return this._stack.splice(start, deleteCount)
+    if (deleteCount !== undefined) {
+      return this._stack.splice(start, deleteCount)
+    }
+    return this._stack.splice(start)
   }
 
   public copy(numberOfElements: number) {

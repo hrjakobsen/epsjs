@@ -2,18 +2,20 @@ import { PSDictionary } from '../dictionary/dictionary'
 import { PSInterpreter } from '../interpreter'
 import { DictionaryForAllLoopContext } from '../execution-contexts/loop-context'
 import { Access, Executability, ObjectType } from '../scanner'
+import { InvalidAccessError, RangeCheckError } from '../error'
 
 const MAX_DICT_CAPACITY = 1024
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=586
 export function dict(interpreter: PSInterpreter) {
-  const { value: capacity } = interpreter.pop(ObjectType.Integer)
-  if (capacity > MAX_DICT_CAPACITY) {
+  const [capacity] = interpreter.operandStack.pop(ObjectType.Integer)
+  if (capacity.value > MAX_DICT_CAPACITY) {
+    interpreter.operandStack.push(capacity)
     throw new Error(
       `${capacity} is higher than the max capacity of ${MAX_DICT_CAPACITY}`
     )
   }
-  const dictionary = new PSDictionary(capacity)
+  const dictionary = new PSDictionary(capacity.value)
   interpreter.pushLiteral(dictionary, ObjectType.Dictionary)
 }
 
@@ -37,21 +39,21 @@ export function endDict(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=635
 export function length(interpreter: PSInterpreter) {
-  const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
-  interpreter.pushLiteral(dictionary.size, ObjectType.Integer)
+  const [dictionary] = interpreter.operandStack.pop(ObjectType.Dictionary)
+  interpreter.pushLiteral(dictionary.value.size, ObjectType.Integer)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=640
 export function maxLength(interpreter: PSInterpreter) {
-  const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
+  const [dictionary] = interpreter.operandStack.pop(ObjectType.Dictionary)
   // Language level 1: return capacity
-  interpreter.pushLiteral(dictionary.capacity, ObjectType.Integer)
+  interpreter.pushLiteral(dictionary.value.capacity, ObjectType.Integer)
   // TODO: Language level 2 + 3: return current length
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=550
 export function begin(interpreter: PSInterpreter) {
-  const dictionary = interpreter.pop(ObjectType.Dictionary)
+  const [dictionary] = interpreter.operandStack.pop(ObjectType.Dictionary)
   interpreter.dictionaryStack.push(dictionary)
 }
 
@@ -65,9 +67,12 @@ export function end(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=582
 export function def(interpreter: PSInterpreter) {
-  const procedure = interpreter.pop(ObjectType.Any)
-  const name = interpreter.pop(ObjectType.Any)
+  const [procedure, name] = interpreter.operandStack.pop(
+    ObjectType.Any,
+    ObjectType.Any
+  )
   if (interpreter.dictionary.attributes.access !== Access.Unlimited) {
+    interpreter.operandStack.push(name, procedure)
     throw new Error('Attempting to write to readonly dictionary')
   }
   interpreter.dictionary.value.set(name, procedure)
@@ -75,19 +80,23 @@ export function def(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=636
 export function load(interpreter: PSInterpreter) {
-  const name = interpreter.pop(ObjectType.Any)
+  const [name] = interpreter.operandStack.pop(ObjectType.Any)
   const element = interpreter.dictionary.value.get(name)
   if (element === undefined) {
-    throw new Error('Unknown get in dictionary load')
+    interpreter.operandStack.push(name)
+    throw new InvalidAccessError()
   }
   interpreter.operandStack.push(element)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=712
 export function store(interpreter: PSInterpreter) {
-  const value = interpreter.pop(ObjectType.Any)
-  const key = interpreter.pop(ObjectType.Any)
+  const [value, key] = interpreter.operandStack.pop(
+    ObjectType.Any,
+    ObjectType.Any
+  )
   if (interpreter.dictionary.attributes.access !== Access.Unlimited) {
+    interpreter.operandStack.push(key, value)
     throw new Error('Attempting to write to readonly dictionary')
   }
   interpreter.dictionary.value.set(key, value)
@@ -95,17 +104,27 @@ export function store(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=612
 export function get(interpreter: PSInterpreter) {
-  const key = interpreter.pop(ObjectType.Any)
-  const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
-  interpreter.operandStack.push(dictionary.get(key)!)
+  const [key, dictionary] = interpreter.operandStack.pop(
+    ObjectType.Any,
+    ObjectType.Dictionary
+  )
+  const value = dictionary.value.get(key)
+  if (value === undefined) {
+    interpreter.operandStack.push(dictionary, key)
+    throw new InvalidAccessError()
+  }
+  interpreter.operandStack.push(value)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=649
 export function put(interpreter: PSInterpreter) {
-  const value = interpreter.pop(ObjectType.Any)
-  const key = interpreter.pop(ObjectType.Any)
-  const dictionary = interpreter.pop(ObjectType.Dictionary)
+  const [value, key, dictionary] = interpreter.operandStack.pop(
+    ObjectType.Any,
+    ObjectType.Any,
+    ObjectType.Dictionary
+  )
   if (dictionary.attributes.access !== Access.Unlimited) {
+    interpreter.operandStack.push(dictionary, key, value)
     throw new Error('Attempting to write to readonly dictionary')
   }
   dictionary.value.set(key, value)
@@ -113,9 +132,12 @@ export function put(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=722
 export function undef(interpreter: PSInterpreter) {
-  const key = interpreter.pop(ObjectType.Any)
-  const dictionary = interpreter.pop(ObjectType.Dictionary)
+  const [key, dictionary] = interpreter.operandStack.pop(
+    ObjectType.Any,
+    ObjectType.Dictionary
+  )
   if (dictionary.attributes.access !== Access.Unlimited) {
+    interpreter.operandStack.push(dictionary, key)
     throw new Error('Attempting to write to readonly dictionary')
   }
   dictionary.value.remove(key)
@@ -123,14 +145,16 @@ export function undef(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=633
 export function known(interpreter: PSInterpreter) {
-  const key = interpreter.pop(ObjectType.Any)
-  const { value: dictionary } = interpreter.pop(ObjectType.Dictionary)
-  interpreter.pushLiteral(dictionary.has(key), ObjectType.Boolean)
+  const [key, dictionary] = interpreter.operandStack.pop(
+    ObjectType.Any,
+    ObjectType.Dictionary
+  )
+  interpreter.pushLiteral(dictionary.value.has(key), ObjectType.Boolean)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=732
 export function where(interpreter: PSInterpreter) {
-  const key = interpreter.pop(ObjectType.Any)
+  const [key] = interpreter.operandStack.pop(ObjectType.Any)
   for (let i = interpreter.dictionaryStack.length - 1; i >= 0; --i) {
     const currentDictionary = interpreter.dictionaryStack[i]
     if (currentDictionary.value.has(key)) {
@@ -144,8 +168,10 @@ export function where(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=611
 export function forall(interpreter: PSInterpreter) {
-  const proc = interpreter.pop(ObjectType.Array)
-  const dictionary = interpreter.pop(ObjectType.Dictionary)
+  const [proc, dictionary] = interpreter.operandStack.pop(
+    ObjectType.Array,
+    ObjectType.Dictionary
+  )
   interpreter.beginLoop(
     new DictionaryForAllLoopContext(
       interpreter,
@@ -190,14 +216,14 @@ export function countDictStack(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=587
 export function dictStack(interpreter: PSInterpreter) {
-  const { value: array } = interpreter.pop(ObjectType.Array)
-  if (array.length < interpreter.dictionaryStack.length) {
-    // TODO: rangecheck error
-    throw new Error('Not enough space in array')
+  const [array] = interpreter.operandStack.pop(ObjectType.Array)
+  if (array.value.length < interpreter.dictionaryStack.length) {
+    interpreter.operandStack.push(array)
+    throw new RangeCheckError()
   }
   const n = interpreter.dictionaryStack.length
   for (let i = 0; i < n; ++i) {
-    array.set(i, {
+    array.value.set(i, {
       value: interpreter.dictionaryStack[i],
       type: ObjectType.Dictionary,
       attributes: {

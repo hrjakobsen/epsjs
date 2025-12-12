@@ -10,6 +10,7 @@ import {
   transformCoordinate,
   translationMatrix,
 } from '../coordinate'
+import { RangeCheckError } from '../error'
 import { PSInterpreter } from '../interpreter'
 import { ObjectType, PSObject } from '../scanner'
 import { createLiteral } from '../utils'
@@ -26,7 +27,7 @@ export function matrix(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=573
 export function currentMatrix(interpreter: PSInterpreter) {
-  const matrix = interpreter.pop(ObjectType.Array)
+  const [matrix] = interpreter.operandStack.pop(ObjectType.Array)
   if (matrix.value.length !== 6) {
     throw new Error(
       `currentmatrix: Invalid matrix length ${matrix.value.length}`
@@ -42,7 +43,7 @@ export function currentMatrix(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=583
 export function defaultMatrix(interpreter: PSInterpreter) {
-  const matrix = interpreter.pop(ObjectType.Array)
+  const [matrix] = interpreter.operandStack.pop(ObjectType.Array)
   if (matrix.value.length !== 6) {
     throw new Error(
       `defaultDeviceMatrix: Invalid matrix length ${matrix.value.length}`
@@ -59,7 +60,7 @@ export function defaultMatrix(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=689
 export function setMatrix(interpreter: PSInterpreter) {
-  const matrix = interpreter.pop(ObjectType.Array)
+  const [matrix] = interpreter.operandStack.pop(ObjectType.Array)
 
   if (matrix.value.length !== 6) {
     throw new Error(
@@ -74,25 +75,25 @@ export function setMatrix(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=718
 export function translate(interpreter: PSInterpreter) {
-  const offsetYOrMatrix = interpreter.pop<
-    ObjectType.Real | ObjectType.Integer | ObjectType.Array
-  >(ObjectType.Real | ObjectType.Integer | ObjectType.Array)
-  const offsetXOrY = interpreter.pop(ObjectType.Real | ObjectType.Integer)
+  const [offsetYOrMatrix, offsetXOrY] = interpreter.operandStack.pop(
+    ObjectType.Real | ObjectType.Integer | ObjectType.Array,
+    ObjectType.Real | ObjectType.Integer
+  )
   let offsetX: PSObject<ObjectType.Real | ObjectType.Integer>
   let offsetY: PSObject<ObjectType.Real | ObjectType.Integer>
   const modifyCTM = offsetYOrMatrix.type !== ObjectType.Array
   if (!modifyCTM) {
     offsetY = offsetXOrY
-    const [topOfStack] = interpreter.operandStack.pop(ObjectType.Any)
-    if (
-      topOfStack?.type !== ObjectType.Real &&
-      topOfStack?.type !== ObjectType.Integer
-    ) {
-      throw new Error('translate: Invalid x offset')
+    try {
+      ;[offsetX] = interpreter.operandStack.pop(
+        ObjectType.Integer,
+        ObjectType.Real
+      )
+    } catch (e) {
+      // Restore aleady popped elements
+      interpreter.operandStack.push(offsetXOrY, offsetYOrMatrix)
+      throw e
     }
-    offsetX = topOfStack as unknown as PSObject<
-      ObjectType.Real | ObjectType.Integer
-    >
   } else {
     offsetX = offsetXOrY
     offsetY = offsetYOrMatrix
@@ -101,7 +102,7 @@ export function translate(interpreter: PSInterpreter) {
   if (modifyCTM) {
     interpreter.printer.concat(translation)
   } else {
-    offsetYOrMatrix.value = new PSArray(
+    ;(offsetYOrMatrix as PSObject<ObjectType.Array>).value = new PSArray(
       translation.map((number) => createLiteral(number, ObjectType.Real))
     )
     interpreter.operandStack.push(offsetYOrMatrix)
@@ -110,10 +111,8 @@ export function translate(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=668
 export function scale(interpreter: PSInterpreter) {
-  const scaleYOrMatrix = interpreter.pop<
-    ObjectType.Real | ObjectType.Integer | ObjectType.Array
-  >(ObjectType.Real | ObjectType.Integer | ObjectType.Array)
-  const scaleXOrY = interpreter.pop<ObjectType.Real | ObjectType.Integer>(
+  const [scaleYOrMatrix, scaleXOrY] = interpreter.operandStack.pop(
+    ObjectType.Real | ObjectType.Integer | ObjectType.Array,
     ObjectType.Real | ObjectType.Integer
   )
   let scaleX: PSObject<ObjectType.Real | ObjectType.Integer>
@@ -121,16 +120,16 @@ export function scale(interpreter: PSInterpreter) {
   const modifyCTM = scaleYOrMatrix.type !== ObjectType.Array
   if (!modifyCTM) {
     scaleY = scaleXOrY
-    const [topOfStack] = interpreter.operandStack.pop(ObjectType.Any)
-    if (
-      topOfStack?.type !== ObjectType.Real &&
-      topOfStack?.type !== ObjectType.Integer
-    ) {
-      throw new Error('scale: Invalid x scale')
+    try {
+      ;[scaleX] = interpreter.operandStack.pop(
+        ObjectType.Real,
+        ObjectType.Integer
+      )
+    } catch (e) {
+      // Restore the already popped elements
+      interpreter.operandStack.push(scaleXOrY, scaleYOrMatrix)
+      throw e
     }
-    scaleX = topOfStack as unknown as PSObject<
-      ObjectType.Integer | ObjectType.Real
-    >
   } else {
     scaleX = scaleXOrY
     scaleY = scaleYOrMatrix
@@ -139,7 +138,7 @@ export function scale(interpreter: PSInterpreter) {
   if (modifyCTM) {
     interpreter.printer.concat(scale)
   } else {
-    scaleYOrMatrix.value = new PSArray(
+    ;(scaleYOrMatrix as PSObject<ObjectType.Array>).value = new PSArray(
       scale.map((number) => createLiteral(number, ObjectType.Real))
     )
     interpreter.operandStack.push(scaleYOrMatrix)
@@ -148,7 +147,9 @@ export function scale(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=665
 export function rotate(interpreter: PSInterpreter) {
-  const [arg] = interpreter.operandStack.pop(ObjectType.Array | ObjectType.Real)
+  const [arg] = interpreter.operandStack.pop(
+    ObjectType.Array | ObjectType.Real | ObjectType.Integer
+  )
   if (!arg) {
     throw new Error('rotate: Missing argument')
   }
@@ -158,12 +159,6 @@ export function rotate(interpreter: PSInterpreter) {
     const [angle] = interpreter.operandStack.pop(
       ObjectType.Integer | ObjectType.Real
     )
-    if (!angle) {
-      throw new Error('rotate: Missing angle argument')
-    }
-    if (angle.type !== ObjectType.Real && angle.type !== ObjectType.Integer) {
-      throw new Error('rotate: Invalid angle type. Must be a number')
-    }
     const matrix = matrixFromPSArray(matrixArray)
     const rotation = rotationMatrix(
       (angle as PSObject<ObjectType.Integer | ObjectType.Real>).value
@@ -182,13 +177,14 @@ export function rotate(interpreter: PSInterpreter) {
 }
 
 export function invertMatrix(interpreter: PSInterpreter) {
-  const targetArray = interpreter.pop(ObjectType.Array)
+  const [targetArray, sourceArray] = interpreter.operandStack.pop(
+    ObjectType.Array,
+    ObjectType.Array
+  )
   if (targetArray.value.length !== 6) {
-    throw new Error(
-      `invertmatrix: Invalid matrix length ${targetArray.value.length}`
-    )
+    interpreter.operandStack.push(sourceArray, targetArray)
+    throw new RangeCheckError()
   }
-  const sourceArray = interpreter.pop(ObjectType.Array)
   const sourceMatrix = matrixFromPSArray(sourceArray)
   const inverted = invertTransformationMatrix(sourceMatrix)
   for (let i = 0; i < 6; i++) {
@@ -202,17 +198,34 @@ export function transform(interpreter: PSInterpreter) {
   let x: number
   let y: number
   let matrix: TransformationMatrix
-  const matrixOrNumber = interpreter.pop(
+  const [matrixOrNumber] = interpreter.operandStack.pop(
     ObjectType.Real | ObjectType.Integer | ObjectType.Array
   )
   if (matrixOrNumber.type === ObjectType.Array) {
     matrix = matrixFromPSArray(matrixOrNumber)
-    y = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
-    x = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    try {
+      const [yObj, xObj] = interpreter.operandStack.pop(
+        ObjectType.Real | ObjectType.Integer,
+        ObjectType.Real | ObjectType.Integer
+      )
+      y = yObj.value
+      x = xObj.value
+    } catch (e) {
+      interpreter.operandStack.push(matrixOrNumber)
+      throw e
+    }
   } else {
     matrix = interpreter.printer.getTransformationMatrix()
     y = matrixOrNumber.value
-    x = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    try {
+      const [xObj] = interpreter.operandStack.pop(
+        ObjectType.Real | ObjectType.Integer
+      )
+      x = xObj.value
+    } catch (e) {
+      interpreter.operandStack.push(matrixOrNumber)
+      throw e
+    }
   }
   const { x: xPrime, y: yPrime } = transformCoordinate({ x, y }, matrix)
   interpreter.pushLiteralNumber(xPrime)
@@ -224,17 +237,34 @@ export function itransform(interpreter: PSInterpreter) {
   let xPrime: number
   let yPrime: number
   let matrix: TransformationMatrix
-  const matrixOrNumber = interpreter.pop(
+  const [matrixOrNumber] = interpreter.operandStack.pop(
     ObjectType.Real | ObjectType.Integer | ObjectType.Array
   )
   if (matrixOrNumber.type === ObjectType.Array) {
     matrix = matrixFromPSArray(matrixOrNumber)
-    yPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
-    xPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    try {
+      const [yPrimeObj, xPrimeObj] = interpreter.operandStack.pop(
+        ObjectType.Real | ObjectType.Integer,
+        ObjectType.Real | ObjectType.Integer
+      )
+      yPrime = yPrimeObj.value
+      xPrime = xPrimeObj.value
+    } catch (e) {
+      interpreter.operandStack.push(matrixOrNumber)
+      throw e
+    }
   } else {
     matrix = interpreter.printer.getTransformationMatrix()
     yPrime = matrixOrNumber.value
-    xPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    try {
+      const [xPrimeObj] = interpreter.operandStack.pop(
+        ObjectType.Real | ObjectType.Integer
+      )
+      xPrime = xPrimeObj.value
+    } catch (e) {
+      interpreter.operandStack.push(matrixOrNumber)
+      throw e
+    }
   }
   const inverseTransform = invertTransformationMatrix(matrix)
   const { x, y } = transformCoordinate(
@@ -250,17 +280,34 @@ export function dtransform(interpreter: PSInterpreter) {
   let x: number
   let y: number
   let matrix: TransformationMatrix
-  const matrixOrNumber = interpreter.pop(
+  const [matrixOrNumber] = interpreter.operandStack.pop(
     ObjectType.Real | ObjectType.Integer | ObjectType.Array
   )
   if (matrixOrNumber.type === ObjectType.Array) {
     matrix = matrixFromPSArray(matrixOrNumber)
-    y = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
-    x = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    try {
+      const [yObj, xObj] = interpreter.operandStack.pop(
+        ObjectType.Real | ObjectType.Integer,
+        ObjectType.Real | ObjectType.Integer
+      )
+      y = yObj.value
+      x = xObj.value
+    } catch (e) {
+      interpreter.operandStack.push(matrixOrNumber)
+      throw e
+    }
   } else {
     matrix = interpreter.printer.getTransformationMatrix()
     y = matrixOrNumber.value
-    x = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    try {
+      const [xObj] = interpreter.operandStack.pop(
+        ObjectType.Real | ObjectType.Integer
+      )
+      x = xObj.value
+    } catch (e) {
+      interpreter.operandStack.push(matrixOrNumber)
+      throw e
+    }
   }
   matrix = [matrix[0], matrix[1], matrix[2], matrix[3], 0, 0]
   const { x: xPrime, y: yPrime } = transformCoordinate({ x, y }, matrix)
@@ -273,17 +320,34 @@ export function idtransform(interpreter: PSInterpreter) {
   let xPrime: number
   let yPrime: number
   let matrix: TransformationMatrix
-  const matrixOrNumber = interpreter.pop(
+  const [matrixOrNumber] = interpreter.operandStack.pop(
     ObjectType.Real | ObjectType.Integer | ObjectType.Array
   )
   if (matrixOrNumber.type === ObjectType.Array) {
     matrix = matrixFromPSArray(matrixOrNumber)
-    yPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
-    xPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    try {
+      const [yPrimeObj, xPrimeObj] = interpreter.operandStack.pop(
+        ObjectType.Real | ObjectType.Integer,
+        ObjectType.Real | ObjectType.Integer
+      )
+      yPrime = yPrimeObj.value
+      xPrime = xPrimeObj.value
+    } catch (e) {
+      interpreter.operandStack.push(matrixOrNumber)
+      throw e
+    }
   } else {
     matrix = interpreter.printer.getTransformationMatrix()
     yPrime = matrixOrNumber.value
-    xPrime = interpreter.pop(ObjectType.Real | ObjectType.Integer).value
+    try {
+      const [xPrimeObj] = interpreter.operandStack.pop(
+        ObjectType.Real | ObjectType.Integer
+      )
+      xPrime = xPrimeObj.value
+    } catch (e) {
+      interpreter.operandStack.push(matrixOrNumber)
+      throw e
+    }
   }
   let inverseTransform = invertTransformationMatrix(matrix)
   inverseTransform = [
@@ -304,11 +368,10 @@ export function idtransform(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=619
 export function identMatrix(interpreter: PSInterpreter) {
-  const matrixObj = interpreter.pop(ObjectType.Array)
+  const [matrixObj] = interpreter.operandStack.pop(ObjectType.Array)
   if (matrixObj.value.length !== 6) {
-    throw new Error(
-      `currentmatrix: Invalid matrix length ${matrixObj.value.length}`
-    )
+    interpreter.operandStack.push(matrixObj)
+    throw new RangeCheckError()
   }
   const matrix = matrixFromPSArray(matrixObj)
   for (let i = 0; i < matrix.length; ++i) {
@@ -322,13 +385,13 @@ export function identMatrix(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=561
 export function concatMatrix(interpreter: PSInterpreter) {
-  const matrix3Obj = interpreter.pop(ObjectType.Array)
-  const matrix2Obj = interpreter.pop(ObjectType.Array)
-  const matrix1Obj = interpreter.pop(ObjectType.Array)
+  const [matrix3Obj, matrix2Obj, matrix1Obj] = interpreter.operandStack.pop(
+    ObjectType.Array,
+    ObjectType.Array,
+    ObjectType.Array
+  )
   if (matrix3Obj.value.length !== 6) {
-    throw new Error(
-      `currentmatrix: Invalid matrix length ${matrix3Obj.value.length}`
-    )
+    throw new RangeCheckError()
   }
   const matrix2 = matrixFromPSArray(matrix2Obj)
   const matrix1 = matrixFromPSArray(matrix1Obj)

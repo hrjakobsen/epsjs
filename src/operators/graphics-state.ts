@@ -1,5 +1,6 @@
 import { PSArray } from '../array'
 import { matrixFromPSArray } from '../coordinate'
+import { RangeCheckError } from '../error'
 import { LineCap, LineJoin } from '../graphics/context'
 import { PSInterpreter } from '../interpreter'
 import { ObjectType } from '../scanner'
@@ -17,7 +18,7 @@ export function grestore(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=688
 export function setLineWidth(interpreter: PSInterpreter) {
-  const { value: lineWidth } = interpreter.pop(
+  const [{ value: lineWidth }] = interpreter.operandStack.pop(
     ObjectType.Integer | ObjectType.Real
   )
   interpreter.printer.setLineWidth(lineWidth)
@@ -30,11 +31,12 @@ export function currentLineWidth(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=687
 export function setLineCap(interpreter: PSInterpreter) {
-  const { value: lineCap } = interpreter.pop(ObjectType.Integer)
-  if (lineCap in LineCap) {
-    interpreter.printer.setLineCap(lineCap)
+  const [lineCap] = interpreter.operandStack.pop(ObjectType.Integer)
+  if (lineCap.value in LineCap) {
+    interpreter.printer.setLineCap(lineCap.value)
   } else {
-    throw new Error('Invalid line cap type')
+    interpreter.operandStack.push(lineCap)
+    throw new RangeCheckError()
   }
 }
 
@@ -45,11 +47,11 @@ export function currentLineCap(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=687
 export function setLineJoin(interpreter: PSInterpreter) {
-  const { value: lineJoin } = interpreter.pop(ObjectType.Integer)
-  if (lineJoin in LineJoin) {
-    interpreter.printer.setLineJoin(lineJoin)
+  const [lineJoin] = interpreter.operandStack.pop(ObjectType.Integer)
+  if (lineJoin.value in LineJoin) {
+    interpreter.printer.setLineJoin(lineJoin.value)
   } else {
-    throw new Error('Invalid line join type')
+    throw new RangeCheckError()
   }
 }
 
@@ -60,7 +62,7 @@ export function currentLineJoin(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=689
 export function setMiterLimit(interpreter: PSInterpreter) {
-  const { value: miterLimit } = interpreter.pop(
+  const [{ value: miterLimit }] = interpreter.operandStack.pop(
     ObjectType.Integer | ObjectType.Real
   )
   interpreter.printer.setMiterLimit(miterLimit)
@@ -78,22 +80,18 @@ export function currentMiterLimit(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=679
 export function setColorSpace(interpreter: PSInterpreter) {
-  interpreter.pop(ObjectType.Name)
-  interpreter.pop(ObjectType.Array)
+  interpreter.operandStack.pop(ObjectType.Name, ObjectType.Array)
   // FIXME: Support more than rgb
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=695
 export function setRgbColor(interpreter: PSInterpreter) {
-  const { value: bInput } = interpreter.pop(
-    ObjectType.Real | ObjectType.Integer
-  )
-  const { value: gInput } = interpreter.pop(
-    ObjectType.Real | ObjectType.Integer
-  )
-  const { value: rInput } = interpreter.pop(
-    ObjectType.Real | ObjectType.Integer
-  )
+  const [{ value: bInput }, { value: gInput }, { value: rInput }] =
+    interpreter.operandStack.pop(
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer,
+      ObjectType.Real | ObjectType.Integer
+    )
   const r = clamp(0, 1, rInput)
   const g = clamp(0, 1, gInput)
   const b = clamp(0, 1, bInput)
@@ -109,7 +107,7 @@ export function currentRgbColor(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=685
 export function setGray(interpreter: PSInterpreter) {
-  const { value: grayInput } = interpreter.pop(
+  const [{ value: grayInput }] = interpreter.operandStack.pop(
     ObjectType.Real | ObjectType.Integer
   )
   const gray = clamp(0, 1, grayInput)
@@ -129,13 +127,13 @@ function clamp(min: number, max: number, value: number) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=686
 export function setHsbColor(interpreter: PSInterpreter) {
-  const { value: brightnessRaw } = interpreter.pop(
-    ObjectType.Real | ObjectType.Integer
-  )
-  const { value: saturationRaw } = interpreter.pop(
-    ObjectType.Real | ObjectType.Integer
-  )
-  const { value: hueRaw } = interpreter.pop(
+  const [
+    { value: brightnessRaw },
+    { value: saturationRaw },
+    { value: hueRaw },
+  ] = interpreter.operandStack.pop(
+    ObjectType.Real | ObjectType.Integer,
+    ObjectType.Real | ObjectType.Integer,
     ObjectType.Real | ObjectType.Integer
   )
   const hue = clamp(0, 1, hueRaw) * 360
@@ -181,26 +179,26 @@ export function currentHsbColor(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=561
 export function concat(interpreter: PSInterpreter) {
-  const matrix = interpreter.pop(ObjectType.Array)
+  const [matrix] = interpreter.operandStack.pop(ObjectType.Array)
   const transformationMatrix = matrixFromPSArray(matrix)
   interpreter.printer.concat(transformationMatrix)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=680
 export function setDash(interpreter: PSInterpreter) {
-  const { value: offset } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real
+  const [offset, array] = interpreter.operandStack.pop(
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Array
   )
-  const { value: array } = interpreter.pop(ObjectType.Array)
 
-  for (const item of array.items) {
+  for (const item of array.value.items) {
     if (item.type !== ObjectType.Integer && item.type !== ObjectType.Real) {
-      throw new Error('Invalid dash array')
+      throw new RangeCheckError()
     }
   }
   interpreter.printer.setDash(
-    array.map((x) => x.value as number),
-    offset
+    array.value.map((x) => x.value as number),
+    offset.value
   )
 }
 

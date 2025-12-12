@@ -18,22 +18,24 @@ export function eofill(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=657
 export function rectstroke(interpreter: PSInterpreter) {
-  const { value: height } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real
-  )
-  const { value: width } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const { value: y } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const { value: x } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [{ value: height }, { value: width }, { value: y }, { value: x }] =
+    interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real
+    )
   interpreter.printer.strokeRect({ x, y }, width, height)
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=656
 export function rectfill(interpreter: PSInterpreter) {
-  const { value: height } = interpreter.pop(
-    ObjectType.Integer | ObjectType.Real
-  )
-  const { value: width } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const { value: y } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const { value: x } = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [{ value: height }, { value: width }, { value: y }, { value: x }] =
+    interpreter.operandStack.pop(
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real,
+      ObjectType.Integer | ObjectType.Real
+    )
   interpreter.printer.fillRect({ x, y }, width, height)
 }

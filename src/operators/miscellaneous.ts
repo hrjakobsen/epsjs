@@ -4,7 +4,7 @@ import { createLiteral } from '../utils'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=552
 export function bind(interpreter: PSInterpreter) {
-  const proc = interpreter.pop(ObjectType.Array)
+  const [proc] = interpreter.operandStack.pop(ObjectType.Array)
   // TODO: implement recursive binding
   interpreter.operandStack.push(proc)
 }

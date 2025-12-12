@@ -1,3 +1,4 @@
+import { RangeCheckError } from './error'
 import { ObjectType, PSObject } from './scanner'
 
 export type Coordinate = {
@@ -196,9 +197,7 @@ export function matrixFromPSArray(
   array: PSObject<ObjectType.Array>
 ): TransformationMatrix {
   if (array.value.length !== 6) {
-    throw new Error(
-      `Expected matrix with length 6, but has ${array.value.length}`
-    )
+    throw new RangeCheckError()
   }
   if (
     array.value.items.some(

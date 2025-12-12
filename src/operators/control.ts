@@ -10,7 +10,7 @@ import { StoppedContext } from '../execution-contexts/stopped-context'
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=596
 export function exec(interpreter: PSInterpreter) {
-  const obj = interpreter.pop(ObjectType.Any)
+  const [obj] = interpreter.operandStack.pop(ObjectType.Any)
   if (
     obj.type === ObjectType.Array &&
     obj.attributes.executability === Executability.Executable
@@ -28,13 +28,17 @@ export function exec(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=620
 export function _if(interpreter: PSInterpreter) {
-  const procedure = interpreter.pop(ObjectType.Array)
-  const { value: bool } = interpreter.pop(ObjectType.Boolean)
+  const [procedure, bool] = interpreter.operandStack.pop(
+    ObjectType.Array,
+    ObjectType.Boolean
+  )
 
   if (procedure.attributes.executability !== Executability.Executable) {
+    // restore stack
+    interpreter.operandStack.push(bool, procedure)
     throw new Error('Second argument to if is not a procedure')
   }
-  if (bool) {
+  if (bool.value) {
     interpreter.executionStack.push(
       new ProcedureContext(interpreter, procedure)
     )
@@ -43,16 +47,18 @@ export function _if(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=621
 export function ifelse(interpreter: PSInterpreter) {
-  const procedureFalse = interpreter.pop(ObjectType.Array)
-  const procedureTrue = interpreter.pop(ObjectType.Array)
-  const { value: bool } = interpreter.pop(ObjectType.Boolean)
+  const [procedureFalse, procedureTrue, bool] = interpreter.operandStack.pop(
+    ObjectType.Array,
+    ObjectType.Array,
+    ObjectType.Boolean
+  )
   if (
     procedureTrue.attributes.executability !== Executability.Executable ||
     procedureFalse.attributes.executability !== Executability.Executable
   ) {
     throw new Error('Second or third argument to if is not a procedure')
   }
-  if (bool) {
+  if (bool.value) {
     interpreter.executionStack.push(
       new ProcedureContext(interpreter, procedureTrue)
     )
@@ -65,10 +71,12 @@ export function ifelse(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=610
 export function _for(interpreter: PSInterpreter) {
-  const proc = interpreter.pop(ObjectType.Array)
-  const limit = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const increment = interpreter.pop(ObjectType.Integer | ObjectType.Real)
-  const initial = interpreter.pop(ObjectType.Integer | ObjectType.Real)
+  const [proc, limit, increment, initial] = interpreter.operandStack.pop(
+    ObjectType.Array,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real,
+    ObjectType.Integer | ObjectType.Real
+  )
 
   interpreter.beginLoop(
     new ForLoopContext(
@@ -84,14 +92,16 @@ export function _for(interpreter: PSInterpreter) {
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=659
 export function repeat(interpreter: PSInterpreter) {
-  const proc = interpreter.pop(ObjectType.Array)
-  const iterations = interpreter.pop(ObjectType.Integer)
+  const [proc, iterations] = interpreter.operandStack.pop(
+    ObjectType.Array,
+    ObjectType.Integer
+  )
   interpreter.beginLoop(new RepeatLoopContext(interpreter, proc, iterations))
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=637
 export function loop(interpreter: PSInterpreter) {
-  const proc = interpreter.pop(ObjectType.Array)
+  const [proc] = interpreter.operandStack.pop(ObjectType.Array)
   interpreter.beginLoop(new InfiteLoopContext(interpreter, proc))
 }
 
