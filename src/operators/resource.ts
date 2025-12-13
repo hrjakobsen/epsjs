@@ -99,18 +99,17 @@ async function loadFontData(
   }
   // const name = fontDict.value.searchByName('FontName')!
   const data = fontDict.value.searchByName('sfnts')!.value as PSArray
-  let totalLength = 0
-  for (const str of data.items) {
-    if (str.type !== ObjectType.String) {
-      throw new Error('Invalid data type, expected string got ' + str.type)
+  const buffers = data.map((x: PSObject) => {
+    if (x.type !== ObjectType.String) {
+      throw new TypecheckError()
     }
-    totalLength += (str as PSObject<ObjectType.String>).value.length
-  }
+    return (x.value as PSString).asBuffer()
+  })
+  const totalLength = buffers.reduce((acc, x) => acc + x.byteLength, 0)
   const binaryData = new Uint8Array(totalLength)
   let cursor = 0
-  for (const str of data.items) {
-    const buffer = (str.value as PSString).asBuffer()
-    for (let i = 0; i <= buffer.length; ++i) {
+  for (const buffer of buffers) {
+    for (let i = 0; i < buffer.length; ++i) {
       binaryData[cursor++] = buffer[i]
     }
   }

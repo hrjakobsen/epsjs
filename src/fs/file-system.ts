@@ -8,6 +8,14 @@ import arimoRegular from '../../src/assets/fonts/arimo/arimo-regular.ps?url'
 import arimoBold from '../../src/assets/fonts/arimo/arimo-bold.ps?url'
 import arimoOblique from '../../src/assets/fonts/arimo/arimo-oblique.ps?url'
 import arimoBoldOblique from '../../src/assets/fonts/arimo/arimo-bold-oblique.ps?url'
+import cousineRegular from '../../src/assets/fonts/cousine/cousine-regular.ps?url'
+import cousineBold from '../../src/assets/fonts/cousine/cousine-bold.ps?url'
+import cousineOblique from '../../src/assets/fonts/cousine/cousine-oblique.ps?url'
+import cousineBoldOblique from '../../src/assets/fonts/cousine/cousine-bold-oblique.ps?url'
+import tinosRegular from '../../src/assets/fonts/tinos/tinos-regular.ps?url'
+import tinosBold from '../../src/assets/fonts/tinos/tinos-bold.ps?url'
+import tinosOblique from '../../src/assets/fonts/tinos/tinos-oblique.ps?url'
+import tinosBoldOblique from '../../src/assets/fonts/tinos/tinos-bold-oblique.ps?url'
 import { PSInterpreter } from '../interpreter'
 import { IoError } from '../error'
 
@@ -78,6 +86,14 @@ export class FileSystem {
     fs.addFileFromUrl('fonts/Helvetica-Bold.ps', arimoBold)
     fs.addFileFromUrl('fonts/Helvetica-Oblique.ps', arimoOblique)
     fs.addFileFromUrl('fonts/Helvetica-BoldOblique.ps', arimoBoldOblique)
+    fs.addFileFromUrl('fonts/Courier.ps', cousineRegular)
+    fs.addFileFromUrl('fonts/Courier-Bold.ps', cousineBold)
+    fs.addFileFromUrl('fonts/Courier-Oblique.ps', cousineOblique)
+    fs.addFileFromUrl('fonts/Courier-BoldOblique.ps', cousineBoldOblique)
+    fs.addFileFromUrl('fonts/Times-Roman.ps', tinosRegular)
+    fs.addFileFromUrl('fonts/Times-Bold.ps', tinosBold)
+    fs.addFileFromUrl('fonts/Times-Oblique.ps', tinosOblique)
+    fs.addFileFromUrl('fonts/Times-BoldOblique.ps', tinosBoldOblique)
     return fs
   }
 }

@@ -93,7 +93,7 @@ export class PSString {
 
   asBuffer(): Uint8Array {
     const buffer = new Uint8Array(this.data.length)
-    for (let i = 0; i <= this.data.length; ++i) {
+    for (let i = 0; i < this.data.length; ++i) {
       buffer[i] = this.data[i]
     }
     return buffer

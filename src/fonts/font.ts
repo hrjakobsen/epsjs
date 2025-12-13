@@ -23,7 +23,7 @@ export class Font {
     cursor += TableDirectory.BYTE_SIZE
     assert(tableDirectory.sfntVersion === 0x10000)
     const tables = []
-    for (let i = 0; i <= tableDirectory.numTables; ++i) {
+    for (let i = 0; i < tableDirectory.numTables; ++i) {
       tables.push(TableRecord.parse(data, cursor))
       cursor += TableRecord.BYTE_SIZE
     }
@@ -251,7 +251,10 @@ export class Glyph {
     }
 
     // The number of points is determined by the last entry in the endPtsOfContours array
-    const numPoints = endPtsOfContours[endPtsOfContours.length - 1] + 1
+    const numPoints =
+      header.numberOfContours > 0
+        ? endPtsOfContours[endPtsOfContours.length - 1] + 1
+        : 0
     const flags = new Uint8Array(numPoints)
 
     for (let flagIndex = 0; flagIndex < numPoints; ++flagIndex) {
@@ -348,6 +351,8 @@ export class Glyph {
       flags = data.getUint16(cursor, false)
       cursor += 2
       const componentGlyphIndex = data.getUint16(cursor, false)
+      cursor += 2
+
       const component = Glyph.parseGlyph(
         data,
         glyphTableOffset,
@@ -410,9 +415,6 @@ export class Glyph {
           dx = arg1
           dy = arg2
         }
-
-        dx = arg1
-        dy = arg2
       } else {
         const rawChildPt = component.coordinates[arg2]
         const parentPt = combinedPoints[arg1]
@@ -730,6 +732,7 @@ export class HmtxTable {
   }
 }
 
-function assert(assertion: boolean) {
-  if (!assertion) throw new Error('Assertion failed')
+function assert(assertion: boolean, msg?: string) {
+  if (!assertion)
+    throw new Error(`Assertion failed${msg !== undefined ? ': ' + msg : ''}`)
 }
