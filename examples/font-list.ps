@@ -1,0 +1,20 @@
+/fonts [
+  /Times-Roman /Times-Oblique /Times-Bold /Times-BoldOblique
+  /Helvetica /Helvetica-Oblique /Helvetica-Bold /Helvetica-BoldOblique
+  /Courier /Courier-Oblique /Courier-Bold /Courier-BoldOblique
+  /Symbol
+] def
+
+/font-size 16 def
+/padding 5 def
+
+/print-font {
+  dup font-size selectfont
+  100 string cvs
+  show
+  % Move up to the next line
+  currentpoint pop -1 mul padding add font-size 1.2 mul rmoveto
+} bind def
+
+padding padding moveto
+fonts { print-font } forall
