@@ -21,11 +21,37 @@ export class Font {
     let cursor = offset
     const tableDirectory = TableDirectory.parse(data, cursor)
     cursor += TableDirectory.BYTE_SIZE
+    const headerSize =
+      TableDirectory.BYTE_SIZE +
+      tableDirectory.numTables * TableRecord.BYTE_SIZE
+    const headerCheckSize = calculateChecksum(data, offset, headerSize)
     assert(tableDirectory.sfntVersion === 0x10000)
     const tables = []
+    let fileChecksum = headerCheckSize
+    let currentAdjustment = null
     for (let i = 0; i < tableDirectory.numTables; ++i) {
-      tables.push(TableRecord.parse(data, cursor))
+      const table = TableRecord.parse(data, cursor)
+      let checksum = 0
+      if (table.tableTag.toString() === 'head') {
+        checksum = calculateChecksum(data, table.offset, table.length)
+        currentAdjustment = data.getUint32(table.offset + 8, false)
+        checksum = (checksum - currentAdjustment) >>> 0
+      } else {
+        checksum = calculateChecksum(data, table.offset, table.length)
+        if (checksum !== table.checksum) {
+          throw new Error(
+            'Invalid checksum for table ' + table.tableTag.toString()
+          )
+        }
+      }
+      fileChecksum = (fileChecksum + checksum) >>> 0
       cursor += TableRecord.BYTE_SIZE
+      tables.push(table)
+    }
+    const magicNumber = 0xb1b0afba
+    const finalChecksumAdjustment = (magicNumber - fileChecksum) >>> 0
+    if (finalChecksumAdjustment !== currentAdjustment) {
+      throw new Error('Invalid checksum for font file')
     }
 
     const maxpHeader = tables.find(
@@ -735,4 +761,35 @@ export class HmtxTable {
 function assert(assertion: boolean, msg?: string) {
   if (!assertion)
     throw new Error(`Assertion failed${msg !== undefined ? ': ' + msg : ''}`)
+}
+
+function calculateChecksum(data: DataView, offset: number, length: number) {
+  let sum = 0
+  const u32s = Math.floor(length / 4)
+  let cursor = offset
+  for (let i = 0; i < u32s; i++) {
+    const value = data.getUint32(cursor, false)
+    cursor += 4
+
+    // Ensure sum is u32
+    sum = (sum + value) >>> 0
+  }
+
+  const leftOver = length % 4
+  const bytesToPad = 4 - leftOver
+
+  if (leftOver !== 0) {
+    let finalU32 = 0
+    for (let i = 0; i < leftOver; ++i) {
+      const value = data.getUint8(cursor)
+      cursor += 1
+      finalU32 = (finalU32 << 8) + value
+    }
+
+    for (let i = 0; i < bytesToPad; ++i) {
+      finalU32 <<= 8
+    }
+    sum = (sum + finalU32) >>> 0
+  }
+  return sum
 }
