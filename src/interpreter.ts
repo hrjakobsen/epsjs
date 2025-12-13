@@ -18,7 +18,7 @@ import { PseudoRandomNumberGenerator } from './random'
 import { start } from './operators/control'
 import { FileSystem } from './fs/file-system'
 import { FontCollection } from './fonts/font-collection'
-import { InvalidFontError, PSError, StackUnderflowError } from './error'
+import { PSError, StackUnderflowError } from './error'
 import { ExecutionContext } from './execution-contexts'
 import { ProcedureContext } from './execution-contexts/procedure-context'
 import { LoopContext } from './execution-contexts/loop-context'
@@ -49,7 +49,6 @@ export class PSInterpreter {
       type: ObjectType.File,
     })
   }
-  public fonts = new PSDictionary(1024)
   public parsedFonts = new FontCollection()
 
   public fs: FileSystem
@@ -94,7 +93,7 @@ export class PSInterpreter {
 
   public async run(ctx: CanvasRenderingContext2D) {
     this._printer = new CanvasBackedGraphicsContext(this, ctx)
-    start(this)
+    await start(this)
     while (!this.done()) {
       await this.fetchAndExecute()
     }
@@ -277,13 +276,5 @@ export class PSInterpreter {
       num = Math.floor(num)
     }
     this.pushLiteral(num, type)
-  }
-
-  public findFont(key: PSObject<ObjectType.Any>) {
-    if (this.fonts.has(key)) {
-      return this.fonts.get(key)!.value as PSDictionary
-    } else {
-      throw new InvalidFontError()
-    }
   }
 }

@@ -1,4 +1,4 @@
-import { IoError } from '../error'
+import { IoError, PSError } from '../error'
 import { ExecutionContext } from '../execution-contexts'
 import { Ascii85DecodeFilter } from '../file'
 import { PSInterpreter } from '../interpreter'
@@ -85,15 +85,21 @@ export function currentFile(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=667
-export function run(interpreter: PSInterpreter) {
-  interpreter.operandStack.withPopped([ObjectType.String], ([pathObj]) => {
+export async function run(interpreter: PSInterpreter) {
+  const [pathObj] = interpreter.operandStack.pop(ObjectType.String)
+  try {
     const path = pathObj.value.asString()
     if (!interpreter.fs.exists(path)) {
       throw new IoError()
     }
-    const file = interpreter.fs.getFile(path)
+    const file = await interpreter.fs.getFile(path)
     interpreter.pushFileToExecutionStack(file)
-  })
+  } catch (error) {
+    if (error instanceof PSError) {
+      interpreter.operandStack.push(pathObj)
+    }
+    throw error
+  }
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=601

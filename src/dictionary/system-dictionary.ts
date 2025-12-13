@@ -16,6 +16,7 @@ import * as typeAttributeConversionOperators from '../operators/type-attribute-c
 import * as deviceSetupOutputOperators from '../operators/device-setup-output'
 import * as fontOperators from '../operators/glyph-font'
 import * as miscellaneousOperators from '../operators/miscellaneous'
+import * as resourceOperators from '../operators/resource'
 
 import {
   Access,
@@ -229,11 +230,8 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['cvs', typeAttributeConversionOperators.cvs],
   ['showpage', deviceSetupOutputOperators.showPage],
   ['debug', deviceSetupOutputOperators.debug],
-  ['findfont', fontOperators.findFont],
   ['setfont', fontOperators.setFont],
   ['scalefont', fontOperators.scaleFont],
-  ['definefont', fontOperators.defineFont],
-  ['selectfont', fontOperators.selectFont],
   ['makefont', fontOperators.makeFont],
   ['stringwidth', fontOperators.stringWidth],
   ['show', fontOperators.show],
@@ -242,6 +240,8 @@ export const BUILT_INS_LIST: [string, OperatorFunction][] = [
   ['widthshow', fontOperators.widthshow],
   ['awidthshow', fontOperators.awidthshow],
   ['charpath', fontOperators.charpath],
+  ['defineresource', resourceOperators.defineresource],
+  ['findresource', resourceOperators.findresource],
   // Overloads
   [
     'copy',

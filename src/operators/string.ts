@@ -86,11 +86,10 @@ export function putInterval(interpreter: PSInterpreter) {
 export function copy(interpreter: PSInterpreter) {
   interpreter.operandStack.withPopped(
     [ObjectType.String, ObjectType.String],
-    ([source, target]) => {
-      if (!(target.value.length < source.value.length)) {
+    ([target, source]) => {
+      if (target.value.length < source.value.length) {
         throw new RangeCheckError()
       }
-
       const removed = target.value.data.splice(
         0,
         source.value.length,

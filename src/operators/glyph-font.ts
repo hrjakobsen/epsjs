@@ -6,19 +6,10 @@ import {
   TransformationMatrix,
 } from '../coordinate'
 import { PSDictionary } from '../dictionary/dictionary'
-import { Font } from '../fonts/font'
 import { PSInterpreter } from '../interpreter'
 import { StringKShowLoopContext } from '../execution-contexts/loop-context'
-import { Executability, ObjectType, PSObject } from '../scanner'
-import { PSString } from '../string'
+import { Executability, ObjectType } from '../scanner'
 import { createLiteral } from '../utils'
-
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=606
-export function findFont(interpreter: PSInterpreter) {
-  const [key] = interpreter.operandStack.pop(ObjectType.Any)
-  const font = interpreter.findFont(key)
-  interpreter.pushLiteral(font, ObjectType.Dictionary)
-}
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=684
 export function setFont(interpreter: PSInterpreter) {
@@ -60,61 +51,6 @@ export function scaleFont(interpreter: PSInterpreter) {
     ([scale, font]) => {
       const copy = _scaleFont(font.value, scale.value)
       interpreter.pushLiteral(copy, ObjectType.Dictionary)
-    }
-  )
-}
-
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=583
-export async function defineFont(interpreter: PSInterpreter) {
-  interpreter.operandStack.withPopped(
-    [ObjectType.Dictionary, ObjectType.Any],
-    ([fontDict, key]) => {
-      if (!fontDict.value.isFontDictionary()) {
-        throw new Error('definefont: Not a font dictionary')
-      }
-      // const name = fontDict.value.searchByName('FontName')!
-      const data = fontDict.value.searchByName('sfnts')!.value as PSArray
-      let totalLength = 0
-      for (const str of data.items) {
-        if (str.type !== ObjectType.String) {
-          throw new Error('Invalid data type, expected string got ' + str.type)
-        }
-        totalLength += (str as PSObject<ObjectType.String>).value.length
-      }
-      const binaryData = new Uint8Array(totalLength)
-      let cursor = 0
-      for (const str of data.items) {
-        const buffer = (str.value as PSString).asBuffer()
-        for (let i = 0; i <= buffer.length; ++i) {
-          binaryData[cursor++] = buffer[i]
-        }
-      }
-      const view = new DataView(binaryData.buffer, 0)
-      const font = Font.parse(view)
-
-      const fid = interpreter.parsedFonts.defineFont(font)
-      fontDict.value.set(createLiteral('FID', ObjectType.Name), fid)
-
-      interpreter.fonts.set(key, fontDict)
-      interpreter.operandStack.push(fontDict)
-    }
-  )
-}
-
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=670
-export function selectFont(interpreter: PSInterpreter) {
-  interpreter.operandStack.withPopped(
-    [ObjectType.Integer | ObjectType.Real | ObjectType.Array, ObjectType.Any],
-    ([scaleOrMatrix, key]) => {
-      const font = interpreter.findFont(key).copy()
-      if (scaleOrMatrix.type === ObjectType.Array) {
-        _scaleFontMatrix(font, matrixFromPSArray(scaleOrMatrix))
-        interpreter.printer.setFont(font)
-      } else {
-        const scale = scaleOrMatrix.value as number
-        const scaledFont = _scaleFont(font, scale)
-        interpreter.printer.setFont(scaledFont)
-      }
     }
   )
 }

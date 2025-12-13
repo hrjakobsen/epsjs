@@ -1,0 +1,106 @@
+% https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=583
+/definefont { /Font defineresource  } bind def
+
+% https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=606
+/findfont { /Font findresource } bind def
+
+% https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=670
+/selectfont {
+  % stack: key scaleOrMatrix
+  % NOTE: Technically not to spec, this should be an operator, not a procedure.
+  % However, the implementation of resources make that difficult.
+  % First check if scale or matrix
+  dup type /integertype eq { true }{ dup type /realtype eq } ifelse
+  {
+    % We have a scale
+    exch % scale key
+    findfont
+    exch
+    scalefont
+    setfont
+  }
+  {
+    % Must be a matrix
+    exch % matrix key
+    findfont
+    exch
+    makefont
+    setfont
+  } ifelse
+} bind def
+
+/GlobalCategoryDirectory 10 dict def
+
+/CategoryImplementation 10 dict def
+
+CategoryImplementation begin
+  /CategoryName /Category def
+
+  /Instances GlobalCategoryDirectory def
+
+  /DefineResource {
+    % Stack: <key> <instance>
+    //GlobalCategoryDirectory 3 1 roll put
+  } bind def
+
+  /FindResource {
+     % Stack: <key>
+     //GlobalCategoryDirectory 1 index get
+  } bind def
+end
+
+GlobalCategoryDirectory /Category CategoryImplementation put
+
+10 dict begin
+  /CategoryName /Font def
+  /Instances 100 dict def
+
+  /concatstrings {
+    exch dup length
+    2 index length
+    add string
+    dup dup 4 2 roll
+    copy length
+    4 -1 roll putinterval
+   } bind def
+
+  /ResourceFileName {
+    (fonts/) exch 100 string cvs //concatstrings exec (.ps) //concatstrings exec
+  } bind def
+
+  /DefineResource {
+    dup
+    //Instances
+    4 2 roll
+    put
+   } bind def
+
+  /FindResource {
+    % stack: key
+    //Instances
+    % stack: key Instances
+
+    exch
+    % stack: Instances key
+
+    2 copy
+    % stack: Instances key Instances key
+    known
+    % stack: Intances key bool
+    {
+      get
+    } {
+      % We haven't already loaded the font
+      % stack Instances key
+      exch pop
+      % stack: key
+
+      dup //ResourceFileName exec run
+      % stack: key
+      //Instances exch get
+    } ifelse
+  } bind def
+  currentdict
+end
+
+/Font exch /Category defineresource

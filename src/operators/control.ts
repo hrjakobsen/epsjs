@@ -146,7 +146,7 @@ export function quit(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=707
-export function start(interpreter: PSInterpreter) {
-  const initFile = interpreter.fs.getFile('init.ps')
+export async function start(interpreter: PSInterpreter) {
+  const initFile = await interpreter.fs.getFile('init.ps')
   interpreter.pushFileToExecutionStack(initFile)
 }
