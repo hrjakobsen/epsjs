@@ -11,9 +11,9 @@
 /print-font {
   dup font-size selectfont
   100 string cvs
+  dup
   show
-  % Move up to the next line
-  currentpoint pop -1 mul padding add font-size 1.2 mul rmoveto
+  stringwidth pop -1 mul font-size 1.2 mul rmoveto
 } bind def
 
 padding padding moveto

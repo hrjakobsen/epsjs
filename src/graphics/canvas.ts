@@ -444,10 +444,59 @@ export class CanvasBackedGraphicsContext extends GraphicsContext {
   }
 
   override stringWidth(text: string): { width: number; height: number } {
-    const measure = this.canvasContext.measureText(text)
+    const fontDict = this.fonts[this.fonts.length - 1]
+    if (!fontDict) {
+      throw new InvalidFontError()
+    }
+    const font = this.getFont(fontDict)
+    let nextCoordinate = { x: 0, y: 0 }
+
+    const encodingDict = fontDict.get(
+      createLiteral('Encoding', ObjectType.Name)
+    ) as PSObject<ObjectType.Array>
+
+    const charStringsDict = fontDict.get(
+      createLiteral('CharStrings', ObjectType.Name)
+    ) as PSObject<ObjectType.Dictionary>
+
+    const matrix = (fontDict.searchByName('FontMatrix')?.value as PSArray).map(
+      (x) => x.value
+    ) as TransformationMatrix | undefined
+    const fontMatrix = matrix ?? IDENTITY_MATRIX
+
+    const scalingFactor = 1 / font.head.unitsPerEm
+
+    for (let i = 0; i < text.length; ++i) {
+      const charCode = text.charCodeAt(i)
+      const encodingMapping = encodingDict.value.get(charCode)
+      if (!encodingMapping) {
+        throw new Error("Couldn't find encoding for charcode " + charCode)
+      }
+
+      const glyphIndex = charStringsDict.value.get(
+        encodingMapping
+      ) as PSObject<ObjectType.Integer>
+
+      if (!glyphIndex) {
+        throw new Error(
+          "Couldn't find glyph index for name /" + encodingMapping.value
+        )
+      }
+
+      const advanceWidth = font.getAdvanceWidth(glyphIndex.value)
+      const distance = transformCoordinate(
+        { y: 0, x: advanceWidth * scalingFactor },
+        fontMatrix
+      )
+      nextCoordinate = {
+        x: nextCoordinate.x + distance.x,
+        y: nextCoordinate.y,
+      }
+    }
+
     return {
-      width: measure.width,
-      height: measure.actualBoundingBoxAscent,
+      width: nextCoordinate.x,
+      height: nextCoordinate.y,
     }
   }
 
