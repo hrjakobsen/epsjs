@@ -35,8 +35,54 @@ export function defineresource(interpreter: PSInterpreter) {
   })
 }
 
+const FontMapping: Record<string, string> = {
+  Helvetica: 'TG-Heros',
+  'Helvetica-Bold': 'TG-Heros-Bold',
+  'Helvetica-Oblique': 'TG-Heros-Oblique',
+  'Helvetica-BoldOblique': 'TG-Heros-BoldOblique',
+  'Helvetica-Narrow': 'TG-Heros-Narrow',
+  'Helvetica-Narrow-Bold': 'TG-Heros-Narrow-Bold',
+  'Helvetica-Narrow-Oblique': 'TG-Heros-Narrow-Oblique',
+  'Helvetica-Narrow-BoldOblique': 'TG-Heros-Narrow-BoldOblique',
+  'Times-Roman': 'TG-Termes',
+  'Times-Bold': 'TG-Termes-Bold',
+  'Times-Italic': 'TG-Termes-Italic',
+  'Times-BoldItalic': 'TG-Termes-BoldItalic',
+  Courier: 'TG-Cursor',
+  'Courier-Bold': 'TG-Cursor-Bold',
+  'Courier-Oblique': 'TG-Cursor-Oblique',
+  'Courier-BoldOblique': 'TG-Cursor-BoldOblique',
+  'AvantGarde-Book': 'TG-Adventor',
+  'AvantGarde-Demi': 'TG-Adventor-Bold',
+  'AvantGarde-BookOblique': 'TG-Adventor-Oblique',
+  'AvantGarde-DemiOblique': 'TG-Adventor-BoldOblique',
+  'Bookman-Light': 'TG-Bonum',
+  'Bookman-Demi': 'TG-Bonum-Bold',
+  'Bookman-LightItalic': 'TG-Bonum-Oblique',
+  'Bookman-DemiItalic': 'TG-Bonum-BoldOblique',
+  'NewCenturySchlbk-Roman': 'TG-Schola',
+  'NewCenturySchlbk-Bold': 'TG-Schola-Bold',
+  'NewCenturySchlbk-Italic': 'TG-Schola-Oblique',
+  'NewCenturySchlbk-BoldItalic': 'TG-Schola-BoldOblique',
+  'Palatino-Roman': 'TG-Pagella',
+  'Palatino-Bold': 'TG-Pagella-Bold',
+  'Palatino-Italic': 'TG-Pagella-Oblique',
+  'Palatino-BoldItalic': 'TG-Pagella-BoldOblique',
+  'ZapfChancery-MediumItalic': 'TG-Chorus',
+  Symbol: 'Symbol-Neu',
+}
+
 export function findresource(interpreter: PSInterpreter) {
-  delegateResourceCommand(interpreter, 'FindResource')
+  delegateResourceCommand(interpreter, 'FindResource', (category) => {
+    if (category.value === 'Font') {
+      const [key] = interpreter.operandStack.pop(ObjectType.Name)
+      if (key.value in FontMapping) {
+        interpreter.operandStack.push({ ...key, value: FontMapping[key.value] })
+      } else {
+        interpreter.operandStack.push(key)
+      }
+    }
+  })
 }
 
 function delegateResourceCommand(
