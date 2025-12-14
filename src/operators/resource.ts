@@ -7,32 +7,36 @@ import { Access, Executability, ObjectType, PSObject } from '../scanner'
 import { PSString } from '../string'
 import { createLiteral } from '../utils'
 
-export function defineresource(interpreter: PSInterpreter) {
-  delegateResourceCommand(interpreter, 'DefineResource', async (category) => {
-    if (category.value === 'Font') {
-      const [instance, key] = interpreter.operandStack.pop(
-        ObjectType.Dictionary,
-        ObjectType.Name | ObjectType.String
-      )
-      if (!instance.value.isFontDictionary()) {
-        throw new TypecheckError()
-      }
-      if (
-        !(
-          instance.value.get(createLiteral('FontType', ObjectType.Name))
-            ?.value === 42
+export async function defineresource(interpreter: PSInterpreter) {
+  await delegateResourceCommand(
+    interpreter,
+    'DefineResource',
+    async (category) => {
+      if (category.value === 'Font') {
+        const [instance, key] = interpreter.operandStack.pop(
+          ObjectType.Dictionary,
+          ObjectType.Name | ObjectType.String
         )
-      ) {
-        console.error('Only type 42 fonts are supported')
-        throw new TypecheckError()
-      }
-      try {
-        await loadFontData(interpreter, instance)
-      } finally {
-        interpreter.operandStack.push(key, instance)
+        if (!instance.value.isFontDictionary()) {
+          throw new TypecheckError()
+        }
+        if (
+          !(
+            instance.value.get(createLiteral('FontType', ObjectType.Name))
+              ?.value === 42
+          )
+        ) {
+          console.error('Only type 42 fonts are supported')
+          throw new TypecheckError()
+        }
+        try {
+          await loadFontData(interpreter, instance)
+        } finally {
+          interpreter.operandStack.push(key, instance)
+        }
       }
     }
-  })
+  )
 }
 
 const FontMapping: Record<string, string> = {
@@ -72,8 +76,8 @@ const FontMapping: Record<string, string> = {
   Symbol: 'Symbol-Neu',
 }
 
-export function findresource(interpreter: PSInterpreter) {
-  delegateResourceCommand(interpreter, 'FindResource', (category) => {
+export async function findresource(interpreter: PSInterpreter) {
+  await delegateResourceCommand(interpreter, 'FindResource', (category) => {
     if (category.value === 'Font') {
       const [key] = interpreter.operandStack.pop(ObjectType.Name)
       if (key.value in FontMapping) {
@@ -85,12 +89,13 @@ export function findresource(interpreter: PSInterpreter) {
   })
 }
 
-function delegateResourceCommand(
+async function delegateResourceCommand(
   interpreter: PSInterpreter,
   procedure: string,
   extraBehaviour?: (category: PSObject<ObjectType.Name>) => Promise<void> | void
 ) {
-  interpreter.operandStack.withPopped([ObjectType.Name], ([category]) => {
+  const [category] = interpreter.operandStack.pop(ObjectType.Name)
+  try {
     const globalCategoryDict = interpreter.symbolLookup(
       createLiteral('GlobalCategoryDirectory', ObjectType.Name)
     )
@@ -105,7 +110,7 @@ function delegateResourceCommand(
     ).value.get(createLiteral(category.value, ObjectType.Name))
 
     // Extra behaviour for certain categories (e.g. fonts)
-    extraBehaviour?.(category)
+    await extraBehaviour?.(category)
 
     interpreter.dictionaryStack.push(globalCategoryDict)
     const perCategoryProc = (
@@ -133,7 +138,10 @@ function delegateResourceCommand(
     interpreter.executionStack.push(
       new ProcedureContext(interpreter, perCategoryProc)
     )
-  })
+  } catch (error) {
+    interpreter.operandStack.push(category)
+    throw error
+  }
 }
 
 async function loadFontData(
