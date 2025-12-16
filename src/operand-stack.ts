@@ -1,4 +1,5 @@
 import {
+  RangeCheckError,
   StackUnderflowError,
   TypecheckError,
   UnmatchedMarkError,
@@ -10,6 +11,13 @@ export class OperandStack {
 
   public push(...values: PSObject[]) {
     this._stack.push(...values)
+  }
+
+  public set(index: number, value: PSObject) {
+    if (index < 0 || index >= this._stack.length) {
+      throw new RangeCheckError()
+    }
+    this._stack[index] = value
   }
 
   public pop<T extends ObjectType[]>(

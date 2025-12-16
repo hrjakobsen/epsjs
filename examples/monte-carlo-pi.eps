@@ -40,27 +40,27 @@ iterations div 4 mul
 % convert the pi approximation to a string
 20 string cvs
 % create string to contain full "pi = approx"
-24 string
+22 string
 % keep a reference that we can use to keep constructing the final string
 dup
 % location where we'll start placing the approximation
 4
 % shuffle move things into place for the putinterval
 4 -1 roll putinterval
-dup 0 (  = ) putinterval
+dup 0 ( = ) putinterval
 % reference we'll use for stringwidth
 dup
+/Helvetica 14 selectfont stringwidth pop
+/Symbol 14 selectfont (\160) stringwidth pop add stack
 
 0 0 0 setrgbcolor
-
 % initial x coordinate
 radius
-% get the width of the approximation string
-exch stringwidth pop
 % subtract half of string width to place string in center
 2 div sub
 % y coordinate
 radius moveto
+stack
 /Symbol 14 selectfont (\160) show
 /Helvetica 14 selectfont
 show

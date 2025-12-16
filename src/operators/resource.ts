@@ -10,6 +10,7 @@ import { createLiteral } from '../utils'
 export async function defineresource(interpreter: PSInterpreter) {
   await delegateResourceCommand(
     interpreter,
+    1,
     'DefineResource',
     async (category) => {
       if (category.value === 'Font') {
@@ -77,7 +78,7 @@ const FontMapping: Record<string, string> = {
 }
 
 export async function findresource(interpreter: PSInterpreter) {
-  await delegateResourceCommand(interpreter, 'FindResource', (category) => {
+  await delegateResourceCommand(interpreter, 0, 'FindResource', (category) => {
     if (category.value === 'Font') {
       const [key] = interpreter.operandStack.pop(ObjectType.Name)
       if (key.value in FontMapping) {
@@ -91,10 +92,20 @@ export async function findresource(interpreter: PSInterpreter) {
 
 async function delegateResourceCommand(
   interpreter: PSInterpreter,
+  keyOffset: number,
   procedure: string,
   extraBehaviour?: (category: PSObject<ObjectType.Name>) => Promise<void> | void
 ) {
   const [category] = interpreter.operandStack.pop(ObjectType.Name)
+  const keyIndex = interpreter.operandStack.length - 1 - keyOffset
+  const key = interpreter.operandStack.at(keyIndex)
+  if (key.type === ObjectType.String) {
+    interpreter.operandStack.set(keyIndex, {
+      ...key,
+      type: ObjectType.Name,
+      value: (key as PSObject<ObjectType.String>).value.asString(),
+    })
+  }
   try {
     const globalCategoryDict = interpreter.symbolLookup(
       createLiteral('GlobalCategoryDirectory', ObjectType.Name)
