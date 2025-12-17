@@ -1,6 +1,6 @@
-import { IoError, PSError } from '../error'
+import { InvalidAccessError, IoError, PSError } from '../error'
 import { ExecutionContext } from '../execution-contexts'
-import { Ascii85DecodeFilter } from '../file'
+import { Ascii85DecodeFilter, FileAccess, fileAccessFromString } from '../file'
 import { PSInterpreter } from '../interpreter'
 import { Executability, ObjectType, PSObject } from '../scanner'
 import { createLiteral } from '../utils'
@@ -33,12 +33,38 @@ export function pstack(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=655
-export function readString(interpreter: PSInterpreter) {
+export function readstring(interpreter: PSInterpreter) {
   const [{ value: target }, { value: file }] = interpreter.operandStack.pop(
     ObjectType.String,
     ObjectType.File
   )
   const result = file.readString(target)
+  interpreter.operandStack.push(
+    createLiteral(result.substring, ObjectType.String),
+    createLiteral(result.success, ObjectType.Boolean)
+  )
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=653
+export function read(interpreter: PSInterpreter) {
+  const [{ value: file }] = interpreter.operandStack.pop(ObjectType.File)
+  if (file.isAtEndOfFile()) {
+    interpreter.operandStack.push(createLiteral(false, ObjectType.Boolean))
+    // TODO: Close file?
+  } else {
+    const result = file.read()!
+    interpreter.operandStack.push(createLiteral(true, ObjectType.Boolean))
+    interpreter.operandStack.push(createLiteral(result, ObjectType.Integer))
+  }
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=653
+export function readhexstring(interpreter: PSInterpreter) {
+  const [{ value: target }, { value: file }] = interpreter.operandStack.pop(
+    ObjectType.String,
+    ObjectType.File
+  )
+  const result = file.readHexString(target)
   interpreter.operandStack.push(
     createLiteral(result.substring, ObjectType.String),
     createLiteral(result.success, ObjectType.Boolean)
@@ -103,9 +129,73 @@ export async function run(interpreter: PSInterpreter) {
 }
 
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=601
-// 'file'
+export function file(interpreter: PSInterpreter) {
+  interpreter.operandStack.withPopped(
+    [ObjectType.String, ObjectType.String],
+    ([access, filename]) => {
+      const accessModifier = fileAccessFromString(access.value.asString())
+      if (filename.value.asString() === '%stdin') {
+        if (accessModifier !== FileAccess.Read) {
+          throw new InvalidAccessError()
+        }
+        interpreter.operandStack.push(
+          createLiteral(interpreter.stdin, ObjectType.File)
+        )
+        return
+      }
+
+      if (filename.value.asString() === '%stdout') {
+        if (accessModifier !== FileAccess.Write) {
+          throw new InvalidAccessError()
+        }
+        interpreter.operandStack.push(
+          createLiteral(interpreter.stdout, ObjectType.File)
+        )
+        return
+      }
+
+      return new Error('Unimplemented creation of new files')
+    }
+  )
+}
+
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=734
-// write
+export function write(interpreter: PSInterpreter) {
+  interpreter.operandStack.withPopped(
+    [ObjectType.Integer, ObjectType.File],
+    ([character, file]) => {
+      file.value.write(character.value)
+    }
+  )
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=734
+export function writehexstring(interpreter: PSInterpreter) {
+  interpreter.operandStack.withPopped(
+    [ObjectType.String, ObjectType.File],
+    ([character, file]) => {
+      file.value.writeHexString(character.value)
+    }
+  )
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=735
+export function writestring(interpreter: PSInterpreter) {
+  interpreter.operandStack.withPopped(
+    [ObjectType.String, ObjectType.File],
+    ([character, file]) => {
+      file.value.writeString(character.value)
+    }
+  )
+}
+
+// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=647
+export function print(interpreter: PSInterpreter) {
+  interpreter.operandStack.withPopped([ObjectType.String], ([string]) => {
+    interpreter.stdout.writeString(string.value)
+  })
+}
+
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=558
 // closefile
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=608
@@ -114,15 +204,12 @@ export async function run(interpreter: PSInterpreter) {
 // flushfile
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=659
 // resetfile
-
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=586
 // deletefile
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=658
 // renamefile
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=602
 // filenameforall
-// https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=647
-// print
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=648
 // printobject
 // https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf#page=735

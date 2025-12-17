@@ -1,6 +1,6 @@
 import { PSDictionary } from './dictionary/dictionary'
 import { SystemDictionary } from './dictionary/system-dictionary'
-import { CharStreamBackedFile } from './file'
+import { CharStreamBackedFile, FileAccess, StdoutFile } from './file'
 import {
   Access,
   EPSMetaData,
@@ -66,6 +66,8 @@ export class PSInterpreter {
   ]
   public operandStack = new OperandStack()
   public executionStack: (PSObject | ExecutionContext)[] = []
+  public stdin = new CharStreamBackedFile(new CharStream(''), FileAccess.Read)
+  public stdout = new StdoutFile()
 
   public beginLoop(loop: ExecutionContext) {
     if (this.executionStack.length >= MAX_EXECUTION_STACK_SIZE) {

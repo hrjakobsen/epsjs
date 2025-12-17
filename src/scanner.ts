@@ -1,6 +1,6 @@
 import { PSArray } from './array'
 import { PSDictionary } from './dictionary/dictionary'
-import { PSReadableFile } from './file'
+import { PSFile } from './file'
 import { PSInterpreter } from './interpreter'
 import { BASE_10_INT, PSLexer, RADIX_NUMBER, Token, TokenType } from './lexer'
 import { BufferedStreamer } from './stream'
@@ -109,7 +109,7 @@ export type ObjectValue<T extends ObjectType | unknown = unknown> =
     : T extends ObjectType.Dictionary
     ? PSDictionary
     : T extends ObjectType.File
-    ? PSReadableFile
+    ? PSFile
     : T extends ObjectType.GState
     ? never
     : T extends ObjectType.PackedArray

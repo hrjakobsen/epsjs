@@ -5,11 +5,10 @@ import {
   TILDE_CHARCODE,
   Z_CHARCODE,
 } from './ascii85'
-import { IoError, RangeCheckError } from './error'
+import { InvalidFileAccessError, IoError, RangeCheckError } from './error'
 import { PSInterpreter } from './interpreter'
 import { CARRIAGE_RETURN, CharStream, LINE_FEED, PSLexer } from './lexer'
 import { PSObject, PSScanner } from './scanner'
-import { InputStream } from './stream'
 import { PSString } from './string'
 
 type ReadResult = {
@@ -17,7 +16,7 @@ type ReadResult = {
   success: boolean
 }
 
-export interface PSReadableFile {
+export interface PSFile {
   isAtEndOfFile(): boolean
   read(): number | undefined
   peek(): number | undefined
@@ -25,9 +24,21 @@ export interface PSReadableFile {
   readLine(string: PSString): ReadResult
   readHexString(string: PSString): ReadResult
   token(): PSObject | undefined
+  write(character: number): void
+  writeString(string: PSString): void
+  writeHexString(string: PSString): void
 }
 
-abstract class PeekableFile implements PSReadableFile {
+abstract class ReadableFile implements PSFile {
+  write(_character: number): void {
+    throw new IoError()
+  }
+  writeString(_string: PSString): void {
+    throw new IoError()
+  }
+  writeHexString(_string: PSString): void {
+    throw new IoError()
+  }
   private bufferedCharCode: number | undefined
 
   isAtEndOfFile(): boolean {
@@ -38,8 +49,9 @@ abstract class PeekableFile implements PSReadableFile {
 
   read(): number | undefined {
     if (this.bufferedCharCode !== undefined) {
+      const ret = this.bufferedCharCode
       this.bufferedCharCode = undefined
-      return this.bufferedCharCode
+      return ret
     }
     return this.readCharacter()
   }
@@ -100,7 +112,7 @@ abstract class PeekableFile implements PSReadableFile {
     const findHex = (): number | undefined => {
       while (this.peek() !== undefined) {
         if (isHex(this.peek()!)) {
-          return this.peek()
+          return this.read()!
         }
         this.read()
       }
@@ -118,7 +130,7 @@ abstract class PeekableFile implements PSReadableFile {
       if (second === undefined) {
         throw new Error('Invalid hex character')
       }
-      const codepoint = parseInt(String.fromCodePoint(first, second), 16)
+      const codepoint = parseInt(String.fromCharCode(first, second), 16)
       string.set(i, codepoint)
     }
     return {
@@ -130,15 +142,103 @@ abstract class PeekableFile implements PSReadableFile {
   abstract token(): PSObject<unknown> | undefined
 }
 
-export class CharStreamBackedFile extends PeekableFile {
+export function fileAccessFromString(modifier: string) {
+  switch (modifier) {
+    case 'r':
+      return FileAccess.Read
+    case 'w':
+      return FileAccess.Write
+    case 'a':
+      return FileAccess.Append
+    case 'r+':
+      return FileAccess.ReadWrite
+    case 'w+':
+      return FileAccess.WriteRead
+    case 'a+':
+      return FileAccess.AppendRead
+    default:
+      throw new InvalidFileAccessError()
+  }
+}
+
+export enum FileAccess {
+  Read,
+  Write,
+  Append,
+  ReadWrite,
+  WriteRead,
+  AppendRead,
+}
+
+function canRead(access: FileAccess) {
+  return (
+    access === FileAccess.Read ||
+    access === FileAccess.ReadWrite ||
+    access === FileAccess.WriteRead ||
+    access === FileAccess.AppendRead
+  )
+}
+
+function canWrite(access: FileAccess) {
+  return (
+    access === FileAccess.Write ||
+    access === FileAccess.Append ||
+    access === FileAccess.WriteRead ||
+    access === FileAccess.ReadWrite ||
+    access === FileAccess.AppendRead
+  )
+}
+
+export class CharStreamBackedFile extends ReadableFile implements PSFile {
   private scanner: PSScanner
 
-  constructor(private charStream: InputStream<number>) {
+  constructor(
+    protected charStream: CharStream,
+    private access: FileAccess = FileAccess.Read
+  ) {
     super()
     this.scanner = new PSScanner(new PSLexer(this.charStream))
   }
 
+  override write(character: number): void {
+    if (!canWrite(this.access)) {
+      throw new IoError()
+    }
+    if (character < 0 || character > 255) {
+      throw new RangeCheckError()
+    }
+    this.charStream.write(character)
+  }
+
+  override writeString(string: PSString): void {
+    for (let i = 0; i < string.length; ++i) {
+      this.write(string.get(i))
+    }
+  }
+
+  writeHex(character: number) {
+    if (!canWrite(this.access)) {
+      throw new IoError()
+    }
+    if (character < 0 || character > 255) {
+      throw new RangeCheckError()
+    }
+    const hex = character.toString(16).padStart(2, '0')
+    for (let i = 0; i < 2; ++i) {
+      this.write(hex.charCodeAt(i))
+    }
+  }
+
+  override writeHexString(string: PSString): void {
+    for (let i = 0; i < string.length; ++i) {
+      this.writeHex(string.get(i))
+    }
+  }
+
   readCharacter(): number | undefined {
+    if (!canRead(this.access)) {
+      throw new IoError()
+    }
     const next = this.charStream.next
     if (next !== undefined) {
       this.charStream.advance(1)
@@ -162,8 +262,17 @@ export class CharStreamBackedFile extends PeekableFile {
   }
 }
 
-abstract class DecodingFilter extends PeekableFile {
-  constructor(protected backingFile: PSReadableFile) {
+export class StdoutFile extends CharStreamBackedFile {
+  constructor() {
+    super(new CharStream(''), FileAccess.Write)
+  }
+  get content() {
+    return this.charStream.data
+  }
+}
+
+abstract class DecodingFilter extends ReadableFile {
+  constructor(protected backingFile: PSFile) {
     super()
   }
 

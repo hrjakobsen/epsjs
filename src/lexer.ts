@@ -42,7 +42,7 @@ export class CharStream extends InputStream<number> {
     return this._pos
   }
 
-  public constructor(private data: string) {
+  public constructor(public data: string) {
     super()
   }
 
@@ -58,6 +58,14 @@ export class CharStream extends InputStream<number> {
       throw new Error('CharStream: advance: n must be greater than 1')
     }
     this._pos = Math.min(this.data.length, this.pos + n)
+  }
+
+  write(item: number): void {
+    this.data += String.fromCharCode(item)
+  }
+
+  writeMany(...items: number[]): void {
+    this.data += String.fromCharCode(...items)
   }
 }
 
