@@ -51,6 +51,8 @@ export const view = new EditorView({
 async function render(): Promise<PSInterpreter | undefined> {
   try {
     document.getElementById('error')!.innerText = ''
+    const stdoutElement = document.getElementById('stdout')!
+    stdoutElement.innerHTML = ''
     const canvas = document.getElementById('canvas') as HTMLCanvasElement
     // eslint-disable-next-line no-self-assign
     canvas.width = canvas.width
@@ -68,6 +70,7 @@ async function render(): Promise<PSInterpreter | undefined> {
       canvas.height = 300
     }
     await interpreter.run(context)
+    stdoutElement.innerText = interpreter.stdout.content
     return interpreter
   } catch (e: any) {
     let message = ''
